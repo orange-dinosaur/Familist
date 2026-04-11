@@ -21,8 +21,34 @@ export default function AppTabs() {
                 />
             </NativeTabs.Trigger>
 
+            <NativeTabs.Trigger name="daily-meal">
+                <NativeTabs.Trigger.Label>Daily Meal</NativeTabs.Trigger.Label>
+                <NativeTabs.Trigger.Icon
+                    sf="fork.knife"
+                    renderingMode="template"
+                />
+            </NativeTabs.Trigger>
+
+            <NativeTabs.Trigger name="daily-chores">
+                <NativeTabs.Trigger.Label>
+                    Daily Chores
+                </NativeTabs.Trigger.Label>
+                <NativeTabs.Trigger.Icon
+                    sf="washer.fill"
+                    renderingMode="template"
+                />
+            </NativeTabs.Trigger>
+
+            <NativeTabs.Trigger name="todo">
+                <NativeTabs.Trigger.Label>To-Do</NativeTabs.Trigger.Label>
+                <NativeTabs.Trigger.Icon
+                    sf="checklist"
+                    renderingMode="template"
+                />
+            </NativeTabs.Trigger>
+
             <NativeTabs.Trigger name="explore">
-                <NativeTabs.Trigger.Label>Explore</NativeTabs.Trigger.Label>
+                <NativeTabs.Trigger.Label>Other</NativeTabs.Trigger.Label>
                 <NativeTabs.Trigger.Icon
                     src={require('@/assets/images/tabIcons/explore.png')}
                     renderingMode="template"

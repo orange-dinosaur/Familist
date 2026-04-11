@@ -16,6 +16,10 @@ import { ThemedView } from './themed-view';
 
 import { Colors, MaxContentWidth, Spacing } from '@/constants/theme';
 
+type TabButtonProps = TabTriggerSlotProps & {
+    icon?: string;
+};
+
 export default function AppTabs() {
     return (
         <Tabs>
@@ -23,10 +27,22 @@ export default function AppTabs() {
             <TabList asChild>
                 <CustomTabList>
                     <TabTrigger name="home" href="/" asChild>
-                        <TabButton>Home</TabButton>
+                        <TabButton icon="house">Home</TabButton>
                     </TabTrigger>
                     <TabTrigger name="explore" href="/explore" asChild>
-                        <TabButton>Explore</TabButton>
+                        <TabButton icon="search">Explore</TabButton>
+                    </TabTrigger>
+                    <TabTrigger name="daily-meal" href="/daily-meal" asChild>
+                        <TabButton icon="restaurant">Daily Meal</TabButton>
+                    </TabTrigger>
+                    <TabTrigger
+                        name="daily-chores"
+                        href="/daily-chores"
+                        asChild>
+                        <TabButton icon="home">Daily Chores</TabButton>
+                    </TabTrigger>
+                    <TabTrigger name="todo" href="/todo" asChild>
+                        <TabButton icon="checklist">To-Do</TabButton>
                     </TabTrigger>
                 </CustomTabList>
             </TabList>
@@ -37,8 +53,13 @@ export default function AppTabs() {
 export function TabButton({
     children,
     isFocused,
+    icon,
     ...props
-}: TabTriggerSlotProps) {
+}: TabButtonProps) {
+    const scheme = useColorScheme();
+    const colors = Colors[scheme === 'unspecified' ? 'light' : scheme];
+    const tintColor = isFocused ? colors.text : colors.textSecondary;
+
     return (
         <Pressable
             {...props}
@@ -46,6 +67,13 @@ export function TabButton({
             <ThemedView
                 type={isFocused ? 'backgroundSelected' : 'backgroundElement'}
                 style={styles.tabButtonView}>
+                {icon && (
+                    <SymbolView
+                        name={{ web: icon }}
+                        tintColor={tintColor}
+                        size={14}
+                    />
+                )}
                 <ThemedText
                     type="small"
                     themeColor={isFocused ? 'text' : 'textSecondary'}>
@@ -110,6 +138,9 @@ const styles = StyleSheet.create({
         opacity: 0.7,
     },
     tabButtonView: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: Spacing.one,
         paddingVertical: Spacing.one,
         paddingHorizontal: Spacing.three,
         borderRadius: Spacing.three,
