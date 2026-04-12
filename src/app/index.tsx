@@ -6,26 +6,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import {
+    dailyChoresPreview,
+    dailyMealPreview,
+    todoPreview,
+} from '@/constants/mock-data';
 import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
-
-// Mock data — will be replaced with DB reads in the future
-const dailyMealPreview = [
-    'Pasta al pomodoro',
-    'Grilled chicken salad',
-    'Fresh seasonal fruit',
-];
-
-const dailyChoresPreview = [
-    { label: 'Clean kitchen', done: true },
-    { label: 'Do laundry', done: false },
-    { label: 'Vacuum living room', done: false },
-];
-
-const longTermChoresPreview = [
-    { label: 'Organize garage', done: false },
-    { label: 'Paint bedroom walls', done: false },
-];
 
 function getFormattedDate(): string {
     const now = new Date();
@@ -220,7 +207,7 @@ export default function HomeScreen() {
                                 To-Do
                             </ThemedText>
                             <View style={styles.cardPreview}>
-                                {longTermChoresPreview.map((item, i) => (
+                                {todoPreview.map((item, i) => (
                                     <View key={i} style={styles.checkItem}>
                                         <SymbolView
                                             name={{
