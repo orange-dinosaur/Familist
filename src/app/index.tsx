@@ -1,6 +1,7 @@
 import { SymbolView } from 'expo-symbols';
+import { useRouter } from 'expo-router';
 import React from 'react';
-import { StyleSheet } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
@@ -8,23 +9,333 @@ import { ThemedView } from '@/components/themed-view';
 import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
+// Mock data — will be replaced with DB reads in the future
+const dailyMealPreview = [
+    'Pasta al pomodoro',
+    'Grilled chicken salad',
+    'Fresh seasonal fruit',
+];
+
+const dailyChoresPreview = [
+    { label: 'Clean kitchen', done: true },
+    { label: 'Do laundry', done: false },
+    { label: 'Vacuum living room', done: false },
+];
+
+const longTermChoresPreview = [
+    { label: 'Organize garage', done: false },
+    { label: 'Paint bedroom walls', done: false },
+];
+
+function getFormattedDate(): string {
+    const now = new Date();
+    return now.toLocaleDateString('en-IT', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+    });
+}
+
 export default function HomeScreen() {
     const theme = useTheme();
+    const router = useRouter();
 
     return (
         <ThemedView style={styles.container}>
             <SafeAreaView style={styles.safeArea}>
-                <ThemedView style={styles.content}>
-                    <SymbolView
-                        name={{ ios: 'house.fill', web: 'checklist' }}
-                        tintColor={theme.text}
-                        size={48}
-                    />
-                    <ThemedText type="title">Home</ThemedText>
-                    <ThemedText themeColor="textSecondary">
-                        Welcome to FamiList!
+                <ScrollView
+                    style={styles.scrollView}
+                    contentContainerStyle={styles.scrollContent}
+                    showsVerticalScrollIndicator={false}>
+                    {/* Header: title + avatar */}
+                    <View style={styles.header}>
+                        <ThemedText type="title" style={styles.appTitle}>
+                            FamiList
+                        </ThemedText>
+                        <View
+                            style={[
+                                styles.avatar,
+                                { backgroundColor: theme.backgroundElement },
+                            ]}>
+                            <SymbolView
+                                name={{
+                                    ios: 'person.fill',
+                                    web: 'person',
+                                }}
+                                tintColor={theme.textSecondary}
+                                size={20}
+                            />
+                        </View>
+                    </View>
+
+                    {/* Date and day of the week */}
+                    <ThemedText
+                        themeColor="textSecondary"
+                        style={styles.dateText}>
+                        {getFormattedDate()}
                     </ThemedText>
-                </ThemedView>
+
+                    {/* ─── Daily Meal Card ─── */}
+                    <Pressable
+                        onPress={() => router.navigate('/daily-meal')}
+                        style={({ pressed }) => [
+                            styles.card,
+                            { backgroundColor: theme.backgroundElement },
+                            pressed && {
+                                backgroundColor: theme.backgroundSelected,
+                            },
+                        ]}>
+                        <View style={styles.cardContent}>
+                            <ThemedText type="default" style={styles.cardTitle}>
+                                Daily Meal
+                            </ThemedText>
+                            <View style={styles.cardPreview}>
+                                {dailyMealPreview.map((item, i) => (
+                                    <ThemedText
+                                        key={i}
+                                        themeColor="textSecondary"
+                                        type="small"
+                                        numberOfLines={1}>
+                                        {item}
+                                    </ThemedText>
+                                ))}
+                            </View>
+                        </View>
+                        <View
+                            style={[
+                                styles.cardIconBox,
+                                {
+                                    backgroundColor: theme.backgroundSelected,
+                                },
+                            ]}>
+                            <SymbolView
+                                name={{
+                                    ios: 'fork.knife',
+                                    web: 'restaurant',
+                                }}
+                                tintColor={theme.text}
+                                size={20}
+                            />
+                            <SymbolView
+                                name={{
+                                    ios: 'chevron.right',
+                                    web: 'chevron_right',
+                                }}
+                                tintColor={theme.textSecondary}
+                                size={12}
+                            />
+                        </View>
+                    </Pressable>
+
+                    {/* ─── Daily Chores Card ─── */}
+                    <Pressable
+                        onPress={() => router.navigate('/daily-chores')}
+                        style={({ pressed }) => [
+                            styles.card,
+                            { backgroundColor: theme.backgroundElement },
+                            pressed && {
+                                backgroundColor: theme.backgroundSelected,
+                            },
+                        ]}>
+                        <View style={styles.cardContent}>
+                            <ThemedText type="default" style={styles.cardTitle}>
+                                Daily Chores
+                            </ThemedText>
+                            <View style={styles.cardPreview}>
+                                {dailyChoresPreview.map((item, i) => (
+                                    <View key={i} style={styles.checkItem}>
+                                        <SymbolView
+                                            name={{
+                                                ios: item.done
+                                                    ? 'checkmark.square.fill'
+                                                    : 'square',
+                                                web: item.done
+                                                    ? 'check_box'
+                                                    : 'check_box_outline_blank',
+                                            }}
+                                            tintColor={
+                                                item.done
+                                                    ? theme.textSecondary
+                                                    : theme.text
+                                            }
+                                            size={16}
+                                        />
+                                        <ThemedText
+                                            themeColor={
+                                                item.done
+                                                    ? 'textSecondary'
+                                                    : 'text'
+                                            }
+                                            type="small"
+                                            style={
+                                                item.done
+                                                    ? styles.strikethrough
+                                                    : undefined
+                                            }>
+                                            {item.label}
+                                        </ThemedText>
+                                    </View>
+                                ))}
+                            </View>
+                        </View>
+                        <View
+                            style={[
+                                styles.cardIconBox,
+                                {
+                                    backgroundColor: theme.backgroundSelected,
+                                },
+                            ]}>
+                            <SymbolView
+                                name={{
+                                    ios: 'clock.fill',
+                                    web: 'schedule',
+                                }}
+                                tintColor={theme.text}
+                                size={20}
+                            />
+                            <SymbolView
+                                name={{
+                                    ios: 'chevron.right',
+                                    web: 'chevron_right',
+                                }}
+                                tintColor={theme.textSecondary}
+                                size={12}
+                            />
+                        </View>
+                    </Pressable>
+
+                    {/* ─── To-Do Card ─── */}
+                    <Pressable
+                        onPress={() => router.navigate('/todo')}
+                        style={({ pressed }) => [
+                            styles.card,
+                            { backgroundColor: theme.backgroundElement },
+                            pressed && {
+                                backgroundColor: theme.backgroundSelected,
+                            },
+                        ]}>
+                        <View style={styles.cardContent}>
+                            <ThemedText type="default" style={styles.cardTitle}>
+                                To-Do
+                            </ThemedText>
+                            <View style={styles.cardPreview}>
+                                {longTermChoresPreview.map((item, i) => (
+                                    <View key={i} style={styles.checkItem}>
+                                        <SymbolView
+                                            name={{
+                                                ios: 'square',
+                                                web: 'check_box_outline_blank',
+                                            }}
+                                            tintColor={theme.text}
+                                            size={16}
+                                        />
+                                        <ThemedText type="small">
+                                            {item.label}
+                                        </ThemedText>
+                                    </View>
+                                ))}
+                            </View>
+                        </View>
+                        <View
+                            style={[
+                                styles.cardArrow,
+                                {
+                                    backgroundColor: theme.backgroundSelected,
+                                },
+                            ]}>
+                            <SymbolView
+                                name={{
+                                    ios: 'chevron.right',
+                                    web: 'chevron_right',
+                                }}
+                                tintColor={theme.textSecondary}
+                                size={14}
+                            />
+                        </View>
+                    </Pressable>
+
+                    {/* ─── Bottom Row: 3 utility cards ─── */}
+                    <View style={styles.bottomRow}>
+                        <Pressable
+                            onPress={() => router.navigate('/explore')}
+                            style={({ pressed }) => [
+                                styles.bottomCard,
+                                {
+                                    backgroundColor: theme.backgroundElement,
+                                },
+                                pressed && {
+                                    backgroundColor: theme.backgroundSelected,
+                                },
+                            ]}>
+                            <SymbolView
+                                name={{
+                                    ios: 'creditcard.fill',
+                                    web: 'credit_card',
+                                }}
+                                tintColor={theme.text}
+                                size={24}
+                            />
+                            <ThemedText
+                                type="smallBold"
+                                style={styles.bottomCardLabel}>
+                                Subscriptions
+                            </ThemedText>
+                        </Pressable>
+
+                        <Pressable
+                            onPress={() => router.navigate('/explore')}
+                            style={({ pressed }) => [
+                                styles.bottomCard,
+                                {
+                                    backgroundColor: theme.backgroundElement,
+                                },
+                                pressed && {
+                                    backgroundColor: theme.backgroundSelected,
+                                },
+                            ]}>
+                            <SymbolView
+                                name={{
+                                    ios: 'calendar.badge.exclamationmark',
+                                    web: 'event_busy',
+                                }}
+                                tintColor={theme.text}
+                                size={24}
+                            />
+                            <ThemedText
+                                type="smallBold"
+                                style={styles.bottomCardLabel}>
+                                {'Payment\nDeadlines'}
+                            </ThemedText>
+                        </Pressable>
+
+                        <Pressable
+                            onPress={() => router.navigate('/explore')}
+                            style={({ pressed }) => [
+                                styles.bottomCard,
+                                {
+                                    backgroundColor: theme.backgroundElement,
+                                },
+                                pressed && {
+                                    backgroundColor: theme.backgroundSelected,
+                                },
+                            ]}>
+                            <SymbolView
+                                name={{
+                                    ios: 'link',
+                                    web: 'link',
+                                }}
+                                tintColor={theme.text}
+                                size={24}
+                            />
+                            <ThemedText
+                                type="smallBold"
+                                style={styles.bottomCardLabel}>
+                                {'Shared\nLinks'}
+                            </ThemedText>
+                        </Pressable>
+                    </View>
+                </ScrollView>
             </SafeAreaView>
         </ThemedView>
     );
@@ -33,21 +344,98 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        justifyContent: 'center',
         flexDirection: 'row',
+        justifyContent: 'center',
     },
     safeArea: {
         flex: 1,
-        paddingHorizontal: Spacing.four,
-        alignItems: 'center',
-        gap: Spacing.three,
-        paddingBottom: BottomTabInset + Spacing.three,
         maxWidth: MaxContentWidth,
     },
-    content: {
+    scrollView: {
+        flex: 1,
+    },
+    scrollContent: {
+        paddingHorizontal: Spacing.four,
+        paddingBottom: BottomTabInset + Spacing.four,
+        gap: Spacing.three,
+    },
+    /* ── Header ── */
+    header: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingTop: Spacing.two,
+    },
+    appTitle: {
+        fontSize: 34,
+        lineHeight: 40,
+    },
+    avatar: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
         alignItems: 'center',
         justifyContent: 'center',
-        flex: 1,
+    },
+    dateText: {
+        marginTop: -Spacing.two,
+    },
+    /* ── Section cards ── */
+    card: {
+        borderRadius: 16,
+        padding: Spacing.three,
+        flexDirection: 'row',
+        alignItems: 'stretch',
         gap: Spacing.three,
+    },
+    cardContent: {
+        flex: 1,
+        gap: Spacing.two,
+    },
+    cardTitle: {
+        fontSize: 18,
+        fontWeight: '600',
+        lineHeight: 24,
+    },
+    cardPreview: {
+        gap: Spacing.one,
+    },
+    cardIconBox: {
+        width: 56,
+        borderRadius: 12,
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: Spacing.one,
+    },
+    cardArrow: {
+        width: 32,
+        borderRadius: 12,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    checkItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: Spacing.two,
+    },
+    strikethrough: {
+        textDecorationLine: 'line-through',
+    },
+    /* ── Bottom row ── */
+    bottomRow: {
+        flexDirection: 'row',
+        gap: Spacing.two,
+    },
+    bottomCard: {
+        flex: 1,
+        borderRadius: 16,
+        padding: Spacing.three,
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: Spacing.two,
+        minHeight: 100,
+    },
+    bottomCardLabel: {
+        textAlign: 'center',
     },
 });
