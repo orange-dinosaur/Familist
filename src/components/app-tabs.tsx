@@ -50,7 +50,7 @@ export default function AppTabs() {
             <NativeTabs.Trigger name="explore">
                 <NativeTabs.Trigger.Label>Other</NativeTabs.Trigger.Label>
                 <NativeTabs.Trigger.Icon
-                    src={require('@/assets/images/tabIcons/explore.png')}
+                    sf="rectangle.stack.fill"
                     renderingMode="template"
                 />
             </NativeTabs.Trigger>

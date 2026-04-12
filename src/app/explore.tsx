@@ -1,102 +1,53 @@
+import { SymbolView } from 'expo-symbols';
 import React from 'react';
-import { Platform, ScrollView, StyleSheet } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { StyleSheet } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { WebBadge } from '@/components/web-badge';
 import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
-export default function TabTwoScreen() {
-    const safeAreaInsets = useSafeAreaInsets();
-    const insets = {
-        ...safeAreaInsets,
-        bottom: safeAreaInsets.bottom + BottomTabInset + Spacing.three,
-    };
+export default function ExploreScreen() {
     const theme = useTheme();
 
-    const contentPlatformStyle = Platform.select({
-        android: {
-            paddingTop: insets.top,
-            paddingLeft: insets.left,
-            paddingRight: insets.right,
-            paddingBottom: insets.bottom,
-        },
-        web: {
-            paddingTop: Spacing.six,
-            paddingBottom: Spacing.four,
-        },
-    });
-
     return (
-        <ScrollView
-            style={[styles.scrollView, { backgroundColor: theme.background }]}
-            contentInset={insets}
-            contentContainerStyle={[
-                styles.contentContainer,
-                contentPlatformStyle,
-            ]}>
-            <ThemedView style={styles.container}>
-                <ThemedView style={styles.titleContainer}>
-                    <ThemedText type="subtitle">Explore</ThemedText>
+        <ThemedView style={styles.container}>
+            <SafeAreaView style={styles.safeArea}>
+                <ThemedView style={styles.content}>
+                    <SymbolView
+                        name={{ ios: 'rectangle.stack.fill', web: 'checklist' }}
+                        tintColor={theme.text}
+                        size={48}
+                    />
+                    <ThemedText type="title">Other</ThemedText>
+                    <ThemedText themeColor="textSecondary">
+                        Other tasks are managed here.
+                    </ThemedText>
                 </ThemedView>
-                {Platform.OS === 'web' && <WebBadge />}
-            </ThemedView>
-        </ScrollView>
+            </SafeAreaView>
+        </ThemedView>
     );
 }
 
 const styles = StyleSheet.create({
-    scrollView: {
-        flex: 1,
-    },
-    contentContainer: {
-        flexDirection: 'row',
-        justifyContent: 'center',
-    },
     container: {
-        maxWidth: MaxContentWidth,
-        flexGrow: 1,
-    },
-    titleContainer: {
-        gap: Spacing.three,
-        alignItems: 'center',
-        paddingHorizontal: Spacing.four,
-        paddingVertical: Spacing.six,
-    },
-    centerText: {
-        textAlign: 'center',
-    },
-    pressed: {
-        opacity: 0.7,
-    },
-    linkButton: {
-        flexDirection: 'row',
-        paddingHorizontal: Spacing.four,
-        paddingVertical: Spacing.two,
-        borderRadius: Spacing.five,
+        flex: 1,
         justifyContent: 'center',
-        gap: Spacing.one,
-        alignItems: 'center',
+        flexDirection: 'row',
     },
-    sectionsWrapper: {
-        gap: Spacing.five,
+    safeArea: {
+        flex: 1,
         paddingHorizontal: Spacing.four,
-        paddingTop: Spacing.three,
-    },
-    collapsibleContent: {
         alignItems: 'center',
+        gap: Spacing.three,
+        paddingBottom: BottomTabInset + Spacing.three,
+        maxWidth: MaxContentWidth,
     },
-    imageTutorial: {
-        width: '100%',
-        aspectRatio: 296 / 171,
-        borderRadius: Spacing.three,
-        marginTop: Spacing.two,
-    },
-    imageReact: {
-        width: 100,
-        height: 100,
-        alignSelf: 'center',
+    content: {
+        alignItems: 'center',
+        justifyContent: 'center',
+        flex: 1,
+        gap: Spacing.three,
     },
 });
