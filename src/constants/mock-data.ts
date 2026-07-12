@@ -20,6 +20,7 @@ export interface ChoreItem {
 }
 
 export interface TodoItem {
+    id: string;
     label: string;
     done: boolean;
     priority: 'low' | 'medium' | 'high';
@@ -72,12 +73,17 @@ export const dailyChoresPreview = dailyChores.slice(0, 3);
 // ─── To-Do / Long-term ─────────────────────────────────────────────────
 
 export const todoItems: TodoItem[] = [
-    { label: 'Organize garage', done: false, priority: 'medium' },
-    { label: 'Paint bedroom walls', done: false, priority: 'high' },
-    { label: 'Fix leaky faucet', done: true, priority: 'high' },
-    { label: 'Buy new curtains', done: false, priority: 'low' },
-    { label: 'Schedule dentist appointment', done: false, priority: 'medium' },
-    { label: 'Clean out attic', done: false, priority: 'low' },
+    { id: 't1', label: 'Organize garage', done: false, priority: 'medium' },
+    { id: 't2', label: 'Paint bedroom walls', done: false, priority: 'high' },
+    { id: 't3', label: 'Fix leaky faucet', done: true, priority: 'high' },
+    { id: 't4', label: 'Buy new curtains', done: false, priority: 'low' },
+    {
+        id: 't5',
+        label: 'Schedule dentist appointment',
+        done: false,
+        priority: 'medium',
+    },
+    { id: 't6', label: 'Clean out attic', done: false, priority: 'low' },
 ];
 
 export const todoPreview = todoItems.filter((t) => !t.done).slice(0, 2);

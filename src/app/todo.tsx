@@ -1,13 +1,24 @@
 import { SymbolView } from 'expo-symbols';
-import React from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import React, { useState } from 'react';
+import {
+    Animated,
+    Modal,
+    Platform,
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    TextInput,
+    View,
+} from 'react-native';
+import Swipeable from 'react-native-gesture-handler/Swipeable';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { todoItems, type TodoItem } from '@/constants/mock-data';
+import { type TodoItem } from '@/constants/mock-data';
 import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import { useTodos } from '@/hooks/use-todos';
 
 const priorityConfig: Record<
     TodoItem['priority'],
@@ -18,10 +29,193 @@ const priorityConfig: Record<
     low: { label: 'Low', color: '#46A758' },
 };
 
+const PRIORITIES: TodoItem['priority'][] = ['low', 'medium', 'high'];
+
+interface TodoRowProps {
+    todo: TodoItem;
+    onToggle: () => void;
+    onEdit: () => void;
+    onDelete: () => void;
+    theme: any;
+}
+
+const TodoRow = React.memo(
+    ({ todo, onToggle, onEdit, onDelete, theme }: TodoRowProps) => {
+        const swipeableRef = React.useRef<Swipeable>(null);
+
+        const renderRightActions = (
+            progress: Animated.AnimatedInterpolation<number>,
+            dragX: Animated.AnimatedInterpolation<number>
+        ) => {
+            const trans = dragX.interpolate({
+                inputRange: [-160, 0],
+                outputRange: [0, 160],
+                extrapolate: 'clamp',
+            });
+            return (
+                <View style={styles.rightActionsContainer}>
+                    <Animated.View
+                        style={[
+                            styles.actionButton,
+                            styles.editButton,
+                            { transform: [{ translateX: trans }] },
+                        ]}>
+                        <Pressable
+                            style={styles.actionPressable}
+                            onPress={() => {
+                                swipeableRef.current?.close();
+                                onEdit();
+                            }}>
+                            <SymbolView
+                                name={{
+                                    ios: 'pencil',
+                                    web: 'edit',
+                                }}
+                                tintColor="#ffffff"
+                                size={18}
+                            />
+                            <ThemedText style={styles.actionText}>
+                                Edit
+                            </ThemedText>
+                        </Pressable>
+                    </Animated.View>
+                    <Animated.View
+                        style={[
+                            styles.actionButton,
+                            styles.deleteButton,
+                            { transform: [{ translateX: trans }] },
+                        ]}>
+                        <Pressable
+                            style={styles.actionPressable}
+                            onPress={() => {
+                                swipeableRef.current?.close();
+                                onDelete();
+                            }}>
+                            <SymbolView
+                                name={{
+                                    ios: 'trash',
+                                    web: 'delete',
+                                }}
+                                tintColor="#ffffff"
+                                size={18}
+                            />
+                            <ThemedText style={styles.actionText}>
+                                Delete
+                            </ThemedText>
+                        </Pressable>
+                    </Animated.View>
+                </View>
+            );
+        };
+
+        return (
+            <Swipeable
+                ref={swipeableRef}
+                friction={2}
+                rightThreshold={40}
+                renderRightActions={renderRightActions}
+                containerStyle={styles.swipeableContainer}>
+                <Pressable
+                    onPress={onToggle}
+                    style={({ pressed }) => [
+                        styles.todoRow,
+                        {
+                            backgroundColor: theme.backgroundElement,
+                        },
+                        pressed && {
+                            backgroundColor: theme.backgroundSelected,
+                        },
+                    ]}>
+                    <SymbolView
+                        name={{
+                            ios: todo.done ? 'checkmark.circle.fill' : 'circle',
+                            web: todo.done
+                                ? 'check_circle'
+                                : 'radio_button_unchecked',
+                        }}
+                        tintColor={todo.done ? theme.textSecondary : theme.text}
+                        size={22}
+                    />
+                    <View style={styles.todoContent}>
+                        <ThemedText
+                            type="default"
+                            themeColor={todo.done ? 'textSecondary' : 'text'}
+                            style={[
+                                styles.todoLabel,
+                                todo.done && styles.strikethrough,
+                            ]}>
+                            {todo.label}
+                        </ThemedText>
+                    </View>
+                    {!todo.done && (
+                        <View
+                            style={[
+                                styles.priorityBadge,
+                                {
+                                    backgroundColor:
+                                        priorityConfig[todo.priority].color +
+                                        '20',
+                                },
+                            ]}>
+                            <ThemedText
+                                type="small"
+                                style={{
+                                    color: priorityConfig[todo.priority].color,
+                                    fontWeight: '600',
+                                }}>
+                                {priorityConfig[todo.priority].label}
+                            </ThemedText>
+                        </View>
+                    )}
+                </Pressable>
+            </Swipeable>
+        );
+    }
+);
+
+TodoRow.displayName = 'TodoRow';
+
 export default function TodoScreen() {
     const theme = useTheme();
+    const { todos, addTodo, toggleTodo, deleteTodo, editTodo } = useTodos();
+    const [modalVisible, setModalVisible] = useState(false);
+    const [todoText, setTodoText] = useState('');
+    const [todoPriority, setTodoPriority] =
+        useState<TodoItem['priority']>('medium');
+    const [editingTodo, setEditingTodo] = useState<TodoItem | null>(null);
 
-    const pendingCount = todoItems.filter((t) => !t.done).length;
+    const activeTodos = todos.filter((t) => !t.done);
+    const completedTodos = todos.filter((t) => t.done);
+    const hasTodos = todos.length > 0;
+
+    const openAddModal = () => {
+        setEditingTodo(null);
+        setTodoText('');
+        setTodoPriority('medium');
+        setModalVisible(true);
+    };
+
+    const openEditModal = (todo: TodoItem) => {
+        setEditingTodo(todo);
+        setTodoText(todo.label);
+        setTodoPriority(todo.priority);
+        setModalVisible(true);
+    };
+
+    const handleSave = () => {
+        if (!todoText.trim()) return;
+
+        if (editingTodo) {
+            editTodo(editingTodo.id, todoText.trim(), todoPriority);
+        } else {
+            addTodo(todoText.trim(), todoPriority);
+        }
+        setModalVisible(false);
+    };
+
+    const closeModal = () => {
+        setModalVisible(false);
+    };
 
     return (
         <ThemedView style={styles.container}>
@@ -38,108 +232,268 @@ export default function TodoScreen() {
                         <ThemedText
                             themeColor="textSecondary"
                             style={styles.subtitle}>
-                            {pendingCount} tasks remaining
+                            {activeTodos.length} task
+                            {activeTodos.length !== 1 ? 's' : ''} remaining
                         </ThemedText>
                     </View>
 
+                    {/* Empty state */}
+                    {!hasTodos && (
+                        <View
+                            style={[
+                                styles.emptyState,
+                                {
+                                    backgroundColor: theme.backgroundElement,
+                                },
+                            ]}>
+                            <ThemedText
+                                themeColor="textSecondary"
+                                style={styles.emptyText}>
+                                Tap the button below to add your first to-do
+                                task
+                            </ThemedText>
+                        </View>
+                    )}
+
                     {/* Active tasks */}
-                    <ThemedText type="default" style={styles.sectionTitle}>
-                        Active
-                    </ThemedText>
-                    {todoItems
-                        .filter((t) => !t.done)
-                        .map((item, i) => (
-                            <Pressable
-                                key={`active-${i}`}
-                                style={({ pressed }) => [
-                                    styles.todoRow,
-                                    {
-                                        backgroundColor:
-                                            theme.backgroundElement,
-                                    },
-                                    pressed && {
-                                        backgroundColor:
-                                            theme.backgroundSelected,
-                                    },
-                                ]}>
-                                <SymbolView
-                                    name={{
-                                        ios: 'circle',
-                                        web: 'radio_button_unchecked',
-                                    }}
-                                    tintColor={theme.text}
-                                    size={22}
+                    {activeTodos.length > 0 && (
+                        <>
+                            <ThemedText
+                                type="default"
+                                style={styles.sectionTitle}>
+                                Active
+                            </ThemedText>
+                            {activeTodos.map((todo) => (
+                                <TodoRow
+                                    key={todo.id}
+                                    todo={todo}
+                                    theme={theme}
+                                    onToggle={() => toggleTodo(todo.id)}
+                                    onEdit={() => openEditModal(todo)}
+                                    onDelete={() => deleteTodo(todo.id)}
                                 />
-                                <View style={styles.todoContent}>
-                                    <ThemedText type="default">
-                                        {item.label}
-                                    </ThemedText>
-                                </View>
-                                <View
-                                    style={[
-                                        styles.priorityBadge,
-                                        {
-                                            backgroundColor:
-                                                priorityConfig[item.priority]
-                                                    .color + '20',
-                                        },
-                                    ]}>
-                                    <ThemedText
-                                        type="small"
-                                        style={{
-                                            color: priorityConfig[item.priority]
-                                                .color,
-                                            fontWeight: '600',
-                                        }}>
-                                        {priorityConfig[item.priority].label}
-                                    </ThemedText>
-                                </View>
-                            </Pressable>
-                        ))}
+                            ))}
+                        </>
+                    )}
 
                     {/* Completed tasks */}
-                    <ThemedText
-                        type="default"
-                        style={[
-                            styles.sectionTitle,
-                            { marginTop: Spacing.two },
-                        ]}>
-                        Completed
-                    </ThemedText>
-                    {todoItems
-                        .filter((t) => t.done)
-                        .map((item, i) => (
-                            <Pressable
-                                key={`done-${i}`}
-                                style={({ pressed }) => [
-                                    styles.todoRow,
-                                    {
-                                        backgroundColor:
-                                            theme.backgroundElement,
-                                    },
-                                    pressed && {
-                                        backgroundColor:
-                                            theme.backgroundSelected,
-                                    },
+                    {completedTodos.length > 0 && (
+                        <>
+                            <ThemedText
+                                type="default"
+                                style={[
+                                    styles.sectionTitle,
+                                    { marginTop: Spacing.two },
                                 ]}>
+                                Completed
+                            </ThemedText>
+                            {completedTodos.map((todo) => (
+                                <TodoRow
+                                    key={todo.id}
+                                    todo={todo}
+                                    theme={theme}
+                                    onToggle={() => toggleTodo(todo.id)}
+                                    onEdit={() => openEditModal(todo)}
+                                    onDelete={() => deleteTodo(todo.id)}
+                                />
+                            ))}
+                        </>
+                    )}
+                </ScrollView>
+
+                {/* Add todo button */}
+                <View style={styles.addButtonContainer}>
+                    <Pressable
+                        onPress={openAddModal}
+                        accessibilityLabel="Add a task"
+                        accessibilityRole="button"
+                        style={({ pressed }) => [
+                            styles.addButton,
+                            { backgroundColor: theme.text },
+                            pressed && { opacity: 0.8 },
+                        ]}>
+                        <SymbolView
+                            name={{
+                                ios: 'plus',
+                                web: 'add',
+                            }}
+                            tintColor={theme.background}
+                            size={20}
+                        />
+                        <ThemedText
+                            style={[
+                                styles.addButtonText,
+                                { color: theme.background },
+                            ]}>
+                            Add Task
+                        </ThemedText>
+                    </Pressable>
+                </View>
+            </SafeAreaView>
+
+            {/* Add / Edit todo modal */}
+            <Modal
+                visible={modalVisible}
+                animationType="slide"
+                presentationStyle="pageSheet"
+                onRequestClose={closeModal}>
+                <View
+                    style={[
+                        styles.modalContainer,
+                        { backgroundColor: theme.background },
+                    ]}>
+                    <SafeAreaView style={styles.modalSafeArea}>
+                        {/* Modal header */}
+                        <View style={styles.modalHeader}>
+                            <ThemedText type="subtitle">
+                                {editingTodo ? 'Edit Task' : 'Add Task'}
+                            </ThemedText>
+                            <Pressable
+                                onPress={closeModal}
+                                hitSlop={8}
+                                accessibilityLabel="Close"
+                                accessibilityRole="button">
                                 <SymbolView
                                     name={{
-                                        ios: 'checkmark.circle.fill',
-                                        web: 'check_circle',
+                                        ios: 'xmark.circle.fill',
+                                        web: 'cancel',
                                     }}
                                     tintColor={theme.textSecondary}
-                                    size={22}
+                                    size={28}
                                 />
+                            </Pressable>
+                        </View>
+
+                        <ScrollView
+                            style={styles.modalScroll}
+                            contentContainerStyle={styles.modalScrollContent}
+                            showsVerticalScrollIndicator={false}
+                            keyboardShouldPersistTaps="handled">
+                            {/* Input description */}
+                            <View style={styles.inputSection}>
                                 <ThemedText
                                     type="default"
-                                    themeColor="textSecondary"
-                                    style={styles.strikethrough}>
-                                    {item.label}
+                                    style={styles.modalLabel}>
+                                    Task description
+                                </ThemedText>
+
+                                <View style={styles.inputRow}>
+                                    <TextInput
+                                        style={[
+                                            styles.todoInput,
+                                            {
+                                                backgroundColor:
+                                                    theme.backgroundElement,
+                                                color: theme.text,
+                                            },
+                                        ]}
+                                        placeholder="Type task description here..."
+                                        placeholderTextColor={
+                                            theme.textSecondary
+                                        }
+                                        value={todoText}
+                                        onChangeText={setTodoText}
+                                        onSubmitEditing={handleSave}
+                                        returnKeyType="done"
+                                        autoFocus
+                                        accessibilityLabel="Task description input"
+                                    />
+                                </View>
+                            </View>
+
+                            {/* Priority Selector */}
+                            <View style={styles.inputSection}>
+                                <ThemedText
+                                    type="default"
+                                    style={styles.modalLabel}>
+                                    Task priority
+                                </ThemedText>
+
+                                <View style={styles.prioritySelectorRow}>
+                                    {PRIORITIES.map((priority) => {
+                                        const isSelected =
+                                            todoPriority === priority;
+                                        const color =
+                                            priorityConfig[priority].color;
+                                        return (
+                                            <Pressable
+                                                key={priority}
+                                                onPress={() =>
+                                                    setTodoPriority(priority)
+                                                }
+                                                accessibilityLabel={`Select priority ${priority}`}
+                                                accessibilityRole="button"
+                                                accessibilityState={{
+                                                    selected: isSelected,
+                                                }}
+                                                style={[
+                                                    styles.prioritySelectorButton,
+                                                    {
+                                                        backgroundColor:
+                                                            isSelected
+                                                                ? color
+                                                                : theme.backgroundElement,
+                                                        borderColor: isSelected
+                                                            ? color
+                                                            : 'transparent',
+                                                        borderWidth: 2,
+                                                    },
+                                                ]}>
+                                                <ThemedText
+                                                    style={[
+                                                        styles.prioritySelectorText,
+                                                        {
+                                                            color: isSelected
+                                                                ? '#FFFFFF'
+                                                                : theme.text,
+                                                        },
+                                                    ]}>
+                                                    {
+                                                        priorityConfig[priority]
+                                                            .label
+                                                    }
+                                                </ThemedText>
+                                            </Pressable>
+                                        );
+                                    })}
+                                </View>
+                            </View>
+                        </ScrollView>
+
+                        {/* Modal footer */}
+                        <View style={styles.modalFooter}>
+                            <Pressable
+                                onPress={handleSave}
+                                disabled={!todoText.trim()}
+                                accessibilityLabel="Save task"
+                                accessibilityRole="button"
+                                style={({ pressed }) => [
+                                    styles.doneButton,
+                                    {
+                                        backgroundColor: todoText.trim()
+                                            ? theme.text
+                                            : theme.backgroundElement,
+                                    },
+                                    pressed && {
+                                        opacity: 0.8,
+                                    },
+                                ]}>
+                                <ThemedText
+                                    style={[
+                                        styles.doneButtonText,
+                                        {
+                                            color: todoText.trim()
+                                                ? theme.background
+                                                : theme.textSecondary,
+                                        },
+                                    ]}>
+                                    Save
                                 </ThemedText>
                             </Pressable>
-                        ))}
-                </ScrollView>
-            </SafeAreaView>
+                        </View>
+                    </SafeAreaView>
+                </View>
+            </Modal>
         </ThemedView>
     );
 }
@@ -159,12 +513,13 @@ const styles = StyleSheet.create({
     },
     scrollContent: {
         paddingHorizontal: Spacing.four,
-        paddingBottom: BottomTabInset + Spacing.four,
+        paddingBottom: BottomTabInset + Spacing.six,
         gap: Spacing.two,
     },
     header: {
         paddingTop: Spacing.two,
         gap: Spacing.one,
+        marginBottom: Spacing.two,
     },
     pageTitle: {
         fontSize: 34,
@@ -176,16 +531,23 @@ const styles = StyleSheet.create({
     sectionTitle: {
         fontSize: 16,
         fontWeight: '600',
-        marginTop: Spacing.one,
+        marginTop: Spacing.two,
+        marginBottom: Spacing.one,
+    },
+    swipeableContainer: {
+        borderRadius: 14,
+        overflow: 'hidden',
     },
     todoRow: {
         flexDirection: 'row',
         alignItems: 'center',
         gap: Spacing.three,
-        borderRadius: 14,
         padding: Spacing.three,
     },
     todoContent: {
+        flex: 1,
+    },
+    todoLabel: {
         flex: 1,
     },
     priorityBadge: {
@@ -195,5 +557,136 @@ const styles = StyleSheet.create({
     },
     strikethrough: {
         textDecorationLine: 'line-through',
+    },
+
+    // Empty state
+    emptyState: {
+        alignItems: 'center',
+        borderRadius: 14,
+        padding: Spacing.five,
+        gap: Spacing.three,
+        marginTop: Spacing.two,
+    },
+    emptyText: {
+        textAlign: 'center',
+        lineHeight: 22,
+    },
+
+    // Swipe actions
+    rightActionsContainer: {
+        flexDirection: 'row',
+        width: 160,
+    },
+    actionButton: {
+        flex: 1,
+        height: '100%',
+    },
+    actionPressable: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        gap: Spacing.one,
+        paddingHorizontal: Spacing.one,
+    },
+    editButton: {
+        backgroundColor: '#0A7EA4',
+    },
+    deleteButton: {
+        backgroundColor: '#E5484D',
+    },
+    actionText: {
+        color: '#FFFFFF',
+        fontSize: 12,
+        fontWeight: '600',
+    },
+
+    // Add button
+    addButtonContainer: {
+        paddingHorizontal: Spacing.four,
+        paddingBottom: Platform.select({ ios: 0, default: Spacing.three }),
+        marginBottom: Platform.select({ ios: Spacing.four, default: 0 }),
+    },
+    addButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: Spacing.two,
+        borderRadius: 14,
+        padding: Spacing.three,
+    },
+    addButtonText: {
+        fontSize: 16,
+        fontWeight: '600',
+    },
+
+    // Modal
+    modalContainer: {
+        flex: 1,
+    },
+    modalSafeArea: {
+        flex: 1,
+    },
+    modalHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingHorizontal: Spacing.four,
+        paddingTop: Spacing.three,
+        paddingBottom: Spacing.two,
+    },
+    modalScroll: {
+        flex: 1,
+    },
+    modalScrollContent: {
+        paddingHorizontal: Spacing.four,
+        gap: Spacing.four,
+        paddingBottom: Spacing.four,
+    },
+    modalLabel: {
+        fontWeight: '600',
+        marginBottom: Spacing.two,
+    },
+    inputSection: {
+        gap: Spacing.one,
+    },
+    inputRow: {
+        flexDirection: 'row',
+        gap: Spacing.two,
+        alignItems: 'center',
+    },
+    todoInput: {
+        flex: 1,
+        height: 48,
+        borderRadius: 12,
+        paddingHorizontal: Spacing.three,
+        fontSize: 16,
+    },
+    prioritySelectorRow: {
+        flexDirection: 'row',
+        gap: Spacing.two,
+    },
+    prioritySelectorButton: {
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: Spacing.two,
+        borderRadius: 10,
+    },
+    prioritySelectorText: {
+        fontWeight: '600',
+    },
+    modalFooter: {
+        paddingHorizontal: Spacing.four,
+        paddingVertical: Spacing.three,
+    },
+    doneButton: {
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderRadius: 14,
+        padding: Spacing.three,
+    },
+    doneButtonText: {
+        fontSize: 16,
+        fontWeight: '600',
     },
 });

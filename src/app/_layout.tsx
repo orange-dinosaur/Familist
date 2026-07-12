@@ -11,6 +11,7 @@ import { AnimatedSplashOverlay } from '@/components/animated-icon';
 import AppTabs from '@/components/app-tabs';
 import { ChoresProvider } from '@/hooks/use-chores';
 import { MealProvider } from '@/hooks/use-meals';
+import { TodosProvider } from '@/hooks/use-todos';
 
 export default function TabLayout() {
     const colorScheme = useColorScheme();
@@ -20,8 +21,10 @@ export default function TabLayout() {
                 value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
                 <MealProvider>
                     <ChoresProvider>
-                        <AnimatedSplashOverlay />
-                        <AppTabs />
+                        <TodosProvider>
+                            <AnimatedSplashOverlay />
+                            <AppTabs />
+                        </TodosProvider>
                     </ChoresProvider>
                 </MealProvider>
             </ThemeProvider>

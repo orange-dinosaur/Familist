@@ -6,11 +6,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { todoPreview } from '@/constants/mock-data';
 import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
 import { useChores } from '@/hooks/use-chores';
 import { useMeals } from '@/hooks/use-meals';
 import { useTheme } from '@/hooks/use-theme';
+import { useTodos } from '@/hooks/use-todos';
 
 function getFormattedDate(): string {
     const now = new Date();
@@ -22,11 +22,18 @@ function getFormattedDate(): string {
     });
 }
 
+const priorityColors: Record<string, string> = {
+    high: '#E5484D',
+    medium: '#F5A623',
+    low: '#46A758',
+};
+
 export default function HomeScreen() {
     const theme = useTheme();
     const router = useRouter();
     const { meals } = useMeals();
     const { chores } = useChores();
+    const { todos } = useTodos();
 
     const hasMeals = meals.length > 0;
 
@@ -51,6 +58,8 @@ export default function HomeScreen() {
         .map((m) => `${timeLabel[m.time]}: ${m.name}`);
     const remainingMeals = meals.length - mealPreviewItems.length;
     const remainingChores = chores.length - 3;
+    const activeTodos = todos.filter((t) => !t.done);
+    const remainingTodos = activeTodos.length - 2;
 
     return (
         <ThemedView style={styles.container}>
@@ -257,21 +266,58 @@ export default function HomeScreen() {
                                 To-Do
                             </ThemedText>
                             <View style={styles.cardPreview}>
-                                {todoPreview.map((item, i) => (
-                                    <View key={i} style={styles.checkItem}>
-                                        <SymbolView
-                                            name={{
-                                                ios: 'square',
-                                                web: 'check_box_outline_blank',
-                                            }}
-                                            tintColor={theme.text}
-                                            size={16}
-                                        />
-                                        <ThemedText type="small">
-                                            {item.label}
-                                        </ThemedText>
-                                    </View>
-                                ))}
+                                {activeTodos.length > 0 ? (
+                                    <>
+                                        {activeTodos.slice(0, 2).map((item) => (
+                                            <View
+                                                key={item.id}
+                                                style={styles.checkItem}>
+                                                <SymbolView
+                                                    name={{
+                                                        ios: 'square',
+                                                        web: 'check_box_outline_blank',
+                                                    }}
+                                                    tintColor={theme.text}
+                                                    size={16}
+                                                />
+                                                <View
+                                                    style={[
+                                                        styles.priorityDot,
+                                                        {
+                                                            backgroundColor:
+                                                                priorityColors[
+                                                                    item
+                                                                        .priority
+                                                                ],
+                                                        },
+                                                    ]}
+                                                />
+                                                <ThemedText
+                                                    type="small"
+                                                    numberOfLines={1}>
+                                                    {item.label}
+                                                </ThemedText>
+                                            </View>
+                                        ))}
+                                        {remainingTodos > 0 && (
+                                            <ThemedText
+                                                themeColor="textSecondary"
+                                                type="small"
+                                                style={{
+                                                    fontStyle: 'italic',
+                                                    marginLeft: 40,
+                                                }}>
+                                                +{remainingTodos} more
+                                            </ThemedText>
+                                        )}
+                                    </>
+                                ) : (
+                                    <ThemedText
+                                        themeColor="textSecondary"
+                                        type="small">
+                                        No active tasks
+                                    </ThemedText>
+                                )}
                             </View>
                         </View>
                         <View
@@ -447,6 +493,11 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         gap: Spacing.two,
+    },
+    priorityDot: {
+        width: 8,
+        height: 8,
+        borderRadius: 4,
     },
     strikethrough: {
         textDecorationLine: 'line-through',
