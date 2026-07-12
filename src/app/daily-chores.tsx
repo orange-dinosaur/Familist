@@ -7,7 +7,6 @@ import {
     Pressable,
     ScrollView,
     StyleSheet,
-    TextInput,
     View,
 } from 'react-native';
 import Swipeable from 'react-native-gesture-handler/Swipeable';
@@ -17,19 +16,18 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { type ChoreItem } from '@/constants/mock-data';
 import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
-import { useChores } from '@/hooks/use-chores';
+import { PRESET_CHORES, useChores } from '@/hooks/use-chores';
 import { useTheme } from '@/hooks/use-theme';
 
 interface ChoreRowProps {
     chore: ChoreItem;
     onToggle: () => void;
-    onEdit: () => void;
     onDelete: () => void;
     theme: any;
 }
 
 const ChoreRow = React.memo(
-    ({ chore, onToggle, onEdit, onDelete, theme }: ChoreRowProps) => {
+    ({ chore, onToggle, onDelete, theme }: ChoreRowProps) => {
         const swipeableRef = React.useRef<Swipeable>(null);
 
         const renderRightActions = (
@@ -37,37 +35,12 @@ const ChoreRow = React.memo(
             dragX: Animated.AnimatedInterpolation<number>
         ) => {
             const trans = dragX.interpolate({
-                inputRange: [-160, 0],
-                outputRange: [0, 160],
+                inputRange: [-80, 0],
+                outputRange: [0, 80],
                 extrapolate: 'clamp',
             });
             return (
                 <View style={styles.rightActionsContainer}>
-                    <Animated.View
-                        style={[
-                            styles.actionButton,
-                            styles.editButton,
-                            { transform: [{ translateX: trans }] },
-                        ]}>
-                        <Pressable
-                            style={styles.actionPressable}
-                            onPress={() => {
-                                swipeableRef.current?.close();
-                                onEdit();
-                            }}>
-                            <SymbolView
-                                name={{
-                                    ios: 'pencil',
-                                    web: 'edit',
-                                }}
-                                tintColor="#ffffff"
-                                size={18}
-                            />
-                            <ThemedText style={styles.actionText}>
-                                Edit
-                            </ThemedText>
-                        </Pressable>
-                    </Animated.View>
                     <Animated.View
                         style={[
                             styles.actionButton,
@@ -148,38 +121,19 @@ ChoreRow.displayName = 'ChoreRow';
 
 export default function DailyChoresScreen() {
     const theme = useTheme();
-    const { chores, addChore, toggleChore, deleteChore, editChore } =
-        useChores();
+    const { chores, toggleChore, deleteChore, toggleChoreActive } = useChores();
     const [modalVisible, setModalVisible] = useState(false);
-    const [choreText, setChoreText] = useState('');
-    const [editingChore, setEditingChore] = useState<ChoreItem | null>(null);
 
     const doneCount = chores.filter((c) => c.done).length;
     const progress =
         chores.length > 0 ? Math.round((doneCount / chores.length) * 100) : 0;
     const hasChores = chores.length > 0;
 
+    const isChoreActive = (label: string) =>
+        chores.some((c) => c.label === label);
+
     const openAddModal = () => {
-        setEditingChore(null);
-        setChoreText('');
         setModalVisible(true);
-    };
-
-    const openEditModal = (chore: ChoreItem) => {
-        setEditingChore(chore);
-        setChoreText(chore.label);
-        setModalVisible(true);
-    };
-
-    const handleSave = () => {
-        if (!choreText.trim()) return;
-
-        if (editingChore) {
-            editChore(editingChore.id, choreText.trim());
-        } else {
-            addChore(choreText.trim());
-        }
-        setModalVisible(false);
     };
 
     const closeModal = () => {
@@ -238,8 +192,7 @@ export default function DailyChoresScreen() {
                             <ThemedText
                                 themeColor="textSecondary"
                                 style={styles.emptyText}>
-                                Tap the button below to start tracking your
-                                chores for today
+                                Tap the button below to select chores for today
                             </ThemedText>
                         </View>
                     )}
@@ -252,7 +205,6 @@ export default function DailyChoresScreen() {
                                 chore={chore}
                                 theme={theme}
                                 onToggle={() => toggleChore(chore.id)}
-                                onEdit={() => openEditModal(chore)}
                                 onDelete={() => deleteChore(chore.id)}
                             />
                         ))}
@@ -262,7 +214,7 @@ export default function DailyChoresScreen() {
                 <View style={styles.addButtonContainer}>
                     <Pressable
                         onPress={openAddModal}
-                        accessibilityLabel="Add a chore"
+                        accessibilityLabel="Add chores"
                         accessibilityRole="button"
                         style={({ pressed }) => [
                             styles.addButton,
@@ -282,13 +234,13 @@ export default function DailyChoresScreen() {
                                 styles.addButtonText,
                                 { color: theme.background },
                             ]}>
-                            Add Chore
+                            Add Chores
                         </ThemedText>
                     </Pressable>
                 </View>
             </SafeAreaView>
 
-            {/* Add / Edit chore modal */}
+            {/* Manage chores modal */}
             <Modal
                 visible={modalVisible}
                 animationType="slide"
@@ -302,9 +254,7 @@ export default function DailyChoresScreen() {
                     <SafeAreaView style={styles.modalSafeArea}>
                         {/* Modal header */}
                         <View style={styles.modalHeader}>
-                            <ThemedText type="subtitle">
-                                {editingChore ? 'Edit Chore' : 'Add Chore'}
-                            </ThemedText>
+                            <ThemedText type="subtitle">Add Chores</ThemedText>
                             <Pressable
                                 onPress={closeModal}
                                 hitSlop={8}
@@ -328,32 +278,52 @@ export default function DailyChoresScreen() {
                             keyboardShouldPersistTaps="handled">
                             <View style={styles.inputSection}>
                                 <ThemedText
-                                    type="default"
-                                    style={styles.modalLabel}>
-                                    Chore description
+                                    themeColor="textSecondary"
+                                    type="small"
+                                    style={styles.modalInstructionText}>
+                                    Select which chores are active for today:
                                 </ThemedText>
 
-                                <View style={styles.inputRow}>
-                                    <TextInput
-                                        style={[
-                                            styles.choreInput,
-                                            {
-                                                backgroundColor:
-                                                    theme.backgroundElement,
-                                                color: theme.text,
-                                            },
-                                        ]}
-                                        placeholder="Type chore description here..."
-                                        placeholderTextColor={
-                                            theme.textSecondary
-                                        }
-                                        value={choreText}
-                                        onChangeText={setChoreText}
-                                        onSubmitEditing={handleSave}
-                                        returnKeyType="done"
-                                        autoFocus
-                                        accessibilityLabel="Chore description input"
-                                    />
+                                <View style={styles.pillsGrid}>
+                                    {PRESET_CHORES.map((preset) => {
+                                        const active = isChoreActive(preset);
+                                        return (
+                                            <Pressable
+                                                key={preset}
+                                                onPress={() =>
+                                                    toggleChoreActive(preset)
+                                                }
+                                                accessibilityLabel={`Toggle ${preset}`}
+                                                accessibilityRole="button"
+                                                accessibilityState={{
+                                                    selected: active,
+                                                }}
+                                                style={[
+                                                    styles.presetChorePill,
+                                                    {
+                                                        backgroundColor: active
+                                                            ? theme.text
+                                                            : theme.backgroundElement,
+                                                        borderColor: active
+                                                            ? theme.text
+                                                            : 'transparent',
+                                                        borderWidth: 2,
+                                                    },
+                                                ]}>
+                                                <ThemedText
+                                                    style={[
+                                                        styles.presetChoreText,
+                                                        {
+                                                            color: active
+                                                                ? theme.background
+                                                                : theme.text,
+                                                        },
+                                                    ]}>
+                                                    {preset}
+                                                </ThemedText>
+                                            </Pressable>
+                                        );
+                                    })}
                                 </View>
                             </View>
                         </ScrollView>
@@ -361,16 +331,13 @@ export default function DailyChoresScreen() {
                         {/* Modal footer */}
                         <View style={styles.modalFooter}>
                             <Pressable
-                                onPress={handleSave}
-                                disabled={!choreText.trim()}
-                                accessibilityLabel="Save chore"
+                                onPress={closeModal}
+                                accessibilityLabel="Done"
                                 accessibilityRole="button"
                                 style={({ pressed }) => [
                                     styles.doneButton,
                                     {
-                                        backgroundColor: choreText.trim()
-                                            ? theme.text
-                                            : theme.backgroundElement,
+                                        backgroundColor: theme.text,
                                     },
                                     pressed && {
                                         opacity: 0.8,
@@ -380,12 +347,10 @@ export default function DailyChoresScreen() {
                                     style={[
                                         styles.doneButtonText,
                                         {
-                                            color: choreText.trim()
-                                                ? theme.background
-                                                : theme.textSecondary,
+                                            color: theme.background,
                                         },
                                     ]}>
-                                    Save
+                                    Done
                                 </ThemedText>
                             </Pressable>
                         </View>
@@ -469,7 +434,7 @@ const styles = StyleSheet.create({
     // Swipe actions
     rightActionsContainer: {
         flexDirection: 'row',
-        width: 160,
+        width: 80,
     },
     actionButton: {
         flex: 1,
@@ -481,9 +446,6 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         gap: Spacing.one,
         paddingHorizontal: Spacing.one,
-    },
-    editButton: {
-        backgroundColor: '#0A7EA4',
     },
     deleteButton: {
         backgroundColor: '#E5484D',
@@ -536,24 +498,28 @@ const styles = StyleSheet.create({
         gap: Spacing.three,
         paddingBottom: Spacing.four,
     },
-    modalLabel: {
-        fontWeight: '600',
-        marginBottom: Spacing.two,
-    },
     inputSection: {
-        gap: Spacing.one,
-    },
-    inputRow: {
-        flexDirection: 'row',
         gap: Spacing.two,
-        alignItems: 'center',
     },
-    choreInput: {
-        flex: 1,
-        height: 48,
-        borderRadius: 12,
+    modalInstructionText: {
+        fontWeight: '500',
+        marginBottom: Spacing.one,
+    },
+    pillsGrid: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: Spacing.two,
+    },
+    presetChorePill: {
         paddingHorizontal: Spacing.three,
-        fontSize: 16,
+        paddingVertical: Spacing.two,
+        borderRadius: 10,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    presetChoreText: {
+        fontSize: 14,
+        fontWeight: '600',
     },
     modalFooter: {
         paddingHorizontal: Spacing.four,
