@@ -42,6 +42,7 @@ export default function DailyMealScreen() {
     const [modalVisible, setModalVisible] = useState(false);
     const [selectedTime, setSelectedTime] = useState<MealTime | null>(null);
     const [dishName, setDishName] = useState('');
+    const [isDayPreselected, setIsDayPreselected] = useState(false);
 
     const scrollViewRef = useRef<ScrollView>(null);
     const todayYOffsetRef = useRef<number | null>(null);
@@ -66,6 +67,7 @@ export default function DailyMealScreen() {
         setSelectedDay(todayStr);
         setSelectedTime(null);
         setDishName('');
+        setIsDayPreselected(false);
         setModalVisible(true);
     };
 
@@ -73,6 +75,7 @@ export default function DailyMealScreen() {
         setSelectedDay(day);
         setSelectedTime(null);
         setDishName('');
+        setIsDayPreselected(true);
         setModalVisible(true);
     };
 
@@ -88,10 +91,22 @@ export default function DailyMealScreen() {
 
         addMeal(newMeal);
         setDishName('');
+
+        if (isDayPreselected) {
+            setModalVisible(false);
+        }
     };
 
     const closeModal = () => {
         setModalVisible(false);
+    };
+
+    const handleDone = () => {
+        if (dishName.trim() && selectedTime) {
+            addDish();
+        } else {
+            closeModal();
+        }
     };
 
     return (
@@ -404,50 +419,61 @@ export default function DailyMealScreen() {
                             showsVerticalScrollIndicator={false}
                             keyboardShouldPersistTaps="handled">
                             {/* Step 1: Choose Day */}
-                            <ThemedText
-                                type="default"
-                                style={styles.modalLabel}>
-                                Choose day
-                            </ThemedText>
-                            <ScrollView
-                                horizontal
-                                showsHorizontalScrollIndicator={false}
-                                style={styles.dayPillsScrollView}
-                                contentContainerStyle={
-                                    styles.dayPillsContainer
-                                }>
-                                {dates.map((day) => {
-                                    const isSelected = selectedDay === day;
-                                    return (
-                                        <Pressable
-                                            key={day}
-                                            onPress={() => setSelectedDay(day)}
-                                            style={[
-                                                styles.dayPill,
-                                                {
-                                                    backgroundColor: isSelected
-                                                        ? theme.text
-                                                        : theme.backgroundElement,
-                                                    borderColor: isSelected
-                                                        ? theme.text
-                                                        : 'transparent',
-                                                },
-                                            ]}>
-                                            <ThemedText
-                                                style={[
-                                                    styles.dayPillText,
-                                                    {
-                                                        color: isSelected
-                                                            ? theme.background
-                                                            : theme.text,
-                                                    },
-                                                ]}>
-                                                {formatShortDateString(day)}
-                                            </ThemedText>
-                                        </Pressable>
-                                    );
-                                })}
-                            </ScrollView>
+                            {!isDayPreselected && (
+                                <>
+                                    <ThemedText
+                                        type="default"
+                                        style={styles.modalLabel}>
+                                        Choose day
+                                    </ThemedText>
+                                    <ScrollView
+                                        horizontal
+                                        showsHorizontalScrollIndicator={false}
+                                        style={styles.dayPillsScrollView}
+                                        contentContainerStyle={
+                                            styles.dayPillsContainer
+                                        }>
+                                        {dates.map((day) => {
+                                            const isSelected =
+                                                selectedDay === day;
+                                            return (
+                                                <Pressable
+                                                    key={day}
+                                                    onPress={() =>
+                                                        setSelectedDay(day)
+                                                    }
+                                                    style={[
+                                                        styles.dayPill,
+                                                        {
+                                                            backgroundColor:
+                                                                isSelected
+                                                                    ? theme.text
+                                                                    : theme.backgroundElement,
+                                                            borderColor:
+                                                                isSelected
+                                                                    ? theme.text
+                                                                    : 'transparent',
+                                                        },
+                                                    ]}>
+                                                    <ThemedText
+                                                        style={[
+                                                            styles.dayPillText,
+                                                            {
+                                                                color: isSelected
+                                                                    ? theme.background
+                                                                    : theme.text,
+                                                            },
+                                                        ]}>
+                                                        {formatShortDateString(
+                                                            day
+                                                        )}
+                                                    </ThemedText>
+                                                </Pressable>
+                                            );
+                                        })}
+                                    </ScrollView>
+                                </>
+                            )}
 
                             {/* Step 2: Choose meal type */}
                             <ThemedText
@@ -637,7 +663,7 @@ export default function DailyMealScreen() {
                         {/* Done button */}
                         <View style={styles.modalFooter}>
                             <Pressable
-                                onPress={closeModal}
+                                onPress={handleDone}
                                 accessibilityLabel="Done"
                                 accessibilityRole="button"
                                 style={({ pressed }) => [
