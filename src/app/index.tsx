@@ -73,7 +73,14 @@ export default function HomeScreen() {
     const remainingMeals = todayMeals.length - mealPreviewItems.length;
     const remainingChores = todayChores.length - 3;
     const activeTodos = todayTodos.filter((t) => !t.done);
-    const remainingTodos = activeTodos.length - 2;
+
+    const hiddenMealsCount = !mealsExpanded ? Math.max(0, remainingMeals) : 0;
+    const hiddenChoresCount = !choresExpanded
+        ? Math.max(0, remainingChores)
+        : 0;
+    const hiddenTodosCount = !todosExpanded
+        ? Math.max(0, todayTodos.length - Math.min(activeTodos.length, 2))
+        : 0;
 
     return (
         <ThemedView style={styles.container}>
@@ -208,13 +215,28 @@ export default function HomeScreen() {
                                                 {item}
                                             </ThemedText>
                                         ))}
-                                        {remainingMeals > 0 && (
-                                            <ThemedText
-                                                themeColor="textSecondary"
-                                                type="small"
-                                                style={{ fontStyle: 'italic' }}>
-                                                +{remainingMeals} more
-                                            </ThemedText>
+                                        {hiddenMealsCount > 0 && (
+                                            <View
+                                                style={styles.subtleHiddenClue}>
+                                                <SymbolView
+                                                    name={{
+                                                        ios: 'eye.slash',
+                                                        web: 'visibility_off',
+                                                    }}
+                                                    tintColor={
+                                                        theme.textSecondary
+                                                    }
+                                                    size={12}
+                                                />
+                                                <ThemedText
+                                                    themeColor="textSecondary"
+                                                    type="small"
+                                                    style={{
+                                                        fontStyle: 'italic',
+                                                    }}>
+                                                    +{hiddenMealsCount} more
+                                                </ThemedText>
+                                            </View>
                                         )}
                                     </>
                                 ) : (
@@ -423,16 +445,31 @@ export default function HomeScreen() {
                                                 </View>
                                             );
                                         })}
-                                        {remainingChores > 0 && (
-                                            <ThemedText
-                                                themeColor="textSecondary"
-                                                type="small"
-                                                style={{
-                                                    fontStyle: 'italic',
-                                                    marginLeft: 24,
-                                                }}>
-                                                +{remainingChores} more
-                                            </ThemedText>
+                                        {hiddenChoresCount > 0 && (
+                                            <View
+                                                style={[
+                                                    styles.subtleHiddenClue,
+                                                    { marginLeft: 24 },
+                                                ]}>
+                                                <SymbolView
+                                                    name={{
+                                                        ios: 'eye.slash',
+                                                        web: 'visibility_off',
+                                                    }}
+                                                    tintColor={
+                                                        theme.textSecondary
+                                                    }
+                                                    size={12}
+                                                />
+                                                <ThemedText
+                                                    themeColor="textSecondary"
+                                                    type="small"
+                                                    style={{
+                                                        fontStyle: 'italic',
+                                                    }}>
+                                                    +{hiddenChoresCount} more
+                                                </ThemedText>
+                                            </View>
                                         )}
                                     </>
                                 ) : (
@@ -648,24 +685,72 @@ export default function HomeScreen() {
                                                 </View>
                                             );
                                         })}
-                                        {remainingTodos > 0 && (
-                                            <ThemedText
-                                                themeColor="textSecondary"
-                                                type="small"
-                                                style={{
-                                                    fontStyle: 'italic',
-                                                    marginLeft: 40,
-                                                }}>
-                                                +{remainingTodos} more
-                                            </ThemedText>
+                                        {hiddenTodosCount > 0 && (
+                                            <View
+                                                style={[
+                                                    styles.subtleHiddenClue,
+                                                    { marginLeft: 40 },
+                                                ]}>
+                                                <SymbolView
+                                                    name={{
+                                                        ios: 'eye.slash',
+                                                        web: 'visibility_off',
+                                                    }}
+                                                    tintColor={
+                                                        theme.textSecondary
+                                                    }
+                                                    size={12}
+                                                />
+                                                <ThemedText
+                                                    themeColor="textSecondary"
+                                                    type="small"
+                                                    style={{
+                                                        fontStyle: 'italic',
+                                                    }}>
+                                                    +{hiddenTodosCount} more
+                                                </ThemedText>
+                                            </View>
                                         )}
                                     </>
                                 ) : (
-                                    <ThemedText
-                                        themeColor="textSecondary"
-                                        type="small">
-                                        No active tasks
-                                    </ThemedText>
+                                    <View>
+                                        <ThemedText
+                                            themeColor="textSecondary"
+                                            type="small">
+                                            No active tasks
+                                        </ThemedText>
+                                        {hiddenTodosCount > 0 && (
+                                            <View
+                                                style={[
+                                                    styles.subtleHiddenClue,
+                                                    { marginLeft: 0 },
+                                                ]}>
+                                                <SymbolView
+                                                    name={{
+                                                        ios: 'eye.slash',
+                                                        web: 'visibility_off',
+                                                    }}
+                                                    tintColor={
+                                                        theme.textSecondary
+                                                    }
+                                                    size={12}
+                                                />
+                                                <ThemedText
+                                                    themeColor="textSecondary"
+                                                    type="small"
+                                                    style={{
+                                                        fontStyle: 'italic',
+                                                    }}>
+                                                    +{hiddenTodosCount}{' '}
+                                                    completed task
+                                                    {hiddenTodosCount > 1
+                                                        ? 's'
+                                                        : ''}{' '}
+                                                    hidden
+                                                </ThemedText>
+                                            </View>
+                                        )}
+                                    </View>
                                 )}
                             </View>
                         </View>
@@ -905,5 +990,11 @@ const styles = StyleSheet.create({
         color: '#FFFFFF',
         fontSize: 11,
         fontWeight: '700',
+    },
+    subtleHiddenClue: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: Spacing.one,
+        marginTop: Spacing.one,
     },
 });
