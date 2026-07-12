@@ -6,12 +6,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import {
-    dailyChoresPreview,
-    dailyMealPreview,
-    todoPreview,
-} from '@/constants/mock-data';
+import { dailyChoresPreview, todoPreview } from '@/constants/mock-data';
 import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
+import { useMeals } from '@/hooks/use-meals';
 import { useTheme } from '@/hooks/use-theme';
 
 function getFormattedDate(): string {
@@ -27,6 +24,20 @@ function getFormattedDate(): string {
 export default function HomeScreen() {
     const theme = useTheme();
     const router = useRouter();
+    const { meals } = useMeals();
+
+    const hasMeals = meals.length > 0;
+
+    // Build preview: group by time, show up to 3 items
+    const timeLabel: Record<string, string> = {
+        breakfast: 'Breakfast',
+        lunch: 'Lunch',
+        snack: 'Snack',
+        dinner: 'Dinner',
+    };
+    const mealPreviewItems = meals
+        .slice(0, 3)
+        .map((m) => `${timeLabel[m.time]}: ${m.name}`);
 
     return (
         <ThemedView style={styles.container}>
@@ -78,15 +89,23 @@ export default function HomeScreen() {
                                 Daily Meal
                             </ThemedText>
                             <View style={styles.cardPreview}>
-                                {dailyMealPreview.map((item, i) => (
+                                {hasMeals ? (
+                                    mealPreviewItems.map((item, i) => (
+                                        <ThemedText
+                                            key={i}
+                                            themeColor="textSecondary"
+                                            type="small"
+                                            numberOfLines={1}>
+                                            {item}
+                                        </ThemedText>
+                                    ))
+                                ) : (
                                     <ThemedText
-                                        key={i}
                                         themeColor="textSecondary"
-                                        type="small"
-                                        numberOfLines={1}>
-                                        {item}
+                                        type="small">
+                                        No meals planned yet
                                     </ThemedText>
-                                ))}
+                                )}
                             </View>
                         </View>
                         <View

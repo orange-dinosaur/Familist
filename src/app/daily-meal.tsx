@@ -15,6 +15,7 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { type MealItem } from '@/constants/mock-data';
 import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
+import { useMeals } from '@/hooks/use-meals';
 import { useTheme } from '@/hooks/use-theme';
 
 const timeLabel: Record<MealItem['time'], string> = {
@@ -30,8 +31,7 @@ type MealTime = MealItem['time'];
 
 export default function DailyMealScreen() {
     const theme = useTheme();
-
-    const [meals, setMeals] = useState<MealItem[]>([]);
+    const { meals, addMeal, removeMeal } = useMeals();
     const [modalVisible, setModalVisible] = useState(false);
     const [selectedTime, setSelectedTime] = useState<MealTime | null>(null);
     const [dishName, setDishName] = useState('');
@@ -64,12 +64,8 @@ export default function DailyMealScreen() {
             emoji: '',
         };
 
-        setMeals((prev) => [...prev, newMeal]);
+        addMeal(newMeal);
         setDishName('');
-    };
-
-    const removeMeal = (index: number) => {
-        setMeals((prev) => prev.filter((_, i) => i !== index));
     };
 
     const closeModal = () => {
