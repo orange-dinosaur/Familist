@@ -18,17 +18,10 @@ import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
 const timeLabel: Record<MealItem['time'], string> = {
-    breakfast: '🌅 Breakfast',
-    lunch: '☀️ Lunch',
-    snack: '🍪 Snack',
-    dinner: '🌙 Dinner',
-};
-
-const timeEmojis: Record<MealItem['time'], string> = {
-    breakfast: '🥣',
-    lunch: '🍝',
-    snack: '🍎',
-    dinner: '🥗',
+    breakfast: 'Breakfast',
+    lunch: 'Lunch',
+    snack: 'Snack',
+    dinner: 'Dinner',
 };
 
 const MEAL_TIMES = ['breakfast', 'lunch', 'snack', 'dinner'] as const;
@@ -42,7 +35,6 @@ export default function DailyMealScreen() {
     const [modalVisible, setModalVisible] = useState(false);
     const [selectedTime, setSelectedTime] = useState<MealTime | null>(null);
     const [dishName, setDishName] = useState('');
-    const [dishEmoji, setDishEmoji] = useState('');
 
     // Group meals by time slot
     const grouped = meals.reduce(
@@ -59,7 +51,7 @@ export default function DailyMealScreen() {
     const openModal = () => {
         setSelectedTime(null);
         setDishName('');
-        setDishEmoji('');
+
         setModalVisible(true);
     };
 
@@ -69,12 +61,11 @@ export default function DailyMealScreen() {
         const newMeal: MealItem = {
             name: dishName.trim(),
             time: selectedTime,
-            emoji: dishEmoji.trim() || timeEmojis[selectedTime],
+            emoji: '',
         };
 
         setMeals((prev) => [...prev, newMeal]);
         setDishName('');
-        setDishEmoji('');
     };
 
     const removeMeal = (index: number) => {
@@ -115,9 +106,6 @@ export default function DailyMealScreen() {
                                     backgroundColor: theme.backgroundElement,
                                 },
                             ]}>
-                            <ThemedText style={styles.emptyEmoji}>
-                                🍽️
-                            </ThemedText>
                             <ThemedText
                                 themeColor="textSecondary"
                                 style={styles.emptyText}>
@@ -143,8 +131,7 @@ export default function DailyMealScreen() {
                                         const globalIndex = meals.findIndex(
                                             (m) =>
                                                 m.name === meal.name &&
-                                                m.time === meal.time &&
-                                                m.emoji === meal.emoji
+                                                m.time === meal.time
                                         );
                                         return (
                                             <View
@@ -156,10 +143,6 @@ export default function DailyMealScreen() {
                                                             theme.backgroundElement,
                                                     },
                                                 ]}>
-                                                <ThemedText
-                                                    style={styles.emoji}>
-                                                    {meal.emoji}
-                                                </ThemedText>
                                                 <ThemedText
                                                     type="default"
                                                     style={styles.mealName}>
@@ -316,10 +299,6 @@ export default function DailyMealScreen() {
                                                 },
                                             ]}>
                                             <ThemedText
-                                                style={styles.mealTypeEmoji}>
-                                                {timeLabel[time].split(' ')[0]}
-                                            </ThemedText>
-                                            <ThemedText
                                                 type="small"
                                                 style={styles.mealTypeLabel}>
                                                 {time.charAt(0).toUpperCase() +
@@ -340,25 +319,6 @@ export default function DailyMealScreen() {
                                     </ThemedText>
 
                                     <View style={styles.dishInputRow}>
-                                        <TextInput
-                                            style={[
-                                                styles.emojiInput,
-                                                {
-                                                    backgroundColor:
-                                                        theme.backgroundElement,
-                                                    color: theme.text,
-                                                },
-                                            ]}
-                                            placeholder="🍽️"
-                                            placeholderTextColor={
-                                                theme.textSecondary
-                                            }
-                                            value={dishEmoji}
-                                            onChangeText={setDishEmoji}
-                                            maxLength={2}
-                                            textAlign="center"
-                                            accessibilityLabel="Dish emoji"
-                                        />
                                         <TextInput
                                             style={[
                                                 styles.dishInput,
@@ -432,9 +392,7 @@ export default function DailyMealScreen() {
                                                                     m.name ===
                                                                         meal.name &&
                                                                     m.time ===
-                                                                        meal.time &&
-                                                                    m.emoji ===
-                                                                        meal.emoji
+                                                                        meal.time
                                                             );
                                                         return (
                                                             <View
@@ -446,12 +404,6 @@ export default function DailyMealScreen() {
                                                                             theme.backgroundElement,
                                                                     },
                                                                 ]}>
-                                                                <ThemedText
-                                                                    style={
-                                                                        styles.emoji
-                                                                    }>
-                                                                    {meal.emoji}
-                                                                </ThemedText>
                                                                 <ThemedText
                                                                     type="default"
                                                                     style={
@@ -555,9 +507,7 @@ const styles = StyleSheet.create({
         padding: Spacing.five,
         gap: Spacing.three,
     },
-    emptyEmoji: {
-        fontSize: 48,
-    },
+
     emptyText: {
         textAlign: 'center',
         lineHeight: 22,
@@ -578,9 +528,7 @@ const styles = StyleSheet.create({
         padding: Spacing.three,
         gap: Spacing.three,
     },
-    emoji: {
-        fontSize: 24,
-    },
+
     mealName: {
         flex: 1,
     },
@@ -651,9 +599,7 @@ const styles = StyleSheet.create({
         gap: Spacing.one,
         borderWidth: 2,
     },
-    mealTypeEmoji: {
-        fontSize: 28,
-    },
+
     mealTypeLabel: {
         fontWeight: '600',
     },
@@ -667,13 +613,7 @@ const styles = StyleSheet.create({
         gap: Spacing.two,
         alignItems: 'center',
     },
-    emojiInput: {
-        width: 48,
-        height: 48,
-        borderRadius: 12,
-        fontSize: 22,
-        textAlign: 'center',
-    },
+
     dishInput: {
         flex: 1,
         height: 48,
