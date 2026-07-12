@@ -6,8 +6,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { dailyChoresPreview, todoPreview } from '@/constants/mock-data';
+import { todoPreview } from '@/constants/mock-data';
 import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
+import { useChores } from '@/hooks/use-chores';
 import { useMeals } from '@/hooks/use-meals';
 import { useTheme } from '@/hooks/use-theme';
 
@@ -25,6 +26,7 @@ export default function HomeScreen() {
     const theme = useTheme();
     const router = useRouter();
     const { meals } = useMeals();
+    const { chores } = useChores();
 
     const hasMeals = meals.length > 0;
 
@@ -48,6 +50,7 @@ export default function HomeScreen() {
         .slice(0, 3)
         .map((m) => `${timeLabel[m.time]}: ${m.name}`);
     const remainingMeals = meals.length - mealPreviewItems.length;
+    const remainingChores = chores.length - 3;
 
     return (
         <ThemedView style={styles.container}>
@@ -130,26 +133,18 @@ export default function HomeScreen() {
                         </View>
                         <View
                             style={[
-                                styles.cardIconBox,
+                                styles.cardArrow,
                                 {
                                     backgroundColor: theme.backgroundSelected,
                                 },
                             ]}>
                             <SymbolView
                                 name={{
-                                    ios: 'fork.knife',
-                                    web: 'restaurant',
-                                }}
-                                tintColor={theme.text}
-                                size={20}
-                            />
-                            <SymbolView
-                                name={{
                                     ios: 'chevron.right',
                                     web: 'chevron_right',
                                 }}
                                 tintColor={theme.textSecondary}
-                                size={12}
+                                size={14}
                             />
                         </View>
                     </Pressable>
@@ -169,64 +164,80 @@ export default function HomeScreen() {
                                 Daily Chores
                             </ThemedText>
                             <View style={styles.cardPreview}>
-                                {dailyChoresPreview.map((item, i) => (
-                                    <View key={i} style={styles.checkItem}>
-                                        <SymbolView
-                                            name={{
-                                                ios: item.done
-                                                    ? 'checkmark.square.fill'
-                                                    : 'square',
-                                                web: item.done
-                                                    ? 'check_box'
-                                                    : 'check_box_outline_blank',
-                                            }}
-                                            tintColor={
-                                                item.done
-                                                    ? theme.textSecondary
-                                                    : theme.text
-                                            }
-                                            size={16}
-                                        />
-                                        <ThemedText
-                                            themeColor={
-                                                item.done
-                                                    ? 'textSecondary'
-                                                    : 'text'
-                                            }
-                                            type="small"
-                                            style={
-                                                item.done
-                                                    ? styles.strikethrough
-                                                    : undefined
-                                            }>
-                                            {item.label}
-                                        </ThemedText>
-                                    </View>
-                                ))}
+                                {chores.length > 0 ? (
+                                    <>
+                                        {chores.slice(0, 3).map((item) => (
+                                            <View
+                                                key={item.id}
+                                                style={styles.checkItem}>
+                                                <SymbolView
+                                                    name={{
+                                                        ios: item.done
+                                                            ? 'checkmark.square.fill'
+                                                            : 'square',
+                                                        web: item.done
+                                                            ? 'check_box'
+                                                            : 'check_box_outline_blank',
+                                                    }}
+                                                    tintColor={
+                                                        item.done
+                                                            ? theme.textSecondary
+                                                            : theme.text
+                                                    }
+                                                    size={16}
+                                                />
+                                                <ThemedText
+                                                    themeColor={
+                                                        item.done
+                                                            ? 'textSecondary'
+                                                            : 'text'
+                                                    }
+                                                    type="small"
+                                                    numberOfLines={1}
+                                                    style={
+                                                        item.done
+                                                            ? styles.strikethrough
+                                                            : undefined
+                                                    }>
+                                                    {item.label}
+                                                </ThemedText>
+                                            </View>
+                                        ))}
+                                        {remainingChores > 0 && (
+                                            <ThemedText
+                                                themeColor="textSecondary"
+                                                type="small"
+                                                style={{
+                                                    fontStyle: 'italic',
+                                                    marginLeft: 24,
+                                                }}>
+                                                +{remainingChores} more
+                                            </ThemedText>
+                                        )}
+                                    </>
+                                ) : (
+                                    <ThemedText
+                                        themeColor="textSecondary"
+                                        type="small">
+                                        No chores for today
+                                    </ThemedText>
+                                )}
                             </View>
                         </View>
                         <View
                             style={[
-                                styles.cardIconBox,
+                                styles.cardArrow,
                                 {
                                     backgroundColor: theme.backgroundSelected,
                                 },
                             ]}>
                             <SymbolView
                                 name={{
-                                    ios: 'clock.fill',
-                                    web: 'schedule',
-                                }}
-                                tintColor={theme.text}
-                                size={20}
-                            />
-                            <SymbolView
-                                name={{
                                     ios: 'chevron.right',
                                     web: 'chevron_right',
                                 }}
                                 tintColor={theme.textSecondary}
-                                size={12}
+                                size={14}
                             />
                         </View>
                     </Pressable>
@@ -424,13 +435,6 @@ const styles = StyleSheet.create({
         lineHeight: 24,
     },
     cardPreview: {
-        gap: Spacing.one,
-    },
-    cardIconBox: {
-        width: 56,
-        borderRadius: 12,
-        alignItems: 'center',
-        justifyContent: 'center',
         gap: Spacing.one,
     },
     cardArrow: {

@@ -14,6 +14,7 @@ export interface MealItem {
 }
 
 export interface ChoreItem {
+    id: string;
     label: string;
     done: boolean;
 }
@@ -59,11 +60,11 @@ export const dailyMealPreview = dailyMeals.slice(0, 3).map((m) => m.name);
 // ─── Daily Chores ───────────────────────────────────────────────────────
 
 export const dailyChores: ChoreItem[] = [
-    { label: 'Clean kitchen', done: true },
-    { label: 'Do laundry', done: false },
-    { label: 'Vacuum living room', done: false },
-    { label: 'Take out trash', done: true },
-    { label: 'Water plants', done: false },
+    { id: '1', label: 'Clean kitchen', done: true },
+    { id: '2', label: 'Do laundry', done: false },
+    { id: '3', label: 'Vacuum living room', done: false },
+    { id: '4', label: 'Take out trash', done: true },
+    { id: '5', label: 'Water plants', done: false },
 ];
 
 export const dailyChoresPreview = dailyChores.slice(0, 3);
