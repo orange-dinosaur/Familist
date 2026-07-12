@@ -35,9 +35,19 @@ export default function HomeScreen() {
         snack: 'Snack',
         dinner: 'Dinner',
     };
-    const mealPreviewItems = meals
+    const timeOrder: Record<string, number> = {
+        breakfast: 0,
+        lunch: 1,
+        snack: 2,
+        dinner: 3,
+    };
+    const sortedMeals = [...meals].sort(
+        (a, b) => (timeOrder[a.time] ?? 4) - (timeOrder[b.time] ?? 4)
+    );
+    const mealPreviewItems = sortedMeals
         .slice(0, 3)
         .map((m) => `${timeLabel[m.time]}: ${m.name}`);
+    const remainingMeals = meals.length - mealPreviewItems.length;
 
     return (
         <ThemedView style={styles.container}>
@@ -90,15 +100,25 @@ export default function HomeScreen() {
                             </ThemedText>
                             <View style={styles.cardPreview}>
                                 {hasMeals ? (
-                                    mealPreviewItems.map((item, i) => (
-                                        <ThemedText
-                                            key={i}
-                                            themeColor="textSecondary"
-                                            type="small"
-                                            numberOfLines={1}>
-                                            {item}
-                                        </ThemedText>
-                                    ))
+                                    <>
+                                        {mealPreviewItems.map((item, i) => (
+                                            <ThemedText
+                                                key={i}
+                                                themeColor="textSecondary"
+                                                type="small"
+                                                numberOfLines={1}>
+                                                {item}
+                                            </ThemedText>
+                                        ))}
+                                        {remainingMeals > 0 && (
+                                            <ThemedText
+                                                themeColor="textSecondary"
+                                                type="small"
+                                                style={{ fontStyle: 'italic' }}>
+                                                +{remainingMeals} more
+                                            </ThemedText>
+                                        )}
+                                    </>
                                 ) : (
                                     <ThemedText
                                         themeColor="textSecondary"
