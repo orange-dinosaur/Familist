@@ -14,10 +14,77 @@ export interface User {
     color: string;
 }
 
+export const DAYS_OF_WEEK = [
+    'monday',
+    'tuesday',
+    'wednesday',
+    'thursday',
+    'friday',
+    'saturday',
+    'sunday',
+] as const;
+
+export type DayOfWeek = (typeof DAYS_OF_WEEK)[number];
+
+export const DAY_LABELS: Record<DayOfWeek, string> = {
+    monday: 'Monday',
+    tuesday: 'Tuesday',
+    wednesday: 'Wednesday',
+    thursday: 'Thursday',
+    friday: 'Friday',
+    saturday: 'Saturday',
+    sunday: 'Sunday',
+};
+
+export function getRelativeDateString(offset: number): string {
+    const d = new Date();
+    d.setDate(d.getDate() + offset);
+    return d.toISOString().split('T')[0]; // YYYY-MM-DD
+}
+
+export function formatLocalDateString(dateStr: string): string {
+    const [year, month, day] = dateStr.split('-').map(Number);
+    const date = new Date(year, month - 1, day);
+    const weekday = date.toLocaleDateString('en-US', { weekday: 'long' });
+    const monthDay = date.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+    });
+    return `${weekday}, ${monthDay}`;
+}
+
+export function formatShortDateString(dateStr: string): string {
+    const [year, month, day] = dateStr.split('-').map(Number);
+    const date = new Date(year, month - 1, day);
+    const today = new Date();
+    if (
+        date.getFullYear() === today.getFullYear() &&
+        date.getMonth() === today.getMonth() &&
+        date.getDate() === today.getDate()
+    ) {
+        return 'Today';
+    }
+    const weekday = date.toLocaleDateString('en-US', { weekday: 'short' });
+    const monthDay = date.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+    });
+    return `${weekday}, ${monthDay}`;
+}
+
+export function getDateRange(): string[] {
+    const range: string[] = [];
+    for (let i = -5; i <= 7; i++) {
+        range.push(getRelativeDateString(i));
+    }
+    return range;
+}
+
 export interface MealItem {
     name: string;
     time: 'breakfast' | 'lunch' | 'snack' | 'dinner';
     emoji: string;
+    day: string;
 }
 
 export interface ChoreItem {
@@ -25,6 +92,7 @@ export interface ChoreItem {
     label: string;
     done: boolean;
     assigneeId?: string;
+    day: string;
 }
 
 export interface TodoItem {
@@ -33,6 +101,7 @@ export interface TodoItem {
     done: boolean;
     priority: 'low' | 'medium' | 'high';
     assigneeId?: string;
+    day: string;
 }
 
 export interface SubscriptionItem {
@@ -67,10 +136,36 @@ export const MOCK_USERS: User[] = [
 // ─── Daily Meals ────────────────────────────────────────────────────────
 
 export const dailyMeals: MealItem[] = [
-    { name: 'Greek yogurt with granola', time: 'breakfast', emoji: '🥣' },
-    { name: 'Pasta al pomodoro', time: 'lunch', emoji: '🍝' },
-    { name: 'Fresh seasonal fruit', time: 'snack', emoji: '🍎' },
-    { name: 'Grilled chicken salad', time: 'dinner', emoji: '🥗' },
+    {
+        name: 'Greek yogurt with granola',
+        time: 'breakfast',
+        emoji: '🥣',
+        day: getRelativeDateString(0),
+    },
+    {
+        name: 'Pasta al pomodoro',
+        time: 'lunch',
+        emoji: '🍝',
+        day: getRelativeDateString(0),
+    },
+    {
+        name: 'Fresh seasonal fruit',
+        time: 'snack',
+        emoji: '🍎',
+        day: getRelativeDateString(1),
+    },
+    {
+        name: 'Grilled chicken salad',
+        time: 'dinner',
+        emoji: '🥗',
+        day: getRelativeDateString(0),
+    },
+    {
+        name: 'Margherita Pizza',
+        time: 'dinner',
+        emoji: '🍕',
+        day: getRelativeDateString(2),
+    },
 ];
 
 /** Preview subset used on the home cards */
@@ -79,11 +174,41 @@ export const dailyMealPreview = dailyMeals.slice(0, 3).map((m) => m.name);
 // ─── Daily Chores ───────────────────────────────────────────────────────
 
 export const dailyChores: ChoreItem[] = [
-    { id: '1', label: 'Clean kitchen', done: true, assigneeId: 'sofia' },
-    { id: '2', label: 'Do laundry', done: false, assigneeId: 'mom' },
-    { id: '3', label: 'Vacuum living room', done: false, assigneeId: 'dad' },
-    { id: '4', label: 'Take out trash', done: true, assigneeId: 'giulio' },
-    { id: '5', label: 'Water plants', done: false, assigneeId: 'giulio' },
+    {
+        id: '1',
+        label: 'Clean kitchen',
+        done: true,
+        assigneeId: 'sofia',
+        day: getRelativeDateString(0),
+    },
+    {
+        id: '2',
+        label: 'Do laundry',
+        done: false,
+        assigneeId: 'mom',
+        day: getRelativeDateString(1),
+    },
+    {
+        id: '3',
+        label: 'Vacuum living room',
+        done: false,
+        assigneeId: 'dad',
+        day: getRelativeDateString(0),
+    },
+    {
+        id: '4',
+        label: 'Take out trash',
+        done: true,
+        assigneeId: 'giulio',
+        day: getRelativeDateString(0),
+    },
+    {
+        id: '5',
+        label: 'Water plants',
+        done: false,
+        assigneeId: 'giulio',
+        day: getRelativeDateString(-2),
+    },
 ];
 
 export const dailyChoresPreview = dailyChores.slice(0, 3);
@@ -97,6 +222,7 @@ export const todoItems: TodoItem[] = [
         done: false,
         priority: 'medium',
         assigneeId: 'dad',
+        day: getRelativeDateString(0),
     },
     {
         id: 't2',
@@ -104,6 +230,7 @@ export const todoItems: TodoItem[] = [
         done: false,
         priority: 'high',
         assigneeId: 'mom',
+        day: getRelativeDateString(1),
     },
     {
         id: 't3',
@@ -111,6 +238,7 @@ export const todoItems: TodoItem[] = [
         done: true,
         priority: 'high',
         assigneeId: 'dad',
+        day: getRelativeDateString(0),
     },
     {
         id: 't4',
@@ -118,6 +246,7 @@ export const todoItems: TodoItem[] = [
         done: false,
         priority: 'low',
         assigneeId: 'sofia',
+        day: getRelativeDateString(3),
     },
     {
         id: 't5',
@@ -125,8 +254,15 @@ export const todoItems: TodoItem[] = [
         done: false,
         priority: 'medium',
         assigneeId: 'giulio',
+        day: getRelativeDateString(0),
     },
-    { id: 't6', label: 'Clean out attic', done: false, priority: 'low' },
+    {
+        id: 't6',
+        label: 'Clean out attic',
+        done: false,
+        priority: 'low',
+        day: getRelativeDateString(-4),
+    },
 ];
 
 export const todoPreview = todoItems.filter((t) => !t.done).slice(0, 2);

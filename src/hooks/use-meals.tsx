@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
 
-import { type MealItem } from '@/constants/mock-data';
+import { dailyMeals, type MealItem } from '@/constants/mock-data';
 
 interface MealContextValue {
     meals: MealItem[];
@@ -11,7 +11,7 @@ interface MealContextValue {
 const MealContext = createContext<MealContextValue | null>(null);
 
 export function MealProvider({ children }: { children: React.ReactNode }) {
-    const [meals, setMeals] = useState<MealItem[]>([]);
+    const [meals, setMeals] = useState<MealItem[]>(dailyMeals);
 
     const addMeal = useCallback((meal: MealItem) => {
         setMeals((prev) => [...prev, meal]);

@@ -40,7 +40,16 @@ export default function HomeScreen() {
     const [choresExpanded, setChoresExpanded] = useState(false);
     const [todosExpanded, setTodosExpanded] = useState(false);
 
-    const hasMeals = meals.length > 0;
+    const getTodayDayName = (): string => {
+        return new Date().toISOString().split('T')[0];
+    };
+
+    const todayStr = getTodayDayName();
+    const todayMeals = meals.filter((m) => m.day === todayStr);
+    const todayChores = chores.filter((c) => c.day === todayStr);
+    const todayTodos = todos.filter((t) => t.day === todayStr);
+
+    const hasMeals = todayMeals.length > 0;
 
     // Build preview: group by time, show up to 3 items
     const timeLabel: Record<string, string> = {
@@ -55,15 +64,15 @@ export default function HomeScreen() {
         snack: 2,
         dinner: 3,
     };
-    const sortedMeals = [...meals].sort(
+    const sortedMeals = [...todayMeals].sort(
         (a, b) => (timeOrder[a.time] ?? 4) - (timeOrder[b.time] ?? 4)
     );
     const mealPreviewItems = sortedMeals
         .slice(0, 3)
         .map((m) => `${timeLabel[m.time]}: ${m.name}`);
-    const remainingMeals = meals.length - mealPreviewItems.length;
-    const remainingChores = chores.length - 3;
-    const activeTodos = todos.filter((t) => !t.done);
+    const remainingMeals = todayMeals.length - mealPreviewItems.length;
+    const remainingChores = todayChores.length - 3;
+    const activeTodos = todayTodos.filter((t) => !t.done);
     const remainingTodos = activeTodos.length - 2;
 
     return (
@@ -154,7 +163,7 @@ export default function HomeScreen() {
                                 {mealsExpanded ? (
                                     hasMeals ? (
                                         <View style={styles.expandedMealsList}>
-                                            {meals.map((item, i) => (
+                                            {todayMeals.map((item, i) => (
                                                 <View
                                                     key={i}
                                                     style={
@@ -267,9 +276,9 @@ export default function HomeScreen() {
                             </View>
                             <View style={styles.cardPreview}>
                                 {choresExpanded ? (
-                                    chores.length > 0 ? (
+                                    todayChores.length > 0 ? (
                                         <View style={styles.expandedList}>
-                                            {chores.map((item) => {
+                                            {todayChores.map((item) => {
                                                 const assignee =
                                                     MOCK_USERS.find(
                                                         (u) =>
@@ -345,9 +354,9 @@ export default function HomeScreen() {
                                             No chores for today
                                         </ThemedText>
                                     )
-                                ) : chores.length > 0 ? (
+                                ) : todayChores.length > 0 ? (
                                     <>
-                                        {chores.slice(0, 3).map((item) => {
+                                        {todayChores.slice(0, 3).map((item) => {
                                             const assignee = MOCK_USERS.find(
                                                 (u) => u.id === item.assigneeId
                                             );
@@ -483,9 +492,9 @@ export default function HomeScreen() {
                             </View>
                             <View style={styles.cardPreview}>
                                 {todosExpanded ? (
-                                    todos.length > 0 ? (
+                                    todayTodos.length > 0 ? (
                                         <View style={styles.expandedList}>
-                                            {todos.map((item) => {
+                                            {todayTodos.map((item) => {
                                                 const assignee =
                                                     MOCK_USERS.find(
                                                         (u) =>

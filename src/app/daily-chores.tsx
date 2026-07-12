@@ -1,5 +1,6 @@
 import { SymbolView } from 'expo-symbols';
-import React, { useState } from 'react';
+import { useFocusEffect } from 'expo-router';
+import React, { useState, useRef } from 'react';
 import {
     Animated,
     Modal,
@@ -14,7 +15,14 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { type ChoreItem, MOCK_USERS } from '@/constants/mock-data';
+import {
+    type ChoreItem,
+    MOCK_USERS,
+    getDateRange,
+    formatLocalDateString,
+    formatShortDateString,
+    getRelativeDateString,
+} from '@/constants/mock-data';
 import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
 import { PRESET_CHORES, useChores } from '@/hooks/use-chores';
 import { useTheme } from '@/hooks/use-theme';
@@ -29,7 +37,7 @@ interface ChoreRowProps {
 
 const ChoreRow = React.memo(
     ({ chore, onToggle, onDelete, onAssign, theme }: ChoreRowProps) => {
-        const swipeableRef = React.useRef<Swipeable>(null);
+        const swipeableRef = useRef<Swipeable>(null);
 
         const renderRightActions = (
             progress: Animated.AnimatedInterpolation<number>,
@@ -169,15 +177,36 @@ export default function DailyChoresScreen() {
         null
     );
 
+    const scrollViewRef = useRef<ScrollView>(null);
+    const todayYOffsetRef = useRef<number | null>(null);
+    const todayStr = getRelativeDateString(0);
+    const [selectedDay, setSelectedDay] = useState<string>(todayStr);
+
+    const dates = getDateRange();
     const doneCount = chores.filter((c) => c.done).length;
-    const progress =
-        chores.length > 0 ? Math.round((doneCount / chores.length) * 100) : 0;
     const hasChores = chores.length > 0;
 
+    useFocusEffect(
+        React.useCallback(() => {
+            if (todayYOffsetRef.current !== null) {
+                scrollViewRef.current?.scrollTo({
+                    y: todayYOffsetRef.current - Spacing.four,
+                    animated: false,
+                });
+            }
+        }, [])
+    );
+
     const isChoreActive = (label: string) =>
-        chores.some((c) => c.label === label);
+        chores.some((c) => c.label === label && c.day === selectedDay);
 
     const openAddModal = () => {
+        setSelectedDay(todayStr);
+        setModalVisible(true);
+    };
+
+    const openAddModalForDay = (day: string) => {
+        setSelectedDay(day);
         setModalVisible(true);
     };
 
@@ -189,74 +218,177 @@ export default function DailyChoresScreen() {
         <ThemedView style={styles.container}>
             <SafeAreaView style={styles.safeArea}>
                 <ScrollView
+                    ref={scrollViewRef}
                     style={styles.scrollView}
                     contentContainerStyle={styles.scrollContent}
                     showsVerticalScrollIndicator={false}>
                     {/* Header */}
                     <View style={styles.header}>
                         <ThemedText type="title" style={styles.pageTitle}>
-                            Daily Chores
+                            Chores Plan
                         </ThemedText>
                         <ThemedText
                             themeColor="textSecondary"
                             style={styles.subtitle}>
                             {hasChores
-                                ? `${doneCount} of ${chores.length} completed`
-                                : 'No chores today'}
+                                ? `${doneCount} of ${chores.length} completed in total`
+                                : 'No chores planned'}
                         </ThemedText>
                     </View>
 
-                    {/* Progress bar */}
-                    {hasChores && (
-                        <View
-                            style={[
-                                styles.progressTrack,
-                                { backgroundColor: theme.backgroundElement },
-                            ]}>
+                    {/* Weekly Chores List grouped by day */}
+                    {dates.map((day) => {
+                        const dayChores = chores.filter((c) => c.day === day);
+                        const dayDoneCount = dayChores.filter(
+                            (c) => c.done
+                        ).length;
+                        const dayProgress =
+                            dayChores.length > 0
+                                ? Math.round(
+                                      (dayDoneCount / dayChores.length) * 100
+                                  )
+                                : 0;
+                        const isToday = day === todayStr;
+
+                        return (
                             <View
+                                key={day}
+                                onLayout={(event) => {
+                                    if (isToday) {
+                                        const y = event.nativeEvent.layout.y;
+                                        todayYOffsetRef.current = y;
+                                        setTimeout(() => {
+                                            scrollViewRef.current?.scrollTo({
+                                                y: y - Spacing.four,
+                                                animated: false,
+                                            });
+                                        }, 100);
+                                    }
+                                }}
                                 style={[
-                                    styles.progressFill,
+                                    styles.dayCard,
                                     {
-                                        width: `${progress}%`,
-                                        backgroundColor: theme.text,
+                                        backgroundColor:
+                                            theme.backgroundElement,
                                     },
-                                ]}
-                            />
-                        </View>
-                    )}
+                                    isToday && styles.todayCard,
+                                    isToday && { borderColor: theme.text },
+                                ]}>
+                                {/* Day Card Header */}
+                                <View style={styles.dayCardHeader}>
+                                    <View style={styles.dayCardTitleRow}>
+                                        <ThemedText
+                                            type="subtitle"
+                                            style={styles.dayCardTitle}>
+                                            {formatLocalDateString(day)}
+                                        </ThemedText>
+                                        {dayChores.length > 0 && (
+                                            <ThemedText
+                                                themeColor="textSecondary"
+                                                type="small"
+                                                style={styles.dayProgressText}>
+                                                • {dayDoneCount}/
+                                                {dayChores.length} done
+                                            </ThemedText>
+                                        )}
+                                        {isToday && (
+                                            <View
+                                                style={[
+                                                    styles.todayBadge,
+                                                    {
+                                                        backgroundColor:
+                                                            theme.text,
+                                                    },
+                                                ]}>
+                                                <ThemedText
+                                                    style={[
+                                                        styles.todayBadgeText,
+                                                        {
+                                                            color: theme.background,
+                                                        },
+                                                    ]}>
+                                                    Today
+                                                </ThemedText>
+                                            </View>
+                                        )}
+                                    </View>
+                                    <Pressable
+                                        onPress={() => openAddModalForDay(day)}
+                                        accessibilityLabel={`Add chores for ${formatLocalDateString(day)}`}
+                                        accessibilityRole="button"
+                                        style={({ pressed }) => [
+                                            styles.dayAddButton,
+                                            pressed && { opacity: 0.7 },
+                                        ]}>
+                                        <SymbolView
+                                            name={{
+                                                ios: 'plus.circle.fill',
+                                                web: 'add_circle',
+                                            }}
+                                            tintColor={theme.text}
+                                            size={22}
+                                        />
+                                    </Pressable>
+                                </View>
 
-                    {/* Empty state */}
-                    {!hasChores && (
-                        <View
-                            style={[
-                                styles.emptyState,
-                                {
-                                    backgroundColor: theme.backgroundElement,
-                                },
-                            ]}>
-                            <ThemedText
-                                themeColor="textSecondary"
-                                style={styles.emptyText}>
-                                Tap the button below to select chores for today
-                            </ThemedText>
-                        </View>
-                    )}
+                                {/* Day Progress Bar */}
+                                {dayChores.length > 0 && (
+                                    <View
+                                        style={[
+                                            styles.dayProgressTrack,
+                                            {
+                                                backgroundColor:
+                                                    theme.backgroundSelected,
+                                            },
+                                        ]}>
+                                        <View
+                                            style={[
+                                                styles.dayProgressFill,
+                                                {
+                                                    width: `${dayProgress}%`,
+                                                    backgroundColor: theme.text,
+                                                },
+                                            ]}
+                                        />
+                                    </View>
+                                )}
 
-                    {/* Chore list */}
-                    {hasChores &&
-                        chores.map((chore) => (
-                            <ChoreRow
-                                key={chore.id}
-                                chore={chore}
-                                theme={theme}
-                                onToggle={() => toggleChore(chore.id)}
-                                onDelete={() => deleteChore(chore.id)}
-                                onAssign={() => setAssigningChoreId(chore.id)}
-                            />
-                        ))}
+                                {/* Day Chores List */}
+                                {dayChores.length === 0 ? (
+                                    <ThemedText
+                                        themeColor="textSecondary"
+                                        type="small"
+                                        style={styles.noChoresText}>
+                                        No chores active for this day.
+                                    </ThemedText>
+                                ) : (
+                                    <View style={styles.dayChoresList}>
+                                        {dayChores.map((chore) => (
+                                            <ChoreRow
+                                                key={chore.id}
+                                                chore={chore}
+                                                theme={theme}
+                                                onToggle={() =>
+                                                    toggleChore(chore.id)
+                                                }
+                                                onDelete={() =>
+                                                    deleteChore(chore.id)
+                                                }
+                                                onAssign={() =>
+                                                    setAssigningChoreId(
+                                                        chore.id
+                                                    )
+                                                }
+                                            />
+                                        ))}
+                                    </View>
+                                )}
+                            </View>
+                        );
+                    })}
                 </ScrollView>
 
-                {/* Add chore button */}
+                {/* Add chores button */}
                 <View style={styles.addButtonContainer}>
                     <Pressable
                         onPress={openAddModal}
@@ -322,12 +454,59 @@ export default function DailyChoresScreen() {
                             contentContainerStyle={styles.modalScrollContent}
                             showsVerticalScrollIndicator={false}
                             keyboardShouldPersistTaps="handled">
+                            {/* Step 1: Choose Day */}
+                            <ThemedText
+                                type="default"
+                                style={styles.modalLabel}>
+                                Choose day
+                            </ThemedText>
+                            <ScrollView
+                                horizontal
+                                showsHorizontalScrollIndicator={false}
+                                style={styles.dayPillsScrollView}
+                                contentContainerStyle={
+                                    styles.dayPillsContainer
+                                }>
+                                {dates.map((day) => {
+                                    const isSelected = selectedDay === day;
+                                    return (
+                                        <Pressable
+                                            key={day}
+                                            onPress={() => setSelectedDay(day)}
+                                            style={[
+                                                styles.dayPill,
+                                                {
+                                                    backgroundColor: isSelected
+                                                        ? theme.text
+                                                        : theme.backgroundElement,
+                                                    borderColor: isSelected
+                                                        ? theme.text
+                                                        : 'transparent',
+                                                },
+                                            ]}>
+                                            <ThemedText
+                                                style={[
+                                                    styles.dayPillText,
+                                                    {
+                                                        color: isSelected
+                                                            ? theme.background
+                                                            : theme.text,
+                                                    },
+                                                ]}>
+                                                {formatShortDateString(day)}
+                                            </ThemedText>
+                                        </Pressable>
+                                    );
+                                })}
+                            </ScrollView>
+
                             <View style={styles.inputSection}>
                                 <ThemedText
                                     themeColor="textSecondary"
                                     type="small"
                                     style={styles.modalInstructionText}>
-                                    Select which chores are active for today:
+                                    Select which chores are active for{' '}
+                                    {formatLocalDateString(selectedDay)}:
                                 </ThemedText>
 
                                 <View style={styles.pillsGrid}>
@@ -337,7 +516,10 @@ export default function DailyChoresScreen() {
                                             <Pressable
                                                 key={preset}
                                                 onPress={() =>
-                                                    toggleChoreActive(preset)
+                                                    toggleChoreActive(
+                                                        preset,
+                                                        selectedDay
+                                                    )
                                                 }
                                                 accessibilityLabel={`Toggle ${preset}`}
                                                 accessibilityRole="button"
@@ -539,12 +721,12 @@ const styles = StyleSheet.create({
     scrollContent: {
         paddingHorizontal: Spacing.four,
         paddingBottom: BottomTabInset + Spacing.six,
-        gap: Spacing.two,
+        gap: Spacing.three,
     },
     header: {
         paddingTop: Spacing.two,
         gap: Spacing.one,
-        marginBottom: Spacing.two,
+        marginBottom: Spacing.one,
     },
     pageTitle: {
         fontSize: 34,
@@ -553,16 +735,64 @@ const styles = StyleSheet.create({
     subtitle: {
         marginTop: -Spacing.one,
     },
-    progressTrack: {
+
+    // Day card styles
+    dayCard: {
+        borderRadius: 16,
+        padding: Spacing.three,
+        gap: Spacing.two,
+    },
+    todayCard: {
+        borderWidth: 1.5,
+    },
+    dayCardHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingBottom: Spacing.half,
+    },
+    dayCardTitleRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: Spacing.two,
+    },
+    dayCardTitle: {
+        fontWeight: '700',
+    },
+    dayProgressText: {
+        fontWeight: '500',
+    },
+    todayBadge: {
+        borderRadius: 6,
+        paddingHorizontal: Spacing.one + Spacing.half,
+        paddingVertical: Spacing.half / 2,
+    },
+    todayBadgeText: {
+        fontSize: 10,
+        fontWeight: '700',
+        textTransform: 'uppercase',
+    },
+    dayAddButton: {
+        padding: Spacing.half,
+    },
+    dayProgressTrack: {
         height: 6,
         borderRadius: 3,
         overflow: 'hidden',
-        marginBottom: Spacing.three,
+        marginVertical: Spacing.half,
     },
-    progressFill: {
+    dayProgressFill: {
         height: '100%',
         borderRadius: 3,
     },
+    noChoresText: {
+        fontStyle: 'italic',
+        paddingVertical: Spacing.half,
+    },
+    dayChoresList: {
+        gap: Spacing.two,
+    },
+
     swipeableContainer: {
         borderRadius: 14,
         overflow: 'hidden',
@@ -595,44 +825,6 @@ const styles = StyleSheet.create({
         color: '#FFFFFF',
         fontSize: 12,
         fontWeight: '700',
-    },
-
-    // Empty state
-    emptyState: {
-        alignItems: 'center',
-        borderRadius: 14,
-        padding: Spacing.five,
-        gap: Spacing.three,
-        marginTop: Spacing.two,
-    },
-    emptyText: {
-        textAlign: 'center',
-        lineHeight: 22,
-    },
-
-    // Swipe actions
-    rightActionsContainer: {
-        flexDirection: 'row',
-        width: 80,
-    },
-    actionButton: {
-        flex: 1,
-        height: '100%',
-    },
-    actionPressable: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        gap: Spacing.one,
-        paddingHorizontal: Spacing.one,
-    },
-    deleteButton: {
-        backgroundColor: '#E5484D',
-    },
-    actionText: {
-        color: '#FFFFFF',
-        fontSize: 12,
-        fontWeight: '600',
     },
 
     // Add button
@@ -677,12 +869,14 @@ const styles = StyleSheet.create({
         gap: Spacing.three,
         paddingBottom: Spacing.four,
     },
-    inputSection: {
-        gap: Spacing.two,
+    modalLabel: {
+        fontWeight: '600',
     },
     modalInstructionText: {
-        fontWeight: '500',
-        marginBottom: Spacing.one,
+        marginBottom: Spacing.two,
+    },
+    inputSection: {
+        marginTop: Spacing.one,
     },
     pillsGrid: {
         flexDirection: 'row',
@@ -692,14 +886,32 @@ const styles = StyleSheet.create({
     presetChorePill: {
         paddingHorizontal: Spacing.three,
         paddingVertical: Spacing.two,
-        borderRadius: 10,
-        alignItems: 'center',
-        justifyContent: 'center',
+        borderRadius: 20,
     },
     presetChoreText: {
         fontSize: 14,
         fontWeight: '600',
     },
+
+    // Day pills selector in modal
+    dayPillsScrollView: {
+        marginBottom: Spacing.two,
+    },
+    dayPillsContainer: {
+        gap: Spacing.one + Spacing.half,
+        paddingVertical: Spacing.half,
+    },
+    dayPill: {
+        paddingHorizontal: Spacing.three + Spacing.half,
+        paddingVertical: Spacing.two,
+        borderRadius: 20,
+    },
+    dayPillText: {
+        fontSize: 14,
+        fontWeight: '600',
+    },
+
+    // Modal footer
     modalFooter: {
         paddingHorizontal: Spacing.four,
         paddingVertical: Spacing.three,
@@ -715,29 +927,51 @@ const styles = StyleSheet.create({
         fontWeight: '600',
     },
 
-    // Assignee Overlay Modal
-    modalOverlay: {
+    // Swipeable Actions
+    rightActionsContainer: {
+        width: 80,
+        flexDirection: 'row',
+    },
+    actionButton: {
         flex: 1,
-        backgroundColor: 'rgba(0, 0, 0, 0.4)',
         justifyContent: 'center',
         alignItems: 'center',
     },
+    deleteButton: {
+        backgroundColor: '#E5484D',
+    },
+    actionPressable: {
+        width: '100%',
+        height: '100%',
+        justifyContent: 'center',
+        alignItems: 'center',
+        gap: Spacing.half,
+    },
+    actionText: {
+        color: '#ffffff',
+        fontSize: 11,
+        fontWeight: '600',
+    },
+
+    // Assignee Selection Modal
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0, 0, 0, 0.4)',
+        justifyContent: 'flex-end',
+        alignItems: 'center',
+        paddingHorizontal: Spacing.four,
+        paddingBottom: Spacing.six,
+    },
     assigneeModalContent: {
-        width: '85%',
-        maxWidth: 320,
-        borderRadius: 20,
+        width: '100%',
+        maxWidth: 400,
+        borderRadius: 24,
         padding: Spacing.four,
-        gap: Spacing.two,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.15,
-        shadowRadius: 10,
-        elevation: 5,
+        gap: Spacing.three,
     },
     assigneeModalTitle: {
+        fontWeight: '700',
         textAlign: 'center',
-        fontWeight: '600',
-        marginBottom: Spacing.two,
     },
     assigneeList: {
         maxHeight: 300,
@@ -746,20 +980,20 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         gap: Spacing.three,
-        paddingVertical: Spacing.two,
-        borderBottomWidth: StyleSheet.hairlineWidth,
-        borderBottomColor: 'rgba(0, 0, 0, 0.1)',
+        paddingVertical: Spacing.three,
+        paddingHorizontal: Spacing.two,
+        borderRadius: 14,
     },
     assigneeAvatarLarge: {
-        width: 36,
-        height: 36,
-        borderRadius: 18,
+        width: 40,
+        height: 40,
+        borderRadius: 20,
         alignItems: 'center',
         justifyContent: 'center',
     },
     assigneeInitialsLarge: {
         color: '#FFFFFF',
-        fontSize: 14,
+        fontSize: 16,
         fontWeight: '700',
     },
     assigneeName: {
@@ -769,8 +1003,8 @@ const styles = StyleSheet.create({
     assigneeCloseButton: {
         alignItems: 'center',
         justifyContent: 'center',
-        borderRadius: 12,
         padding: Spacing.three,
+        borderRadius: 14,
         marginTop: Spacing.one,
     },
 });

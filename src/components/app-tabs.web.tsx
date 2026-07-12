@@ -69,7 +69,7 @@ export function TabButton({
                 style={styles.tabButtonView}>
                 {icon && (
                     <SymbolView
-                        name={{ web: icon }}
+                        name={{ web: icon as any }}
                         tintColor={tintColor}
                         size={14}
                     />

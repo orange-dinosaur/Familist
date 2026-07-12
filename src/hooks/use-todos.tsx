@@ -7,6 +7,7 @@ interface TodosContextValue {
     addTodo: (
         label: string,
         priority: TodoItem['priority'],
+        day: string,
         assigneeId?: string
     ) => void;
     toggleTodo: (id: string) => void;
@@ -15,6 +16,7 @@ interface TodosContextValue {
         id: string,
         label: string,
         priority: TodoItem['priority'],
+        day: string,
         assigneeId?: string
     ) => void;
     assignTodo: (id: string, assigneeId: string | undefined) => void;
@@ -29,6 +31,7 @@ export function TodosProvider({ children }: { children: React.ReactNode }) {
         (
             label: string,
             priority: TodoItem['priority'],
+            day: string,
             assigneeId?: string
         ) => {
             const newTodo: TodoItem = {
@@ -39,6 +42,7 @@ export function TodosProvider({ children }: { children: React.ReactNode }) {
                 done: false,
                 priority,
                 assigneeId,
+                day,
             };
             setTodos((prev) => [...prev, newTodo]);
         },
@@ -62,12 +66,13 @@ export function TodosProvider({ children }: { children: React.ReactNode }) {
             id: string,
             label: string,
             priority: TodoItem['priority'],
+            day: string,
             assigneeId?: string
         ) => {
             setTodos((prev) =>
                 prev.map((todo) =>
                     todo.id === id
-                        ? { ...todo, label, priority, assigneeId }
+                        ? { ...todo, label, priority, day, assigneeId }
                         : todo
                 )
             );
