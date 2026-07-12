@@ -750,10 +750,13 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'space-between',
         paddingBottom: Spacing.half,
+        gap: Spacing.two,
     },
     dayCardTitleRow: {
+        flex: 1,
         flexDirection: 'row',
         alignItems: 'center',
+        flexWrap: 'wrap',
         gap: Spacing.two,
     },
     dayCardTitle: {

@@ -720,10 +720,13 @@ const styles = StyleSheet.create({
         paddingBottom: Spacing.one,
         borderBottomWidth: 1,
         borderBottomColor: 'rgba(128, 128, 128, 0.1)',
+        gap: Spacing.two,
     },
     dayCardTitleRow: {
+        flex: 1,
         flexDirection: 'row',
         alignItems: 'center',
+        flexWrap: 'wrap',
         gap: Spacing.two,
     },
     dayCardTitle: {

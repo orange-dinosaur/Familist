@@ -45,7 +45,7 @@ export function getRelativeDateString(offset: number): string {
 export function formatLocalDateString(dateStr: string): string {
     const [year, month, day] = dateStr.split('-').map(Number);
     const date = new Date(year, month - 1, day);
-    const weekday = date.toLocaleDateString('en-US', { weekday: 'long' });
+    const weekday = date.toLocaleDateString('en-US', { weekday: 'short' });
     const monthDay = date.toLocaleDateString('en-US', {
         month: 'short',
         day: 'numeric',
