@@ -1,6 +1,6 @@
 import { SymbolView } from 'expo-symbols';
 import { useRouter } from 'expo-router';
-import React from 'react';
+import React, { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -32,8 +32,12 @@ export default function HomeScreen() {
     const theme = useTheme();
     const router = useRouter();
     const { meals } = useMeals();
-    const { chores } = useChores();
-    const { todos } = useTodos();
+    const { chores, toggleChore } = useChores();
+    const { todos, toggleTodo } = useTodos();
+
+    const [mealsExpanded, setMealsExpanded] = useState(false);
+    const [choresExpanded, setChoresExpanded] = useState(false);
+    const [todosExpanded, setTodosExpanded] = useState(false);
 
     const hasMeals = meals.length > 0;
 
@@ -97,21 +101,90 @@ export default function HomeScreen() {
                     </ThemedText>
 
                     {/* ─── Daily Meal Card ─── */}
-                    <Pressable
-                        onPress={() => router.navigate('/daily-meal')}
-                        style={({ pressed }) => [
+                    <View
+                        style={[
                             styles.card,
                             { backgroundColor: theme.backgroundElement },
-                            pressed && {
-                                backgroundColor: theme.backgroundSelected,
-                            },
                         ]}>
                         <View style={styles.cardContent}>
-                            <ThemedText type="default" style={styles.cardTitle}>
-                                Daily Meal
-                            </ThemedText>
+                            <View style={styles.cardHeaderRow}>
+                                <Pressable
+                                    onPress={() =>
+                                        setMealsExpanded(!mealsExpanded)
+                                    }
+                                    style={styles.cardHeaderLeft}>
+                                    <SymbolView
+                                        name={{
+                                            ios: mealsExpanded
+                                                ? 'chevron.down'
+                                                : 'chevron.right',
+                                            web: mealsExpanded
+                                                ? 'expand_less'
+                                                : 'expand_more',
+                                        }}
+                                        tintColor={theme.textSecondary}
+                                        size={16}
+                                    />
+                                    <ThemedText
+                                        type="default"
+                                        style={styles.cardTitle}>
+                                        Daily Meal
+                                    </ThemedText>
+                                </Pressable>
+                                <Pressable
+                                    onPress={() =>
+                                        router.navigate('/daily-meal')
+                                    }
+                                    style={styles.cardArrowButton}>
+                                    <SymbolView
+                                        name={{
+                                            ios: 'arrow.up.right.circle.fill',
+                                            web: 'open_in_new',
+                                        }}
+                                        tintColor={theme.textSecondary}
+                                        size={20}
+                                    />
+                                </Pressable>
+                            </View>
                             <View style={styles.cardPreview}>
-                                {hasMeals ? (
+                                {mealsExpanded ? (
+                                    hasMeals ? (
+                                        <View style={styles.expandedMealsList}>
+                                            {meals.map((item, i) => (
+                                                <View
+                                                    key={i}
+                                                    style={
+                                                        styles.expandedMealRow
+                                                    }>
+                                                    <ThemedText
+                                                        type="small"
+                                                        style={
+                                                            styles.expandedMealTime
+                                                        }>
+                                                        {item.time
+                                                            .charAt(0)
+                                                            .toUpperCase() +
+                                                            item.time.slice(1)}
+                                                        :
+                                                    </ThemedText>
+                                                    <ThemedText
+                                                        type="small"
+                                                        style={
+                                                            styles.expandedMealName
+                                                        }>
+                                                        {item.name}
+                                                    </ThemedText>
+                                                </View>
+                                            ))}
+                                        </View>
+                                    ) : (
+                                        <ThemedText
+                                            themeColor="textSecondary"
+                                            type="small">
+                                            No meals planned yet
+                                        </ThemedText>
+                                    )
+                                ) : hasMeals ? (
                                     <>
                                         {mealPreviewItems.map((item, i) => (
                                             <ThemedText
@@ -140,40 +213,108 @@ export default function HomeScreen() {
                                 )}
                             </View>
                         </View>
-                        <View
-                            style={[
-                                styles.cardArrow,
-                                {
-                                    backgroundColor: theme.backgroundSelected,
-                                },
-                            ]}>
-                            <SymbolView
-                                name={{
-                                    ios: 'chevron.right',
-                                    web: 'chevron_right',
-                                }}
-                                tintColor={theme.textSecondary}
-                                size={14}
-                            />
-                        </View>
-                    </Pressable>
+                    </View>
 
                     {/* ─── Daily Chores Card ─── */}
-                    <Pressable
-                        onPress={() => router.navigate('/daily-chores')}
-                        style={({ pressed }) => [
+                    <View
+                        style={[
                             styles.card,
                             { backgroundColor: theme.backgroundElement },
-                            pressed && {
-                                backgroundColor: theme.backgroundSelected,
-                            },
                         ]}>
                         <View style={styles.cardContent}>
-                            <ThemedText type="default" style={styles.cardTitle}>
-                                Daily Chores
-                            </ThemedText>
+                            <View style={styles.cardHeaderRow}>
+                                <Pressable
+                                    onPress={() =>
+                                        setChoresExpanded(!choresExpanded)
+                                    }
+                                    style={styles.cardHeaderLeft}>
+                                    <SymbolView
+                                        name={{
+                                            ios: choresExpanded
+                                                ? 'chevron.down'
+                                                : 'chevron.right',
+                                            web: choresExpanded
+                                                ? 'expand_less'
+                                                : 'expand_more',
+                                        }}
+                                        tintColor={theme.textSecondary}
+                                        size={16}
+                                    />
+                                    <ThemedText
+                                        type="default"
+                                        style={styles.cardTitle}>
+                                        Daily Chores
+                                    </ThemedText>
+                                </Pressable>
+                                <Pressable
+                                    onPress={() =>
+                                        router.navigate('/daily-chores')
+                                    }
+                                    style={styles.cardArrowButton}>
+                                    <SymbolView
+                                        name={{
+                                            ios: 'arrow.up.right.circle.fill',
+                                            web: 'open_in_new',
+                                        }}
+                                        tintColor={theme.textSecondary}
+                                        size={20}
+                                    />
+                                </Pressable>
+                            </View>
                             <View style={styles.cardPreview}>
-                                {chores.length > 0 ? (
+                                {choresExpanded ? (
+                                    chores.length > 0 ? (
+                                        <View style={styles.expandedList}>
+                                            {chores.map((item) => (
+                                                <Pressable
+                                                    key={item.id}
+                                                    onPress={() =>
+                                                        toggleChore(item.id)
+                                                    }
+                                                    style={
+                                                        styles.expandedCheckItem
+                                                    }>
+                                                    <SymbolView
+                                                        name={{
+                                                            ios: item.done
+                                                                ? 'checkmark.circle.fill'
+                                                                : 'circle',
+                                                            web: item.done
+                                                                ? 'check_circle'
+                                                                : 'radio_button_unchecked',
+                                                        }}
+                                                        tintColor={
+                                                            item.done
+                                                                ? theme.textSecondary
+                                                                : theme.text
+                                                        }
+                                                        size={18}
+                                                    />
+                                                    <ThemedText
+                                                        themeColor={
+                                                            item.done
+                                                                ? 'textSecondary'
+                                                                : 'text'
+                                                        }
+                                                        type="small"
+                                                        style={
+                                                            item.done
+                                                                ? styles.strikethrough
+                                                                : undefined
+                                                        }>
+                                                        {item.label}
+                                                    </ThemedText>
+                                                </Pressable>
+                                            ))}
+                                        </View>
+                                    ) : (
+                                        <ThemedText
+                                            themeColor="textSecondary"
+                                            type="small">
+                                            No chores for today
+                                        </ThemedText>
+                                    )
+                                ) : chores.length > 0 ? (
                                     <>
                                         {chores.slice(0, 3).map((item) => (
                                             <View
@@ -233,40 +374,118 @@ export default function HomeScreen() {
                                 )}
                             </View>
                         </View>
-                        <View
-                            style={[
-                                styles.cardArrow,
-                                {
-                                    backgroundColor: theme.backgroundSelected,
-                                },
-                            ]}>
-                            <SymbolView
-                                name={{
-                                    ios: 'chevron.right',
-                                    web: 'chevron_right',
-                                }}
-                                tintColor={theme.textSecondary}
-                                size={14}
-                            />
-                        </View>
-                    </Pressable>
+                    </View>
 
                     {/* ─── To-Do Card ─── */}
-                    <Pressable
-                        onPress={() => router.navigate('/todo')}
-                        style={({ pressed }) => [
+                    <View
+                        style={[
                             styles.card,
                             { backgroundColor: theme.backgroundElement },
-                            pressed && {
-                                backgroundColor: theme.backgroundSelected,
-                            },
                         ]}>
                         <View style={styles.cardContent}>
-                            <ThemedText type="default" style={styles.cardTitle}>
-                                To-Do
-                            </ThemedText>
+                            <View style={styles.cardHeaderRow}>
+                                <Pressable
+                                    onPress={() =>
+                                        setTodosExpanded(!todosExpanded)
+                                    }
+                                    style={styles.cardHeaderLeft}>
+                                    <SymbolView
+                                        name={{
+                                            ios: todosExpanded
+                                                ? 'chevron.down'
+                                                : 'chevron.right',
+                                            web: todosExpanded
+                                                ? 'expand_less'
+                                                : 'expand_more',
+                                        }}
+                                        tintColor={theme.textSecondary}
+                                        size={16}
+                                    />
+                                    <ThemedText
+                                        type="default"
+                                        style={styles.cardTitle}>
+                                        To-Do
+                                    </ThemedText>
+                                </Pressable>
+                                <Pressable
+                                    onPress={() => router.navigate('/todo')}
+                                    style={styles.cardArrowButton}>
+                                    <SymbolView
+                                        name={{
+                                            ios: 'arrow.up.right.circle.fill',
+                                            web: 'open_in_new',
+                                        }}
+                                        tintColor={theme.textSecondary}
+                                        size={20}
+                                    />
+                                </Pressable>
+                            </View>
                             <View style={styles.cardPreview}>
-                                {activeTodos.length > 0 ? (
+                                {todosExpanded ? (
+                                    todos.length > 0 ? (
+                                        <View style={styles.expandedList}>
+                                            {todos.map((item) => (
+                                                <Pressable
+                                                    key={item.id}
+                                                    onPress={() =>
+                                                        toggleTodo(item.id)
+                                                    }
+                                                    style={
+                                                        styles.expandedCheckItem
+                                                    }>
+                                                    <SymbolView
+                                                        name={{
+                                                            ios: item.done
+                                                                ? 'checkmark.circle.fill'
+                                                                : 'circle',
+                                                            web: item.done
+                                                                ? 'check_circle'
+                                                                : 'radio_button_unchecked',
+                                                        }}
+                                                        tintColor={
+                                                            item.done
+                                                                ? theme.textSecondary
+                                                                : theme.text
+                                                        }
+                                                        size={18}
+                                                    />
+                                                    <View
+                                                        style={[
+                                                            styles.priorityDot,
+                                                            {
+                                                                backgroundColor:
+                                                                    priorityColors[
+                                                                        item
+                                                                            .priority
+                                                                    ],
+                                                            },
+                                                        ]}
+                                                    />
+                                                    <ThemedText
+                                                        themeColor={
+                                                            item.done
+                                                                ? 'textSecondary'
+                                                                : 'text'
+                                                        }
+                                                        type="small"
+                                                        style={[
+                                                            styles.todoLabel,
+                                                            item.done &&
+                                                                styles.strikethrough,
+                                                        ]}>
+                                                        {item.label}
+                                                    </ThemedText>
+                                                </Pressable>
+                                            ))}
+                                        </View>
+                                    ) : (
+                                        <ThemedText
+                                            themeColor="textSecondary"
+                                            type="small">
+                                            No tasks remaining
+                                        </ThemedText>
+                                    )
+                                ) : activeTodos.length > 0 ? (
                                     <>
                                         {activeTodos.slice(0, 2).map((item) => (
                                             <View
@@ -320,23 +539,7 @@ export default function HomeScreen() {
                                 )}
                             </View>
                         </View>
-                        <View
-                            style={[
-                                styles.cardArrow,
-                                {
-                                    backgroundColor: theme.backgroundSelected,
-                                },
-                            ]}>
-                            <SymbolView
-                                name={{
-                                    ios: 'chevron.right',
-                                    web: 'chevron_right',
-                                }}
-                                tintColor={theme.textSecondary}
-                                size={14}
-                            />
-                        </View>
-                    </Pressable>
+                    </View>
 
                     {/* ─── Bottom Row: 3 utility cards ─── */}
                     <View style={styles.bottomRow}>
@@ -518,5 +721,49 @@ const styles = StyleSheet.create({
     },
     bottomCardLabel: {
         textAlign: 'center',
+    },
+    cardHeaderRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginBottom: Spacing.one,
+    },
+    cardHeaderLeft: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: Spacing.two,
+        flex: 1,
+    },
+    cardArrowButton: {
+        padding: Spacing.one,
+    },
+    expandedMealsList: {
+        gap: Spacing.two,
+        marginTop: Spacing.one,
+    },
+    expandedMealRow: {
+        flexDirection: 'row',
+        gap: Spacing.two,
+        alignItems: 'center',
+    },
+    expandedMealTime: {
+        fontWeight: '600',
+        width: 80,
+    },
+    expandedMealName: {
+        flex: 1,
+    },
+    expandedList: {
+        gap: Spacing.two,
+        marginTop: Spacing.one,
+    },
+    expandedCheckItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: Spacing.three,
+        paddingVertical: Spacing.half,
+    },
+    todoLabel: {
+        flex: 1,
     },
 });
