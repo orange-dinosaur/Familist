@@ -7,6 +7,13 @@ import { SymbolViewProps } from 'expo-symbols';
 
 // ─── Types ──────────────────────────────────────────────────────────────
 
+export interface User {
+    id: string;
+    name: string;
+    initials: string;
+    color: string;
+}
+
 export interface MealItem {
     name: string;
     time: 'breakfast' | 'lunch' | 'snack' | 'dinner';
@@ -17,6 +24,7 @@ export interface ChoreItem {
     id: string;
     label: string;
     done: boolean;
+    assigneeId?: string;
 }
 
 export interface TodoItem {
@@ -24,6 +32,7 @@ export interface TodoItem {
     label: string;
     done: boolean;
     priority: 'low' | 'medium' | 'high';
+    assigneeId?: string;
 }
 
 export interface SubscriptionItem {
@@ -46,6 +55,15 @@ export interface SharedLink {
     addedBy: string;
 }
 
+// ─── Mock Users ─────────────────────────────────────────────────────────
+
+export const MOCK_USERS: User[] = [
+    { id: 'mom', name: 'Mom', initials: 'M', color: '#D81B60' },
+    { id: 'dad', name: 'Dad', initials: 'D', color: '#1E88E5' },
+    { id: 'giulio', name: 'Giulio', initials: 'G', color: '#43A047' },
+    { id: 'sofia', name: 'Sofia', initials: 'S', color: '#FB8C00' },
+];
+
 // ─── Daily Meals ────────────────────────────────────────────────────────
 
 export const dailyMeals: MealItem[] = [
@@ -61,11 +79,11 @@ export const dailyMealPreview = dailyMeals.slice(0, 3).map((m) => m.name);
 // ─── Daily Chores ───────────────────────────────────────────────────────
 
 export const dailyChores: ChoreItem[] = [
-    { id: '1', label: 'Clean kitchen', done: true },
-    { id: '2', label: 'Do laundry', done: false },
-    { id: '3', label: 'Vacuum living room', done: false },
-    { id: '4', label: 'Take out trash', done: true },
-    { id: '5', label: 'Water plants', done: false },
+    { id: '1', label: 'Clean kitchen', done: true, assigneeId: 'sofia' },
+    { id: '2', label: 'Do laundry', done: false, assigneeId: 'mom' },
+    { id: '3', label: 'Vacuum living room', done: false, assigneeId: 'dad' },
+    { id: '4', label: 'Take out trash', done: true, assigneeId: 'giulio' },
+    { id: '5', label: 'Water plants', done: false, assigneeId: 'giulio' },
 ];
 
 export const dailyChoresPreview = dailyChores.slice(0, 3);
@@ -73,15 +91,40 @@ export const dailyChoresPreview = dailyChores.slice(0, 3);
 // ─── To-Do / Long-term ─────────────────────────────────────────────────
 
 export const todoItems: TodoItem[] = [
-    { id: 't1', label: 'Organize garage', done: false, priority: 'medium' },
-    { id: 't2', label: 'Paint bedroom walls', done: false, priority: 'high' },
-    { id: 't3', label: 'Fix leaky faucet', done: true, priority: 'high' },
-    { id: 't4', label: 'Buy new curtains', done: false, priority: 'low' },
+    {
+        id: 't1',
+        label: 'Organize garage',
+        done: false,
+        priority: 'medium',
+        assigneeId: 'dad',
+    },
+    {
+        id: 't2',
+        label: 'Paint bedroom walls',
+        done: false,
+        priority: 'high',
+        assigneeId: 'mom',
+    },
+    {
+        id: 't3',
+        label: 'Fix leaky faucet',
+        done: true,
+        priority: 'high',
+        assigneeId: 'dad',
+    },
+    {
+        id: 't4',
+        label: 'Buy new curtains',
+        done: false,
+        priority: 'low',
+        assigneeId: 'sofia',
+    },
     {
         id: 't5',
         label: 'Schedule dentist appointment',
         done: false,
         priority: 'medium',
+        assigneeId: 'giulio',
     },
     { id: 't6', label: 'Clean out attic', done: false, priority: 'low' },
 ];

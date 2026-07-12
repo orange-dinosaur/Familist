@@ -14,7 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { type ChoreItem } from '@/constants/mock-data';
+import { type ChoreItem, MOCK_USERS } from '@/constants/mock-data';
 import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
 import { PRESET_CHORES, useChores } from '@/hooks/use-chores';
 import { useTheme } from '@/hooks/use-theme';
@@ -23,11 +23,12 @@ interface ChoreRowProps {
     chore: ChoreItem;
     onToggle: () => void;
     onDelete: () => void;
+    onAssign: () => void;
     theme: any;
 }
 
 const ChoreRow = React.memo(
-    ({ chore, onToggle, onDelete, theme }: ChoreRowProps) => {
+    ({ chore, onToggle, onDelete, onAssign, theme }: ChoreRowProps) => {
         const swipeableRef = React.useRef<Swipeable>(null);
 
         const renderRightActions = (
@@ -70,6 +71,8 @@ const ChoreRow = React.memo(
             );
         };
 
+        const assignee = MOCK_USERS.find((u) => u.id === chore.assigneeId);
+
         return (
             <Swipeable
                 ref={swipeableRef}
@@ -111,6 +114,44 @@ const ChoreRow = React.memo(
                         ]}>
                         {chore.label}
                     </ThemedText>
+
+                    {/* Assignee button */}
+                    <Pressable
+                        onPress={(e) => {
+                            e.stopPropagation();
+                            onAssign();
+                        }}
+                        style={styles.assigneeBadgeContainer}>
+                        {assignee ? (
+                            <View
+                                style={[
+                                    styles.assigneeAvatar,
+                                    { backgroundColor: assignee.color },
+                                ]}>
+                                <ThemedText style={styles.assigneeInitials}>
+                                    {assignee.initials}
+                                </ThemedText>
+                            </View>
+                        ) : (
+                            <View
+                                style={[
+                                    styles.assigneeAvatar,
+                                    {
+                                        backgroundColor:
+                                            theme.backgroundSelected,
+                                    },
+                                ]}>
+                                <SymbolView
+                                    name={{
+                                        ios: 'person.crop.circle',
+                                        web: 'person_outline',
+                                    }}
+                                    tintColor={theme.textSecondary}
+                                    size={14}
+                                />
+                            </View>
+                        )}
+                    </Pressable>
                 </Pressable>
             </Swipeable>
         );
@@ -121,8 +162,12 @@ ChoreRow.displayName = 'ChoreRow';
 
 export default function DailyChoresScreen() {
     const theme = useTheme();
-    const { chores, toggleChore, deleteChore, toggleChoreActive } = useChores();
+    const { chores, toggleChore, deleteChore, toggleChoreActive, assignChore } =
+        useChores();
     const [modalVisible, setModalVisible] = useState(false);
+    const [assigningChoreId, setAssigningChoreId] = useState<string | null>(
+        null
+    );
 
     const doneCount = chores.filter((c) => c.done).length;
     const progress =
@@ -206,6 +251,7 @@ export default function DailyChoresScreen() {
                                 theme={theme}
                                 onToggle={() => toggleChore(chore.id)}
                                 onDelete={() => deleteChore(chore.id)}
+                                onAssign={() => setAssigningChoreId(chore.id)}
                             />
                         ))}
                 </ScrollView>
@@ -357,6 +403,122 @@ export default function DailyChoresScreen() {
                     </SafeAreaView>
                 </View>
             </Modal>
+
+            {/* Assignee Selection Modal */}
+            <Modal
+                visible={assigningChoreId !== null}
+                animationType="fade"
+                transparent={true}
+                onRequestClose={() => setAssigningChoreId(null)}>
+                <Pressable
+                    style={styles.modalOverlay}
+                    onPress={() => setAssigningChoreId(null)}>
+                    <View
+                        style={[
+                            styles.assigneeModalContent,
+                            { backgroundColor: theme.background },
+                        ]}>
+                        <ThemedText
+                            type="subtitle"
+                            style={styles.assigneeModalTitle}>
+                            Assign Chore
+                        </ThemedText>
+
+                        <ScrollView
+                            style={styles.assigneeList}
+                            showsVerticalScrollIndicator={false}>
+                            {MOCK_USERS.map((user) => (
+                                <Pressable
+                                    key={user.id}
+                                    onPress={() => {
+                                        if (assigningChoreId) {
+                                            assignChore(
+                                                assigningChoreId,
+                                                user.id
+                                            );
+                                        }
+                                        setAssigningChoreId(null);
+                                    }}
+                                    style={({ pressed }) => [
+                                        styles.assigneeRow,
+                                        pressed && {
+                                            backgroundColor:
+                                                theme.backgroundSelected,
+                                        },
+                                    ]}>
+                                    <View
+                                        style={[
+                                            styles.assigneeAvatarLarge,
+                                            { backgroundColor: user.color },
+                                        ]}>
+                                        <ThemedText
+                                            style={
+                                                styles.assigneeInitialsLarge
+                                            }>
+                                            {user.initials}
+                                        </ThemedText>
+                                    </View>
+                                    <ThemedText style={styles.assigneeName}>
+                                        {user.name}
+                                    </ThemedText>
+                                </Pressable>
+                            ))}
+
+                            <Pressable
+                                onPress={() => {
+                                    if (assigningChoreId) {
+                                        assignChore(
+                                            assigningChoreId,
+                                            undefined
+                                        );
+                                    }
+                                    setAssigningChoreId(null);
+                                }}
+                                style={({ pressed }) => [
+                                    styles.assigneeRow,
+                                    pressed && {
+                                        backgroundColor:
+                                            theme.backgroundSelected,
+                                    },
+                                ]}>
+                                <View
+                                    style={[
+                                        styles.assigneeAvatarLarge,
+                                        {
+                                            backgroundColor:
+                                                theme.backgroundSelected,
+                                        },
+                                    ]}>
+                                    <SymbolView
+                                        name={{
+                                            ios: 'person.crop.circle',
+                                            web: 'person_outline',
+                                        }}
+                                        tintColor={theme.textSecondary}
+                                        size={22}
+                                    />
+                                </View>
+                                <ThemedText
+                                    themeColor="textSecondary"
+                                    style={styles.assigneeName}>
+                                    Unassigned
+                                </ThemedText>
+                            </Pressable>
+                        </ScrollView>
+
+                        <Pressable
+                            onPress={() => setAssigningChoreId(null)}
+                            style={[
+                                styles.assigneeCloseButton,
+                                { backgroundColor: theme.backgroundElement },
+                            ]}>
+                            <ThemedText style={{ fontWeight: '600' }}>
+                                Cancel
+                            </ThemedText>
+                        </Pressable>
+                    </View>
+                </Pressable>
+            </Modal>
         </ThemedView>
     );
 }
@@ -416,6 +578,23 @@ const styles = StyleSheet.create({
     },
     strikethrough: {
         textDecorationLine: 'line-through',
+    },
+
+    // Assignee styling
+    assigneeBadgeContainer: {
+        padding: Spacing.one,
+    },
+    assigneeAvatar: {
+        width: 28,
+        height: 28,
+        borderRadius: 14,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    assigneeInitials: {
+        color: '#FFFFFF',
+        fontSize: 12,
+        fontWeight: '700',
     },
 
     // Empty state
@@ -534,5 +713,64 @@ const styles = StyleSheet.create({
     doneButtonText: {
         fontSize: 16,
         fontWeight: '600',
+    },
+
+    // Assignee Overlay Modal
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0, 0, 0, 0.4)',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    assigneeModalContent: {
+        width: '85%',
+        maxWidth: 320,
+        borderRadius: 20,
+        padding: Spacing.four,
+        gap: Spacing.two,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.15,
+        shadowRadius: 10,
+        elevation: 5,
+    },
+    assigneeModalTitle: {
+        textAlign: 'center',
+        fontWeight: '600',
+        marginBottom: Spacing.two,
+    },
+    assigneeList: {
+        maxHeight: 300,
+    },
+    assigneeRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: Spacing.three,
+        paddingVertical: Spacing.two,
+        borderBottomWidth: StyleSheet.hairlineWidth,
+        borderBottomColor: 'rgba(0, 0, 0, 0.1)',
+    },
+    assigneeAvatarLarge: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    assigneeInitialsLarge: {
+        color: '#FFFFFF',
+        fontSize: 14,
+        fontWeight: '700',
+    },
+    assigneeName: {
+        fontSize: 16,
+        fontWeight: '500',
+    },
+    assigneeCloseButton: {
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderRadius: 12,
+        padding: Spacing.three,
+        marginTop: Spacing.one,
     },
 });

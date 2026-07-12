@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { MOCK_USERS } from '@/constants/mock-data';
 import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
 import { useChores } from '@/hooks/use-chores';
 import { useMeals } from '@/hooks/use-meals';
@@ -72,33 +73,36 @@ export default function HomeScreen() {
                     style={styles.scrollView}
                     contentContainerStyle={styles.scrollContent}
                     showsVerticalScrollIndicator={false}>
-                    {/* Header: title + avatar */}
+                    {/* Header: Title and User Avatar */}
                     <View style={styles.header}>
-                        <ThemedText type="title" style={styles.appTitle}>
-                            FamiList
-                        </ThemedText>
-                        <View
-                            style={[
-                                styles.avatar,
-                                { backgroundColor: theme.backgroundElement },
-                            ]}>
-                            <SymbolView
-                                name={{
-                                    ios: 'person.fill',
-                                    web: 'person',
-                                }}
-                                tintColor={theme.textSecondary}
-                                size={20}
-                            />
+                        <View style={styles.titleRow}>
+                            <ThemedText type="title">FamiList</ThemedText>
+                            <View
+                                style={[
+                                    styles.userAvatar,
+                                    {
+                                        backgroundColor:
+                                            theme.backgroundSelected,
+                                    },
+                                ]}>
+                                <SymbolView
+                                    name={{
+                                        ios: 'person.fill',
+                                        web: 'person',
+                                    }}
+                                    tintColor={theme.textSecondary}
+                                    size={20}
+                                />
+                            </View>
                         </View>
-                    </View>
 
-                    {/* Date and day of the week */}
-                    <ThemedText
-                        themeColor="textSecondary"
-                        style={styles.dateText}>
-                        {getFormattedDate()}
-                    </ThemedText>
+                        {/* Date and day of the week */}
+                        <ThemedText
+                            themeColor="textSecondary"
+                            style={styles.dateText}>
+                            {getFormattedDate()}
+                        </ThemedText>
+                    </View>
 
                     {/* ─── Daily Meal Card ─── */}
                     <View
@@ -265,47 +269,74 @@ export default function HomeScreen() {
                                 {choresExpanded ? (
                                     chores.length > 0 ? (
                                         <View style={styles.expandedList}>
-                                            {chores.map((item) => (
-                                                <Pressable
-                                                    key={item.id}
-                                                    onPress={() =>
-                                                        toggleChore(item.id)
-                                                    }
-                                                    style={
-                                                        styles.expandedCheckItem
-                                                    }>
-                                                    <SymbolView
-                                                        name={{
-                                                            ios: item.done
-                                                                ? 'checkmark.circle.fill'
-                                                                : 'circle',
-                                                            web: item.done
-                                                                ? 'check_circle'
-                                                                : 'radio_button_unchecked',
-                                                        }}
-                                                        tintColor={
-                                                            item.done
-                                                                ? theme.textSecondary
-                                                                : theme.text
+                                            {chores.map((item) => {
+                                                const assignee =
+                                                    MOCK_USERS.find(
+                                                        (u) =>
+                                                            u.id ===
+                                                            item.assigneeId
+                                                    );
+                                                return (
+                                                    <Pressable
+                                                        key={item.id}
+                                                        onPress={() =>
+                                                            toggleChore(item.id)
                                                         }
-                                                        size={18}
-                                                    />
-                                                    <ThemedText
-                                                        themeColor={
-                                                            item.done
-                                                                ? 'textSecondary'
-                                                                : 'text'
-                                                        }
-                                                        type="small"
                                                         style={
-                                                            item.done
-                                                                ? styles.strikethrough
-                                                                : undefined
+                                                            styles.expandedCheckItem
                                                         }>
-                                                        {item.label}
-                                                    </ThemedText>
-                                                </Pressable>
-                                            ))}
+                                                        <SymbolView
+                                                            name={{
+                                                                ios: item.done
+                                                                    ? 'checkmark.circle.fill'
+                                                                    : 'circle',
+                                                                web: item.done
+                                                                    ? 'check_circle'
+                                                                    : 'radio_button_unchecked',
+                                                            }}
+                                                            tintColor={
+                                                                item.done
+                                                                    ? theme.textSecondary
+                                                                    : theme.text
+                                                            }
+                                                            size={18}
+                                                        />
+                                                        <ThemedText
+                                                            themeColor={
+                                                                item.done
+                                                                    ? 'textSecondary'
+                                                                    : 'text'
+                                                            }
+                                                            type="small"
+                                                            style={[
+                                                                styles.todoLabel,
+                                                                item.done &&
+                                                                    styles.strikethrough,
+                                                            ]}>
+                                                            {item.label}
+                                                        </ThemedText>
+                                                        {assignee && (
+                                                            <View
+                                                                style={[
+                                                                    styles.assigneeAvatar,
+                                                                    {
+                                                                        backgroundColor:
+                                                                            assignee.color,
+                                                                    },
+                                                                ]}>
+                                                                <ThemedText
+                                                                    style={
+                                                                        styles.assigneeInitials
+                                                                    }>
+                                                                    {
+                                                                        assignee.initials
+                                                                    }
+                                                                </ThemedText>
+                                                            </View>
+                                                        )}
+                                                    </Pressable>
+                                                );
+                                            })}
                                         </View>
                                     ) : (
                                         <ThemedText
@@ -316,43 +347,73 @@ export default function HomeScreen() {
                                     )
                                 ) : chores.length > 0 ? (
                                     <>
-                                        {chores.slice(0, 3).map((item) => (
-                                            <View
-                                                key={item.id}
-                                                style={styles.checkItem}>
-                                                <SymbolView
-                                                    name={{
-                                                        ios: item.done
-                                                            ? 'checkmark.square.fill'
-                                                            : 'square',
-                                                        web: item.done
-                                                            ? 'check_box'
-                                                            : 'check_box_outline_blank',
-                                                    }}
-                                                    tintColor={
-                                                        item.done
-                                                            ? theme.textSecondary
-                                                            : theme.text
-                                                    }
-                                                    size={16}
-                                                />
-                                                <ThemedText
-                                                    themeColor={
-                                                        item.done
-                                                            ? 'textSecondary'
-                                                            : 'text'
-                                                    }
-                                                    type="small"
-                                                    numberOfLines={1}
-                                                    style={
-                                                        item.done
-                                                            ? styles.strikethrough
-                                                            : undefined
-                                                    }>
-                                                    {item.label}
-                                                </ThemedText>
-                                            </View>
-                                        ))}
+                                        {chores.slice(0, 3).map((item) => {
+                                            const assignee = MOCK_USERS.find(
+                                                (u) => u.id === item.assigneeId
+                                            );
+                                            return (
+                                                <View
+                                                    key={item.id}
+                                                    style={styles.checkItem}>
+                                                    <SymbolView
+                                                        name={{
+                                                            ios: item.done
+                                                                ? 'checkmark.square.fill'
+                                                                : 'square',
+                                                            web: item.done
+                                                                ? 'check_box'
+                                                                : 'check_box_outline_blank',
+                                                        }}
+                                                        tintColor={
+                                                            item.done
+                                                                ? theme.textSecondary
+                                                                : theme.text
+                                                        }
+                                                        size={16}
+                                                    />
+                                                    <ThemedText
+                                                        themeColor={
+                                                            item.done
+                                                                ? 'textSecondary'
+                                                                : 'text'
+                                                        }
+                                                        type="small"
+                                                        numberOfLines={1}
+                                                        style={[
+                                                            styles.todoLabel,
+                                                            item.done &&
+                                                                styles.strikethrough,
+                                                        ]}>
+                                                        {item.label}
+                                                    </ThemedText>
+                                                    {assignee && (
+                                                        <View
+                                                            style={[
+                                                                styles.assigneeAvatar,
+                                                                {
+                                                                    backgroundColor:
+                                                                        assignee.color,
+                                                                    width: 22,
+                                                                    height: 22,
+                                                                    borderRadius: 11,
+                                                                },
+                                                            ]}>
+                                                            <ThemedText
+                                                                style={[
+                                                                    styles.assigneeInitials,
+                                                                    {
+                                                                        fontSize: 10,
+                                                                    },
+                                                                ]}>
+                                                                {
+                                                                    assignee.initials
+                                                                }
+                                                            </ThemedText>
+                                                        </View>
+                                                    )}
+                                                </View>
+                                            );
+                                        })}
                                         {remainingChores > 0 && (
                                             <ThemedText
                                                 themeColor="textSecondary"
@@ -424,30 +485,111 @@ export default function HomeScreen() {
                                 {todosExpanded ? (
                                     todos.length > 0 ? (
                                         <View style={styles.expandedList}>
-                                            {todos.map((item) => (
-                                                <Pressable
+                                            {todos.map((item) => {
+                                                const assignee =
+                                                    MOCK_USERS.find(
+                                                        (u) =>
+                                                            u.id ===
+                                                            item.assigneeId
+                                                    );
+                                                return (
+                                                    <Pressable
+                                                        key={item.id}
+                                                        onPress={() =>
+                                                            toggleTodo(item.id)
+                                                        }
+                                                        style={
+                                                            styles.expandedCheckItem
+                                                        }>
+                                                        <SymbolView
+                                                            name={{
+                                                                ios: item.done
+                                                                    ? 'checkmark.circle.fill'
+                                                                    : 'circle',
+                                                                web: item.done
+                                                                    ? 'check_circle'
+                                                                    : 'radio_button_unchecked',
+                                                            }}
+                                                            tintColor={
+                                                                item.done
+                                                                    ? theme.textSecondary
+                                                                    : theme.text
+                                                            }
+                                                            size={18}
+                                                        />
+                                                        <View
+                                                            style={[
+                                                                styles.priorityDot,
+                                                                {
+                                                                    backgroundColor:
+                                                                        priorityColors[
+                                                                            item
+                                                                                .priority
+                                                                        ],
+                                                                },
+                                                            ]}
+                                                        />
+                                                        <ThemedText
+                                                            themeColor={
+                                                                item.done
+                                                                    ? 'textSecondary'
+                                                                    : 'text'
+                                                            }
+                                                            type="small"
+                                                            style={[
+                                                                styles.todoLabel,
+                                                                item.done &&
+                                                                    styles.strikethrough,
+                                                            ]}>
+                                                            {item.label}
+                                                        </ThemedText>
+                                                        {assignee && (
+                                                            <View
+                                                                style={[
+                                                                    styles.assigneeAvatar,
+                                                                    {
+                                                                        backgroundColor:
+                                                                            assignee.color,
+                                                                    },
+                                                                ]}>
+                                                                <ThemedText
+                                                                    style={
+                                                                        styles.assigneeInitials
+                                                                    }>
+                                                                    {
+                                                                        assignee.initials
+                                                                    }
+                                                                </ThemedText>
+                                                            </View>
+                                                        )}
+                                                    </Pressable>
+                                                );
+                                            })}
+                                        </View>
+                                    ) : (
+                                        <ThemedText
+                                            themeColor="textSecondary"
+                                            type="small">
+                                            No tasks remaining
+                                        </ThemedText>
+                                    )
+                                ) : activeTodos.length > 0 ? (
+                                    <>
+                                        {activeTodos.slice(0, 2).map((item) => {
+                                            const assignee = MOCK_USERS.find(
+                                                (u) => u.id === item.assigneeId
+                                            );
+                                            return (
+                                                <View
                                                     key={item.id}
-                                                    onPress={() =>
-                                                        toggleTodo(item.id)
-                                                    }
-                                                    style={
-                                                        styles.expandedCheckItem
-                                                    }>
+                                                    style={styles.checkItem}>
                                                     <SymbolView
                                                         name={{
-                                                            ios: item.done
-                                                                ? 'checkmark.circle.fill'
-                                                                : 'circle',
-                                                            web: item.done
-                                                                ? 'check_circle'
-                                                                : 'radio_button_unchecked',
+                                                            ios: 'square',
+                                                            web: 'check_box_outline_blank',
                                                         }}
-                                                        tintColor={
-                                                            item.done
-                                                                ? theme.textSecondary
-                                                                : theme.text
-                                                        }
-                                                        size={18}
+                                                        tintColor={theme.text}
+                                                        size={16}
                                                     />
                                                     <View
                                                         style={[
@@ -462,62 +604,41 @@ export default function HomeScreen() {
                                                         ]}
                                                     />
                                                     <ThemedText
-                                                        themeColor={
-                                                            item.done
-                                                                ? 'textSecondary'
-                                                                : 'text'
-                                                        }
                                                         type="small"
-                                                        style={[
-                                                            styles.todoLabel,
-                                                            item.done &&
-                                                                styles.strikethrough,
-                                                        ]}>
+                                                        numberOfLines={1}
+                                                        style={
+                                                            styles.todoLabel
+                                                        }>
                                                         {item.label}
                                                     </ThemedText>
-                                                </Pressable>
-                                            ))}
-                                        </View>
-                                    ) : (
-                                        <ThemedText
-                                            themeColor="textSecondary"
-                                            type="small">
-                                            No tasks remaining
-                                        </ThemedText>
-                                    )
-                                ) : activeTodos.length > 0 ? (
-                                    <>
-                                        {activeTodos.slice(0, 2).map((item) => (
-                                            <View
-                                                key={item.id}
-                                                style={styles.checkItem}>
-                                                <SymbolView
-                                                    name={{
-                                                        ios: 'square',
-                                                        web: 'check_box_outline_blank',
-                                                    }}
-                                                    tintColor={theme.text}
-                                                    size={16}
-                                                />
-                                                <View
-                                                    style={[
-                                                        styles.priorityDot,
-                                                        {
-                                                            backgroundColor:
-                                                                priorityColors[
-                                                                    item
-                                                                        .priority
-                                                                ],
-                                                        },
-                                                    ]}
-                                                />
-                                                <ThemedText
-                                                    type="small"
-                                                    numberOfLines={1}>
-                                                    {item.label}
-                                                </ThemedText>
-                                            </View>
-                                        ))}
+                                                    {assignee && (
+                                                        <View
+                                                            style={[
+                                                                styles.assigneeAvatar,
+                                                                {
+                                                                    backgroundColor:
+                                                                        assignee.color,
+                                                                    width: 22,
+                                                                    height: 22,
+                                                                    borderRadius: 11,
+                                                                },
+                                                            ]}>
+                                                            <ThemedText
+                                                                style={[
+                                                                    styles.assigneeInitials,
+                                                                    {
+                                                                        fontSize: 10,
+                                                                    },
+                                                                ]}>
+                                                                {
+                                                                    assignee.initials
+                                                                }
+                                                            </ThemedText>
+                                                        </View>
+                                                    )}
+                                                </View>
+                                            );
+                                        })}
                                         {remainingTodos > 0 && (
                                             <ThemedText
                                                 themeColor="textSecondary"
@@ -560,43 +681,16 @@ export default function HomeScreen() {
                                     web: 'credit_card',
                                 }}
                                 tintColor={theme.text}
-                                size={24}
+                                size={22}
                             />
                             <ThemedText
-                                type="smallBold"
+                                type="small"
                                 style={styles.bottomCardLabel}>
-                                Subscriptions
+                                Bills
                             </ThemedText>
                         </Pressable>
 
                         <Pressable
-                            onPress={() => router.navigate('/explore')}
-                            style={({ pressed }) => [
-                                styles.bottomCard,
-                                {
-                                    backgroundColor: theme.backgroundElement,
-                                },
-                                pressed && {
-                                    backgroundColor: theme.backgroundSelected,
-                                },
-                            ]}>
-                            <SymbolView
-                                name={{
-                                    ios: 'calendar.badge.exclamationmark',
-                                    web: 'event_busy',
-                                }}
-                                tintColor={theme.text}
-                                size={24}
-                            />
-                            <ThemedText
-                                type="smallBold"
-                                style={styles.bottomCardLabel}>
-                                {'Payment\nDeadlines'}
-                            </ThemedText>
-                        </Pressable>
-
-                        <Pressable
-                            onPress={() => router.navigate('/explore')}
                             style={({ pressed }) => [
                                 styles.bottomCard,
                                 {
@@ -612,12 +706,37 @@ export default function HomeScreen() {
                                     web: 'link',
                                 }}
                                 tintColor={theme.text}
-                                size={24}
+                                size={22}
                             />
                             <ThemedText
-                                type="smallBold"
+                                type="small"
                                 style={styles.bottomCardLabel}>
-                                {'Shared\nLinks'}
+                                Links
+                            </ThemedText>
+                        </Pressable>
+
+                        <Pressable
+                            style={({ pressed }) => [
+                                styles.bottomCard,
+                                {
+                                    backgroundColor: theme.backgroundElement,
+                                },
+                                pressed && {
+                                    backgroundColor: theme.backgroundSelected,
+                                },
+                            ]}>
+                            <SymbolView
+                                name={{
+                                    ios: 'gearshape.fill',
+                                    web: 'settings',
+                                }}
+                                tintColor={theme.text}
+                                size={22}
+                            />
+                            <ThemedText
+                                type="small"
+                                style={styles.bottomCardLabel}>
+                                Settings
                             </ThemedText>
                         </Pressable>
                     </View>
@@ -642,24 +761,23 @@ const styles = StyleSheet.create({
     },
     scrollContent: {
         paddingHorizontal: Spacing.four,
-        paddingBottom: BottomTabInset + Spacing.four,
+        paddingBottom: BottomTabInset + Spacing.six,
         gap: Spacing.three,
     },
-    /* ── Header ── */
     header: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
         paddingTop: Spacing.two,
+        gap: Spacing.one,
+        marginBottom: Spacing.two,
     },
-    appTitle: {
-        fontSize: 34,
-        lineHeight: 40,
+    titleRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
     },
-    avatar: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
+    userAvatar: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
         alignItems: 'center',
         justifyContent: 'center',
     },
@@ -765,5 +883,18 @@ const styles = StyleSheet.create({
     },
     todoLabel: {
         flex: 1,
+    },
+    // Assignee styling
+    assigneeAvatar: {
+        width: 26,
+        height: 26,
+        borderRadius: 13,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    assigneeInitials: {
+        color: '#FFFFFF',
+        fontSize: 11,
+        fontWeight: '700',
     },
 });

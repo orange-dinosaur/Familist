@@ -22,6 +22,7 @@ interface ChoresContextValue {
     deleteChore: (id: string) => void;
     editChore: (id: string, newLabel: string) => void;
     toggleChoreActive: (label: string) => void;
+    assignChore: (id: string, assigneeId: string | undefined) => void;
 }
 
 const ChoresContext = createContext<ChoresContextValue | null>(null);
@@ -78,6 +79,17 @@ export function ChoresProvider({ children }: { children: React.ReactNode }) {
         });
     }, []);
 
+    const assignChore = useCallback(
+        (id: string, assigneeId: string | undefined) => {
+            setChores((prev) =>
+                prev.map((chore) =>
+                    chore.id === id ? { ...chore, assigneeId } : chore
+                )
+            );
+        },
+        []
+    );
+
     return (
         <ChoresContext.Provider
             value={{
@@ -87,6 +99,7 @@ export function ChoresProvider({ children }: { children: React.ReactNode }) {
                 deleteChore,
                 editChore,
                 toggleChoreActive,
+                assignChore,
             }}>
             {children}
         </ChoresContext.Provider>
