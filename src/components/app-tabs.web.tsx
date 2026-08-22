@@ -9,6 +9,7 @@ import {
 import { SymbolView, SymbolViewProps } from 'expo-symbols';
 import React from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ThemedText } from './themed-text';
 import { ThemedView } from './themed-view';
@@ -100,13 +101,17 @@ export function TabButton({
 
 export function CustomTabList(props: TabListProps) {
     const theme = useTheme();
+    const insets = useSafeAreaInsets();
 
     return (
         <View {...props} style={styles.tabListContainer}>
             <ThemedView
                 style={[
                     styles.innerContainer,
-                    { borderTopColor: theme.backgroundSelected },
+                    {
+                        borderTopColor: theme.backgroundSelected,
+                        paddingBottom: Spacing.two + insets.bottom,
+                    },
                 ]}>
                 {props.children}
             </ThemedView>
@@ -131,7 +136,6 @@ const styles = StyleSheet.create({
         alignItems: 'stretch',
         borderTopWidth: StyleSheet.hairlineWidth,
         paddingTop: Spacing.two,
-        paddingBottom: Spacing.two,
     },
 
     // Tab button
