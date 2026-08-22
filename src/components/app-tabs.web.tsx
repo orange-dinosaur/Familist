@@ -6,7 +6,7 @@ import {
     TabTriggerSlotProps,
     TabListProps,
 } from 'expo-router/ui';
-import { SymbolView, SymbolViewProps } from 'expo-symbols';
+import { SymbolView } from 'expo-symbols';
 import React from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -14,11 +14,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ThemedText } from './themed-text';
 import { ThemedView } from './themed-view';
 
+import { type PlatformSymbol } from '@/constants/mock-data';
 import { MaxContentWidth, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
 type TabButtonProps = TabTriggerSlotProps & {
-    icon: SymbolViewProps['name'];
+    icon: PlatformSymbol;
 };
 
 export default function AppTabs() {

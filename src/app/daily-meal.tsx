@@ -335,12 +335,7 @@ export default function DailyMealScreen() {
                                 },
                             ]}>
                             <SymbolView
-                                name={
-                                    Platform.select({
-                                        ios: 'fork.knife',
-                                        default: 'restaurant',
-                                    }) as any
-                                }
+                                name={{ ios: 'fork.knife', web: 'restaurant' }}
                                 tintColor={theme.textSecondary}
                                 size={20}
                             />

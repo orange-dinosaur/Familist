@@ -3,9 +3,14 @@
  * Will be replaced with database reads in the future.
  */
 
-import { SymbolViewProps } from 'expo-symbols';
+import { AndroidSymbol, SFSymbol } from 'expo-symbols';
 
 // ─── Types ──────────────────────────────────────────────────────────────
+
+export interface PlatformSymbol {
+    ios: SFSymbol;
+    web: AndroidSymbol;
+}
 
 export interface User {
     id: string;
@@ -108,7 +113,7 @@ export interface SubscriptionItem {
     name: string;
     price: string;
     cycle: 'monthly' | 'yearly';
-    icon: SymbolViewProps['name'];
+    icon: PlatformSymbol;
 }
 
 export interface PaymentDeadline {
