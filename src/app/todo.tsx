@@ -319,24 +319,24 @@ export default function TodoScreen() {
     return (
         <ThemedView style={styles.container}>
             <SafeAreaView style={styles.safeArea}>
+                {/* Header */}
+                <View style={styles.header}>
+                    <ThemedText type="title" style={styles.pageTitle}>
+                        To-Do List
+                    </ThemedText>
+                    <ThemedText
+                        themeColor="textSecondary"
+                        style={styles.subtitle}>
+                        {activeTodos.length} active, {completedTodos.length}{' '}
+                        completed in total
+                    </ThemedText>
+                </View>
+
                 <ScrollView
                     ref={scrollViewRef}
                     style={styles.scrollView}
                     contentContainerStyle={styles.scrollContent}
                     showsVerticalScrollIndicator={false}>
-                    {/* Header */}
-                    <View style={styles.header}>
-                        <ThemedText type="title" style={styles.pageTitle}>
-                            To-Do List
-                        </ThemedText>
-                        <ThemedText
-                            themeColor="textSecondary"
-                            style={styles.subtitle}>
-                            {activeTodos.length} active, {completedTodos.length}{' '}
-                            completed in total
-                        </ThemedText>
-                    </View>
-
                     {/* Todos grouped by day */}
                     {dates.map((day) => {
                         const dayTodos = todos.filter((t) => t.day === day);
@@ -838,6 +838,8 @@ const styles = StyleSheet.create({
     },
     header: {
         paddingTop: Spacing.two,
+        paddingHorizontal: Spacing.four,
+        paddingBottom: Spacing.three,
         gap: Spacing.one,
         marginBottom: Spacing.one,
     },

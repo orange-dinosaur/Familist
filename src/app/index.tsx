@@ -85,41 +85,41 @@ export default function HomeScreen() {
     return (
         <ThemedView style={styles.container}>
             <SafeAreaView style={styles.safeArea}>
+                {/* Header: Title and User Avatar */}
+                <View style={styles.header}>
+                    <View style={styles.titleRow}>
+                        <ThemedText type="title">FamiList</ThemedText>
+                        <View
+                            style={[
+                                styles.userAvatar,
+                                {
+                                    backgroundColor:
+                                        theme.backgroundSelected,
+                                },
+                            ]}>
+                            <SymbolView
+                                name={{
+                                    ios: 'person.fill',
+                                    web: 'person',
+                                }}
+                                tintColor={theme.textSecondary}
+                                size={20}
+                            />
+                        </View>
+                    </View>
+
+                    {/* Date and day of the week */}
+                    <ThemedText
+                        themeColor="textSecondary"
+                        style={styles.dateText}>
+                        {getFormattedDate()}
+                    </ThemedText>
+                </View>
+
                 <ScrollView
                     style={styles.scrollView}
                     contentContainerStyle={styles.scrollContent}
                     showsVerticalScrollIndicator={false}>
-                    {/* Header: Title and User Avatar */}
-                    <View style={styles.header}>
-                        <View style={styles.titleRow}>
-                            <ThemedText type="title">FamiList</ThemedText>
-                            <View
-                                style={[
-                                    styles.userAvatar,
-                                    {
-                                        backgroundColor:
-                                            theme.backgroundSelected,
-                                    },
-                                ]}>
-                                <SymbolView
-                                    name={{
-                                        ios: 'person.fill',
-                                        web: 'person',
-                                    }}
-                                    tintColor={theme.textSecondary}
-                                    size={20}
-                                />
-                            </View>
-                        </View>
-
-                        {/* Date and day of the week */}
-                        <ThemedText
-                            themeColor="textSecondary"
-                            style={styles.dateText}>
-                            {getFormattedDate()}
-                        </ThemedText>
-                    </View>
-
                     {/* ─── Daily Meal Card ─── */}
                     <View
                         style={[
@@ -860,6 +860,8 @@ const styles = StyleSheet.create({
     },
     header: {
         paddingTop: Spacing.two,
+        paddingHorizontal: Spacing.four,
+        paddingBottom: Spacing.three,
         gap: Spacing.one,
         marginBottom: Spacing.two,
     },

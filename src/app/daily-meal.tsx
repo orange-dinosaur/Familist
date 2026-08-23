@@ -112,25 +112,25 @@ export default function DailyMealScreen() {
     return (
         <ThemedView style={styles.container}>
             <SafeAreaView style={styles.safeArea}>
+                {/* Header */}
+                <View style={styles.header}>
+                    <ThemedText type="title" style={styles.pageTitle}>
+                        Meals Plan
+                    </ThemedText>
+                    <ThemedText
+                        themeColor="textSecondary"
+                        style={styles.subtitle}>
+                        {hasMeals
+                            ? `${meals.length} dish${meals.length !== 1 ? 'es' : ''} planned in total`
+                            : 'No meals planned yet'}
+                    </ThemedText>
+                </View>
+
                 <ScrollView
                     ref={scrollViewRef}
                     style={styles.scrollView}
                     contentContainerStyle={styles.scrollContent}
                     showsVerticalScrollIndicator={false}>
-                    {/* Header */}
-                    <View style={styles.header}>
-                        <ThemedText type="title" style={styles.pageTitle}>
-                            Meals Plan
-                        </ThemedText>
-                        <ThemedText
-                            themeColor="textSecondary"
-                            style={styles.subtitle}>
-                            {hasMeals
-                                ? `${meals.length} dish${meals.length !== 1 ? 'es' : ''} planned in total`
-                                : 'No meals planned yet'}
-                        </ThemedText>
-                    </View>
-
                     {/* Empty state */}
                     {!hasMeals && (
                         <View
@@ -702,6 +702,8 @@ const styles = StyleSheet.create({
     },
     header: {
         paddingTop: Spacing.two,
+        paddingHorizontal: Spacing.four,
+        paddingBottom: Spacing.three,
         gap: Spacing.one,
     },
     pageTitle: {

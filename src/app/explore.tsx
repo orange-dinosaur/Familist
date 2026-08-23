@@ -32,17 +32,17 @@ export default function ExploreScreen() {
     return (
         <ThemedView style={styles.container}>
             <SafeAreaView style={styles.safeArea}>
+                {/* Header */}
+                <View style={styles.header}>
+                    <ThemedText type="title" style={styles.pageTitle}>
+                        Other
+                    </ThemedText>
+                </View>
+
                 <ScrollView
                     style={styles.scrollView}
                     contentContainerStyle={styles.scrollContent}
                     showsVerticalScrollIndicator={false}>
-                    {/* Header */}
-                    <View style={styles.header}>
-                        <ThemedText type="title" style={styles.pageTitle}>
-                            Other
-                        </ThemedText>
-                    </View>
-
                     {/* ─── Subscriptions ─── */}
                     <View style={styles.sectionHeader}>
                         <SymbolView
@@ -279,6 +279,8 @@ const styles = StyleSheet.create({
     },
     header: {
         paddingTop: Spacing.two,
+        paddingHorizontal: Spacing.four,
+        paddingBottom: Spacing.two,
         gap: Spacing.one,
     },
     pageTitle: {

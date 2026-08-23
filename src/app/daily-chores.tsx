@@ -220,25 +220,25 @@ export default function DailyChoresScreen() {
     return (
         <ThemedView style={styles.container}>
             <SafeAreaView style={styles.safeArea}>
+                {/* Header */}
+                <View style={styles.header}>
+                    <ThemedText type="title" style={styles.pageTitle}>
+                        Chores Plan
+                    </ThemedText>
+                    <ThemedText
+                        themeColor="textSecondary"
+                        style={styles.subtitle}>
+                        {hasChores
+                            ? `${doneCount} of ${chores.length} completed in total`
+                            : 'No chores planned'}
+                    </ThemedText>
+                </View>
+
                 <ScrollView
                     ref={scrollViewRef}
                     style={styles.scrollView}
                     contentContainerStyle={styles.scrollContent}
                     showsVerticalScrollIndicator={false}>
-                    {/* Header */}
-                    <View style={styles.header}>
-                        <ThemedText type="title" style={styles.pageTitle}>
-                            Chores Plan
-                        </ThemedText>
-                        <ThemedText
-                            themeColor="textSecondary"
-                            style={styles.subtitle}>
-                            {hasChores
-                                ? `${doneCount} of ${chores.length} completed in total`
-                                : 'No chores planned'}
-                        </ThemedText>
-                    </View>
-
                     {/* Weekly Chores List grouped by day */}
                     {dates.map((day) => {
                         const dayChores = chores.filter((c) => c.day === day);
@@ -739,6 +739,8 @@ const styles = StyleSheet.create({
     },
     header: {
         paddingTop: Spacing.two,
+        paddingHorizontal: Spacing.four,
+        paddingBottom: Spacing.three,
         gap: Spacing.one,
         marginBottom: Spacing.one,
     },
