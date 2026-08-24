@@ -23,11 +23,11 @@ function getFormattedDate(): string {
     });
 }
 
-const priorityColors: Record<string, string> = {
-    high: '#E5484D',
-    medium: '#F5A623',
-    low: '#46A758',
-};
+const priorityColors = {
+    high: 'priorityHigh',
+    medium: 'priorityMedium',
+    low: 'priorityLow',
+} as const;
 
 export default function HomeScreen() {
     const theme = useTheme();
@@ -568,9 +568,11 @@ export default function HomeScreen() {
                                                                 styles.priorityDot,
                                                                 {
                                                                     backgroundColor:
-                                                                        priorityColors[
-                                                                            item
-                                                                                .priority
+                                                                        theme[
+                                                                            priorityColors[
+                                                                                item
+                                                                                    .priority
+                                                                            ]
                                                                         ],
                                                                 },
                                                             ]}
@@ -642,9 +644,11 @@ export default function HomeScreen() {
                                                             styles.priorityDot,
                                                             {
                                                                 backgroundColor:
-                                                                    priorityColors[
-                                                                        item
-                                                                            .priority
+                                                                    theme[
+                                                                        priorityColors[
+                                                                            item
+                                                                                .priority
+                                                                        ]
                                                                     ],
                                                             },
                                                         ]}

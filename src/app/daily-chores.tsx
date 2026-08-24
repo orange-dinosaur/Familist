@@ -53,8 +53,10 @@ const ChoreRow = React.memo(
                     <Animated.View
                         style={[
                             styles.actionButton,
-                            styles.deleteButton,
-                            { transform: [{ translateX: trans }] },
+                            {
+                                transform: [{ translateX: trans }],
+                                backgroundColor: theme.destructive,
+                            },
                         ]}>
                         <Pressable
                             style={styles.actionPressable}
@@ -955,9 +957,6 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-    },
-    deleteButton: {
-        backgroundColor: '#E5484D',
     },
     actionPressable: {
         width: '100%',

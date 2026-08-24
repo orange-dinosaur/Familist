@@ -88,8 +88,10 @@ const TodoRow = React.memo(
                     <Animated.View
                         style={[
                             styles.actionButton,
-                            styles.deleteButton,
-                            { transform: [{ translateX: trans }] },
+                            {
+                                transform: [{ translateX: trans }],
+                                backgroundColor: theme.destructive,
+                            },
                         ]}>
                         <Pressable
                             style={styles.actionPressable}
@@ -116,10 +118,10 @@ const TodoRow = React.memo(
 
         const assignee = MOCK_USERS.find((u) => u.id === todo.assigneeId);
         const priorityColors = {
-            low: '#4CAF50',
-            medium: '#FF9800',
-            high: '#F44336',
-        };
+            low: 'priorityLow',
+            medium: 'priorityMedium',
+            high: 'priorityHigh',
+        } as const;
 
         return (
             <Swipeable
@@ -167,8 +169,9 @@ const TodoRow = React.memo(
                                     styles.priorityBadge,
                                     {
                                         backgroundColor:
-                                            priorityColors[todo.priority] +
-                                            '20',
+                                            theme[
+                                                priorityColors[todo.priority]
+                                            ] + '20',
                                     },
                                 ]}>
                                 <View
@@ -176,20 +179,17 @@ const TodoRow = React.memo(
                                         styles.priorityDot,
                                         {
                                             backgroundColor:
-                                                priorityColors[todo.priority],
+                                                theme[
+                                                    priorityColors[
+                                                        todo.priority
+                                                    ]
+                                                ],
                                         },
                                     ]}
                                 />
                                 <ThemedText
                                     type="small"
-                                    style={[
-                                        styles.priorityText,
-                                        {
-                                            color: priorityColors[
-                                                todo.priority
-                                            ],
-                                        },
-                                    ]}>
+                                    style={styles.priorityText}>
                                     {todo.priority.charAt(0).toUpperCase() +
                                         todo.priority.slice(1)}
                                 </ThemedText>
@@ -650,15 +650,15 @@ export default function TodoScreen() {
                                         const isSelected = todoPriority === p;
                                         const priorityConfig = {
                                             low: {
-                                                color: '#4CAF50',
+                                                color: theme.priorityLow,
                                                 label: 'Low',
                                             },
                                             medium: {
-                                                color: '#FF9800',
+                                                color: theme.priorityMedium,
                                                 label: 'Medium',
                                             },
                                             high: {
-                                                color: '#F44336',
+                                                color: theme.priorityHigh,
                                                 label: 'High',
                                             },
                                         };
@@ -1125,9 +1125,6 @@ const styles = StyleSheet.create({
     },
     editButton: {
         // color handled in style prop
-    },
-    deleteButton: {
-        backgroundColor: '#E5484D',
     },
     actionPressable: {
         width: '100%',

@@ -189,7 +189,14 @@ export default function DailyMealScreen() {
                                     isToday && { borderColor: theme.text },
                                 ]}>
                                 {/* Day Card Header */}
-                                <View style={styles.dayCardHeader}>
+                                <View
+                                    style={[
+                                        styles.dayCardHeader,
+                                        {
+                                            borderBottomColor:
+                                                theme.backgroundSelected,
+                                        },
+                                    ]}>
                                     <View style={styles.dayCardTitleRow}>
                                         <ThemedText
                                             type="subtitle"
@@ -742,7 +749,6 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         paddingBottom: Spacing.one,
         borderBottomWidth: 1,
-        borderBottomColor: 'rgba(128, 128, 128, 0.1)',
         gap: Spacing.two,
     },
     dayCardTitleRow: {
