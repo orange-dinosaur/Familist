@@ -11,6 +11,7 @@ export default function Root({ children }: PropsWithChildren) {
                     name="viewport"
                     content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover"
                 />
+                <link rel="manifest" href="/manifest.json" />
 
                 <ScrollViewStyleReset />
                 <style dangerouslySetInnerHTML={{ __html: rootStyle }} />
