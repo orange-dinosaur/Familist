@@ -33,11 +33,12 @@ interface TodoRowProps {
     onToggle: () => void;
     onEdit: () => void;
     onDelete: () => void;
+    onAssign: () => void;
     theme: any;
 }
 
 const TodoRow = React.memo(
-    ({ todo, onToggle, onEdit, onDelete, theme }: TodoRowProps) => {
+    ({ todo, onToggle, onEdit, onDelete, onAssign, theme }: TodoRowProps) => {
         const { members } = useMembers();
         const swipeableRef = useRef<Swipeable>(null);
 
@@ -131,29 +132,42 @@ const TodoRow = React.memo(
                 rightThreshold={40}
                 renderRightActions={renderRightActions}
                 containerStyle={styles.swipeableContainer}>
-                <Pressable
-                    onPress={onToggle}
-                    style={({ pressed }) => [
+                <View
+                    style={[
                         styles.todoRow,
                         {
                             backgroundColor: theme.backgroundElement,
                         },
-                        pressed && {
-                            backgroundColor: theme.backgroundSelected,
-                        },
                     ]}>
-                    <SymbolView
-                        name={{
-                            ios: todo.done ? 'checkmark.circle.fill' : 'circle',
-                            web: todo.done
-                                ? 'check_circle'
-                                : 'radio_button_unchecked',
-                        }}
-                        tintColor={todo.done ? theme.textSecondary : theme.text}
-                        size={22}
-                    />
-
-                    <View style={styles.todoDetails}>
+                    <Pressable
+                        onPress={onToggle}
+                        style={({ pressed }) => [
+                            styles.todoMain,
+                            pressed && { opacity: 0.6 },
+                        ]}>
+                        <SymbolView
+                            name={{
+                                ios: todo.done
+                                    ? 'checkmark.circle.fill'
+                                    : 'circle',
+                                web: todo.done
+                                    ? 'check_circle'
+                                    : 'radio_button_unchecked',
+                            }}
+                            tintColor={
+                                todo.done ? theme.textSecondary : theme.text
+                            }
+                            size={22}
+                        />
+                        <View
+                            style={[
+                                styles.priorityDot,
+                                {
+                                    backgroundColor:
+                                        theme[priorityColors[todo.priority]],
+                                },
+                            ]}
+                        />
                         <ThemedText
                             type="default"
                             themeColor={todo.done ? 'textSecondary' : 'text'}
@@ -163,72 +177,45 @@ const TodoRow = React.memo(
                             ]}>
                             {todo.label}
                         </ThemedText>
+                    </Pressable>
 
-                        <View style={styles.metaRow}>
-                            <View
-                                style={[
-                                    styles.priorityBadge,
-                                    {
-                                        backgroundColor:
-                                            theme[
-                                                priorityColors[todo.priority]
-                                            ] + '20',
-                                    },
-                                ]}>
-                                <View
-                                    style={[
-                                        styles.priorityDot,
-                                        {
-                                            backgroundColor:
-                                                theme[
-                                                    priorityColors[
-                                                        todo.priority
-                                                    ]
-                                                ],
-                                        },
-                                    ]}
-                                />
+                    <Pressable
+                        onPress={onAssign}
+                        accessibilityLabel={
+                            assignee
+                                ? `Assigned to ${assignee.name}. Change assignee`
+                                : 'Assign task'
+                        }
+                        accessibilityRole="button"
+                        style={styles.assigneeBadgeContainer}>
+                        <View
+                            style={[
+                                styles.assigneeAvatar,
+                                {
+                                    backgroundColor: assignee
+                                        ? theme[assignee.color]
+                                        : theme.backgroundSelected,
+                                },
+                            ]}>
+                            {assignee ? (
                                 <ThemedText
-                                    type="small"
-                                    style={styles.priorityText}>
-                                    {todo.priority.charAt(0).toUpperCase() +
-                                        todo.priority.slice(1)}
+                                    themeColor="background"
+                                    style={styles.assigneeInitials}>
+                                    {assignee.initials}
                                 </ThemedText>
-                            </View>
-
-                            {assignee && (
-                                <View
-                                    style={[
-                                        styles.assigneeBadge,
-                                        {
-                                            backgroundColor:
-                                                theme.backgroundSelected,
-                                        },
-                                    ]}>
-                                    <View
-                                        style={[
-                                            styles.assigneeAvatar,
-                                            {
-                                                backgroundColor:
-                                                    theme[assignee.color],
-                                            },
-                                        ]}>
-                                        <ThemedText
-                                            themeColor="background"
-                                            style={styles.assigneeInitials}>
-                                            {assignee.initials}
-                                        </ThemedText>
-                                    </View>
-                                    <ThemedText
-                                        type="small"
-                                        themeColor="textSecondary">
-                                        {assignee.name}
-                                    </ThemedText>
-                                </View>
+                            ) : (
+                                <SymbolView
+                                    name={{
+                                        ios: 'person.crop.circle',
+                                        web: 'person_outline',
+                                    }}
+                                    tintColor={theme.textSecondary}
+                                    size={14}
+                                />
                             )}
                         </View>
-                    </View>
-                </Pressable>
+                    </Pressable>
+                </View>
             </Swipeable>
         );
     }
@@ -238,10 +225,18 @@ TodoRow.displayName = 'TodoRow';
 
 export default function TodoScreen() {
     const theme = useTheme();
-    const { todos, loading, addTodo, toggleTodo, editTodo, deleteTodo } =
-        useTodos();
+    const {
+        todos,
+        loading,
+        addTodo,
+        toggleTodo,
+        editTodo,
+        deleteTodo,
+        assignTodo,
+    } = useTodos();
     const { members } = useMembers();
     const [modalVisible, setModalVisible] = useState(false);
+    const [assigningTodoId, setAssigningTodoId] = useState<string | null>(null);
     const [editingTodo, setEditingTodo] = useState<TodoItem | null>(null);
 
     const [todoText, setTodoText] = useState('');
@@ -258,7 +253,6 @@ export default function TodoScreen() {
     const [todoDay, setTodoDay] = useState<string>(todayStr);
 
     const dates = getDateRange();
-    const activeTodos = todos.filter((t) => !t.done);
     const completedTodos = todos.filter((t) => t.done);
 
     useFocusEffect(
@@ -334,8 +328,8 @@ export default function TodoScreen() {
                     <ThemedText
                         themeColor="textSecondary"
                         style={styles.subtitle}>
-                        {activeTodos.length} active, {completedTodos.length}{' '}
-                        completed in total
+                        {completedTodos.length} of {todos.length} completed in
+                        total
                     </ThemedText>
                 </View>
 
@@ -347,8 +341,15 @@ export default function TodoScreen() {
                     {/* Todos grouped by day */}
                     {dates.map((day) => {
                         const dayTodos = todos.filter((t) => t.day === day);
-                        const dayActive = dayTodos.filter((t) => !t.done);
-                        const dayCompleted = dayTodos.filter((t) => t.done);
+                        const dayDoneCount = dayTodos.filter(
+                            (t) => t.done
+                        ).length;
+                        const dayProgress =
+                            dayTodos.length > 0
+                                ? Math.round(
+                                      (dayDoneCount / dayTodos.length) * 100
+                                  )
+                                : 0;
                         const isToday = day === todayStr;
 
                         return (
@@ -383,12 +384,13 @@ export default function TodoScreen() {
                                             style={styles.dayCardTitle}>
                                             {formatLocalDateString(day)}
                                         </ThemedText>
-                                        {dayActive.length > 0 && (
+                                        {dayTodos.length > 0 && (
                                             <ThemedText
                                                 themeColor="textSecondary"
                                                 type="small"
                                                 style={styles.dayProgressText}>
-                                                • {dayActive.length} active
+                                                • {dayDoneCount}/
+                                                {dayTodos.length} done
                                             </ThemedText>
                                         )}
                                         {isToday && (
@@ -431,7 +433,29 @@ export default function TodoScreen() {
                                     </Pressable>
                                 </View>
 
-                                {/* Day Todo Content */}
+                                {/* Day Progress Bar */}
+                                {dayTodos.length > 0 && (
+                                    <View
+                                        style={[
+                                            styles.dayProgressTrack,
+                                            {
+                                                backgroundColor:
+                                                    theme.backgroundSelected,
+                                            },
+                                        ]}>
+                                        <View
+                                            style={[
+                                                styles.dayProgressFill,
+                                                {
+                                                    width: `${dayProgress}%`,
+                                                    backgroundColor: theme.text,
+                                                },
+                                            ]}
+                                        />
+                                    </View>
+                                )}
+
+                                {/* Day Todo List */}
                                 {dayTodos.length === 0 ? (
                                     <ThemedText
                                         themeColor="textSecondary"
@@ -442,58 +466,26 @@ export default function TodoScreen() {
                                             : 'No tasks planned for this day.'}
                                     </ThemedText>
                                 ) : (
-                                    <View style={styles.todoSections}>
-                                        {/* Active Tasks */}
-                                        {dayActive.length > 0 && (
-                                            <View style={styles.taskSection}>
-                                                {dayActive.map((todo) => (
-                                                    <TodoRow
-                                                        key={todo.id}
-                                                        todo={todo}
-                                                        theme={theme}
-                                                        onToggle={() =>
-                                                            toggleTodo(todo.id)
-                                                        }
-                                                        onEdit={() =>
-                                                            openEditModal(todo)
-                                                        }
-                                                        onDelete={() =>
-                                                            deleteTodo(todo.id)
-                                                        }
-                                                    />
-                                                ))}
-                                            </View>
-                                        )}
-
-                                        {/* Completed Tasks */}
-                                        {dayCompleted.length > 0 && (
-                                            <View style={styles.taskSection}>
-                                                <ThemedText
-                                                    type="small"
-                                                    themeColor="textSecondary"
-                                                    style={
-                                                        styles.completedHeader
-                                                    }>
-                                                    Completed
-                                                </ThemedText>
-                                                {dayCompleted.map((todo) => (
-                                                    <TodoRow
-                                                        key={todo.id}
-                                                        todo={todo}
-                                                        theme={theme}
-                                                        onToggle={() =>
-                                                            toggleTodo(todo.id)
-                                                        }
-                                                        onEdit={() =>
-                                                            openEditModal(todo)
-                                                        }
-                                                        onDelete={() =>
-                                                            deleteTodo(todo.id)
-                                                        }
-                                                    />
-                                                ))}
-                                            </View>
-                                        )}
+                                    <View style={styles.dayTodosList}>
+                                        {dayTodos.map((todo) => (
+                                            <TodoRow
+                                                key={todo.id}
+                                                todo={todo}
+                                                theme={theme}
+                                                onToggle={() =>
+                                                    toggleTodo(todo.id)
+                                                }
+                                                onEdit={() =>
+                                                    openEditModal(todo)
+                                                }
+                                                onDelete={() =>
+                                                    deleteTodo(todo.id)
+                                                }
+                                                onAssign={() =>
+                                                    setAssigningTodoId(todo.id)
+                                                }
+                                            />
+                                        ))}
                                     </View>
                                 )}
                             </View>
@@ -745,7 +737,7 @@ export default function TodoScreen() {
                                                 selected: isSelected,
                                             }}
                                             style={[
-                                                styles.assigneeRow,
+                                                styles.editAssigneeRow,
                                                 {
                                                     backgroundColor:
                                                         theme.backgroundElement,
@@ -756,7 +748,7 @@ export default function TodoScreen() {
                                             ]}>
                                             <View
                                                 style={[
-                                                    styles.assigneeAvatarLarge,
+                                                    styles.editAssigneeAvatar,
                                                     {
                                                         backgroundColor:
                                                             theme[user.color],
@@ -765,13 +757,13 @@ export default function TodoScreen() {
                                                 <ThemedText
                                                     themeColor="background"
                                                     style={
-                                                        styles.assigneeInitialsLarge
+                                                        styles.editAssigneeInitials
                                                     }>
                                                     {user.initials}
                                                 </ThemedText>
                                             </View>
                                             <ThemedText
-                                                style={styles.assigneeName}>
+                                                style={styles.editAssigneeName}>
                                                 {user.name}
                                             </ThemedText>
                                             {isSelected && (
@@ -822,6 +814,127 @@ export default function TodoScreen() {
                             </Pressable>
                         </View>
                     </SafeAreaView>
+                </View>
+            </Modal>
+
+            {/* Assignee Selection Modal */}
+            <Modal
+                visible={assigningTodoId !== null}
+                animationType="fade"
+                transparent={true}
+                onRequestClose={() => setAssigningTodoId(null)}>
+                <View style={styles.modalOverlay}>
+                    <Pressable
+                        style={StyleSheet.absoluteFill}
+                        onPress={() => setAssigningTodoId(null)}
+                        accessibilityLabel="Close"
+                        accessibilityRole="button"
+                    />
+                    <View
+                        style={[
+                            styles.assigneeModalContent,
+                            { backgroundColor: theme.background },
+                        ]}>
+                        <ThemedText
+                            type="subtitle"
+                            style={styles.assigneeModalTitle}>
+                            Assign Task
+                        </ThemedText>
+
+                        <ScrollView
+                            style={styles.assigneeList}
+                            showsVerticalScrollIndicator={false}>
+                            {members.map((member) => (
+                                <Pressable
+                                    key={member.id}
+                                    onPress={() => {
+                                        if (assigningTodoId) {
+                                            assignTodo(
+                                                assigningTodoId,
+                                                member.id
+                                            );
+                                        }
+                                        setAssigningTodoId(null);
+                                    }}
+                                    style={({ pressed }) => [
+                                        styles.assigneeRow,
+                                        pressed && {
+                                            backgroundColor:
+                                                theme.backgroundSelected,
+                                        },
+                                    ]}>
+                                    <View
+                                        style={[
+                                            styles.assigneeAvatarLarge,
+                                            {
+                                                backgroundColor:
+                                                    theme[member.color],
+                                            },
+                                        ]}>
+                                        <ThemedText
+                                            themeColor="background"
+                                            style={
+                                                styles.assigneeInitialsLarge
+                                            }>
+                                            {member.initials}
+                                        </ThemedText>
+                                    </View>
+                                    <ThemedText style={styles.assigneeName}>
+                                        {member.name}
+                                    </ThemedText>
+                                </Pressable>
+                            ))}
+
+                            <Pressable
+                                onPress={() => {
+                                    if (assigningTodoId) {
+                                        assignTodo(assigningTodoId, undefined);
+                                    }
+                                    setAssigningTodoId(null);
+                                }}
+                                style={({ pressed }) => [
+                                    styles.assigneeRow,
+                                    pressed && {
+                                        backgroundColor:
+                                            theme.backgroundSelected,
+                                    },
+                                ]}>
+                                <View
+                                    style={[
+                                        styles.assigneeAvatarLarge,
+                                        {
+                                            backgroundColor:
+                                                theme.backgroundSelected,
+                                        },
+                                    ]}>
+                                    <SymbolView
+                                        name={{
+                                            ios: 'person.crop.circle',
+                                            web: 'person_outline',
+                                        }}
+                                        tintColor={theme.textSecondary}
+                                        size={22}
+                                    />
+                                </View>
+                                <ThemedText
+                                    themeColor="textSecondary"
+                                    style={styles.assigneeName}>
+                                    Unassigned
+                                </ThemedText>
+                            </Pressable>
+                        </ScrollView>
+
+                        <Pressable
+                            onPress={() => setAssigningTodoId(null)}
+                            style={[
+                                styles.assigneeCloseButton,
+                                { backgroundColor: theme.backgroundElement },
+                            ]}>
+                            <ThemedText style={{ fontWeight: '600' }}>
+                                Cancel
+                            </ThemedText>
+                        </Pressable>
+                    </View>
                 </View>
             </Modal>
         </ThemedView>
@@ -907,20 +1020,6 @@ const styles = StyleSheet.create({
         fontStyle: 'italic',
         paddingVertical: Spacing.half,
     },
-    todoSections: {
-        gap: Spacing.three,
-    },
-    taskSection: {
-        gap: Spacing.two,
-    },
-    completedHeader: {
-        fontSize: 12,
-        fontWeight: '600',
-        textTransform: 'uppercase',
-        letterSpacing: 0.5,
-        marginTop: Spacing.one,
-        marginBottom: Spacing.half,
-    },
 
     swipeableContainer: {
         borderRadius: 14,
@@ -928,26 +1027,64 @@ const styles = StyleSheet.create({
     },
     todoRow: {
         flexDirection: 'row',
-        alignItems: 'flex-start',
+        alignItems: 'center',
+    },
+    todoMain: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
         gap: Spacing.three,
         padding: Spacing.three,
     },
-    todoDetails: {
+    assigneeBadgeContainer: {
+        paddingVertical: Spacing.three,
+        paddingLeft: Spacing.one,
+        paddingRight: Spacing.three,
+    },
+    dayProgressTrack: {
+        height: 6,
+        borderRadius: 3,
+        overflow: 'hidden',
+        marginVertical: Spacing.half,
+    },
+    dayProgressFill: {
+        height: '100%',
+        borderRadius: 3,
+    },
+    dayTodosList: {
+        gap: Spacing.two,
+    },
+    assigneeModalContent: {
+        width: '100%',
+        maxWidth: 400,
+        borderRadius: 24,
+        padding: Spacing.four,
+        gap: Spacing.three,
+    },
+    assigneeModalTitle: {
+        fontWeight: '700',
+        textAlign: 'center',
+    },
+    assigneeCloseButton: {
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: Spacing.three,
+        borderRadius: 14,
+        marginTop: Spacing.one,
+    },
+    modalOverlay: {
         flex: 1,
-        gap: Spacing.one,
+        backgroundColor: 'rgba(0, 0, 0, 0.4)',
+        justifyContent: 'flex-end',
+        alignItems: 'center',
+        paddingHorizontal: Spacing.four,
+        paddingBottom: Spacing.six,
     },
     todoLabel: {
-        fontSize: 16,
-        lineHeight: 22,
+        flex: 1,
     },
     strikethrough: {
         textDecorationLine: 'line-through',
-    },
-    metaRow: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        alignItems: 'center',
-        gap: Spacing.two,
     },
 
     // Priority Dot
@@ -956,37 +1093,17 @@ const styles = StyleSheet.create({
         height: 6,
         borderRadius: 3,
     },
-    priorityBadge: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: Spacing.one,
-        paddingHorizontal: Spacing.two,
-        paddingVertical: Spacing.half,
-        borderRadius: 6,
-    },
-    priorityText: {
-        fontSize: 11,
-        fontWeight: '600',
-    },
 
     // Assignee styling
-    assigneeBadge: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: Spacing.one,
-        paddingHorizontal: Spacing.one + Spacing.half,
-        paddingVertical: Spacing.half,
-        borderRadius: 12,
-    },
     assigneeAvatar: {
-        width: 16,
-        height: 16,
-        borderRadius: 8,
+        width: 28,
+        height: 28,
+        borderRadius: 14,
         alignItems: 'center',
         justifyContent: 'center',
     },
     assigneeInitials: {
-        fontSize: 8,
+        fontSize: 12,
         fontWeight: '700',
     },
 
@@ -1085,23 +1202,46 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         gap: Spacing.three,
+        paddingVertical: Spacing.three,
+        paddingHorizontal: Spacing.two,
+        borderRadius: 14,
+    },
+    editAssigneeRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: Spacing.three,
         padding: Spacing.three,
         borderRadius: 12,
         borderWidth: 2,
     },
-    assigneeAvatarLarge: {
+    editAssigneeAvatar: {
         width: 32,
         height: 32,
         borderRadius: 16,
         alignItems: 'center',
         justifyContent: 'center',
     },
-    assigneeInitialsLarge: {
+    editAssigneeInitials: {
         fontSize: 14,
         fontWeight: '700',
     },
+    editAssigneeName: {
+        fontSize: 16,
+        fontWeight: '500',
+    },
+    assigneeAvatarLarge: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    assigneeInitialsLarge: {
+        fontSize: 16,
+        fontWeight: '700',
+    },
     assigneeName: {
-        flex: 1,
+        fontSize: 16,
         fontWeight: '500',
     },
 
