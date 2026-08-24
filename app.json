@@ -8,7 +8,8 @@
         "scheme": "familist",
         "userInterfaceStyle": "automatic",
         "ios": {
-            "bundleIdentifier": "com.anonymous.FamiList"
+            "bundleIdentifier": "com.anonymous.FamiList",
+            "icon": "./assets/familist.icon"
         },
         "android": {
             "adaptiveIcon": {
