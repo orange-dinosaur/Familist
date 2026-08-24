@@ -34,13 +34,13 @@ export default function Root({ children }: PropsWithChildren) {
 
 const rootStyle = `
 body {
-    background-color: #ffffff;
+    background-color: #F6F1E7;
     overscroll-behavior: none;
     -webkit-tap-highlight-color: transparent;
 }
 @media (prefers-color-scheme: dark) {
     body {
-        background-color: #000000;
+        background-color: #1F2A22;
     }
 }
 `;
