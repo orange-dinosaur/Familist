@@ -17,7 +17,6 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import {
     type ChoreItem,
-    MOCK_USERS,
     getDateRange,
     formatLocalDateString,
     formatShortDateString,
@@ -25,6 +24,7 @@ import {
 } from '@/constants/mock-data';
 import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
 import { PRESET_CHORES, useChores } from '@/hooks/use-chores';
+import { useMembers } from '@/hooks/use-members';
 import { useTheme } from '@/hooks/use-theme';
 
 interface ChoreRowProps {
@@ -37,6 +37,7 @@ interface ChoreRowProps {
 
 const ChoreRow = React.memo(
     ({ chore, onToggle, onDelete, onAssign, theme }: ChoreRowProps) => {
+        const { members } = useMembers();
         const swipeableRef = useRef<Swipeable>(null);
 
         const renderRightActions = (
@@ -81,7 +82,7 @@ const ChoreRow = React.memo(
             );
         };
 
-        const assignee = MOCK_USERS.find((u) => u.id === chore.assigneeId);
+        const assignee = members.find((u) => u.id === chore.assigneeId);
 
         return (
             <Swipeable
@@ -90,47 +91,47 @@ const ChoreRow = React.memo(
                 rightThreshold={40}
                 renderRightActions={renderRightActions}
                 containerStyle={styles.swipeableContainer}>
-                <Pressable
-                    onPress={onToggle}
-                    style={({ pressed }) => [
+                <View
+                    style={[
                         styles.choreRow,
                         {
                             backgroundColor: theme.backgroundElement,
                         },
-                        pressed && {
-                            backgroundColor: theme.backgroundSelected,
-                        },
                     ]}>
-                    <SymbolView
-                        name={{
-                            ios: chore.done
-                                ? 'checkmark.circle.fill'
-                                : 'circle',
-                            web: chore.done
-                                ? 'check_circle'
-                                : 'radio_button_unchecked',
-                        }}
-                        tintColor={
-                            chore.done ? theme.textSecondary : theme.text
-                        }
-                        size={22}
-                    />
-                    <ThemedText
-                        type="default"
-                        themeColor={chore.done ? 'textSecondary' : 'text'}
-                        style={[
-                            styles.choreLabel,
-                            chore.done && styles.strikethrough,
+                    <Pressable
+                        onPress={onToggle}
+                        style={({ pressed }) => [
+                            styles.choreMain,
+                            pressed && { opacity: 0.6 },
                         ]}>
-                        {chore.label}
-                    </ThemedText>
+                        <SymbolView
+                            name={{
+                                ios: chore.done
+                                    ? 'checkmark.circle.fill'
+                                    : 'circle',
+                                web: chore.done
+                                    ? 'check_circle'
+                                    : 'radio_button_unchecked',
+                            }}
+                            tintColor={
+                                chore.done ? theme.textSecondary : theme.text
+                            }
+                            size={22}
+                        />
+                        <ThemedText
+                            type="default"
+                            themeColor={chore.done ? 'textSecondary' : 'text'}
+                            style={[
+                                styles.choreLabel,
+                                chore.done && styles.strikethrough,
+                            ]}>
+                            {chore.label}
+                        </ThemedText>
+                    </Pressable>
 
                     {/* Assignee button */}
                     <Pressable
-                        onPress={(e) => {
-                            e.stopPropagation();
-                            onAssign();
-                        }}
+                        onPress={onAssign}
                         style={styles.assigneeBadgeContainer}>
                         {assignee ? (
                             <View
@@ -164,7 +165,7 @@ const ChoreRow = React.memo(
                             </View>
                         )}
                     </Pressable>
-                </Pressable>
+                </View>
             </Swipeable>
         );
     }
@@ -182,6 +183,7 @@ export default function DailyChoresScreen() {
         toggleChoreActive,
         assignChore,
     } = useChores();
+    const { members } = useMembers();
     const [modalVisible, setModalVisible] = useState(false);
     const [assigningChoreId, setAssigningChoreId] = useState<string | null>(
         null
@@ -620,9 +622,13 @@ export default function DailyChoresScreen() {
                 animationType="fade"
                 transparent={true}
                 onRequestClose={() => setAssigningChoreId(null)}>
-                <Pressable
-                    style={styles.modalOverlay}
-                    onPress={() => setAssigningChoreId(null)}>
+                <View style={styles.modalOverlay}>
+                    <Pressable
+                        style={StyleSheet.absoluteFill}
+                        onPress={() => setAssigningChoreId(null)}
+                        accessibilityLabel="Close"
+                        accessibilityRole="button"
+                    />
                     <View
                         style={[
                             styles.assigneeModalContent,
@@ -637,7 +643,7 @@ export default function DailyChoresScreen() {
                         <ScrollView
                             style={styles.assigneeList}
                             showsVerticalScrollIndicator={false}>
-                            {MOCK_USERS.map((user) => (
+                            {members.map((user) => (
                                 <Pressable
                                     key={user.id}
                                     onPress={() => {
@@ -731,7 +737,7 @@ export default function DailyChoresScreen() {
                             </ThemedText>
                         </Pressable>
                     </View>
-                </Pressable>
+                </View>
             </Modal>
         </ThemedView>
     );
@@ -837,11 +843,16 @@ const styles = StyleSheet.create({
     choreRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: Spacing.three,
-        padding: Spacing.three,
     },
     choreLabel: {
         flex: 1,
+    },
+    choreMain: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: Spacing.three,
+        padding: Spacing.three,
     },
     strikethrough: {
         textDecorationLine: 'line-through',
@@ -849,7 +860,9 @@ const styles = StyleSheet.create({
 
     // Assignee styling
     assigneeBadgeContainer: {
-        padding: Spacing.one,
+        paddingVertical: Spacing.three,
+        paddingLeft: Spacing.one,
+        paddingRight: Spacing.three,
     },
     assigneeAvatar: {
         width: 28,

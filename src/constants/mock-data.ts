@@ -14,11 +14,13 @@ export interface PlatformSymbol {
     web: AndroidSymbol;
 }
 
-export interface User {
+export interface Member {
     id: string;
     name: string;
     initials: string;
     color: MemberColor;
+    /** Set once the member is backed by an account. */
+    userId?: string;
 }
 
 export function getRelativeDateString(offset: number): string {
@@ -109,15 +111,6 @@ export interface SharedLink {
     url: string;
     addedBy: string;
 }
-
-// ─── Mock Users ─────────────────────────────────────────────────────────
-
-export const MOCK_USERS: User[] = [
-    { id: 'mom', name: 'Mom', initials: 'M', color: 'memberPlum' },
-    { id: 'dad', name: 'Dad', initials: 'D', color: 'memberSlate' },
-    { id: 'giulio', name: 'Giulio', initials: 'G', color: 'memberSage' },
-    { id: 'sofia', name: 'Sofia', initials: 'S', color: 'memberWalnut' },
-];
 
 // ─── Subscriptions ──────────────────────────────────────────────────────
 

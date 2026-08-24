@@ -11,6 +11,7 @@ import { AnimatedSplashOverlay } from '@/components/animated-icon';
 import AppTabs from '@/components/app-tabs';
 import { ChoresProvider } from '@/hooks/use-chores';
 import { MealProvider } from '@/hooks/use-meals';
+import { MembersProvider } from '@/hooks/use-members';
 import { TodosProvider } from '@/hooks/use-todos';
 
 export default function TabLayout() {
@@ -19,14 +20,16 @@ export default function TabLayout() {
         <GestureHandlerRootView style={{ flex: 1 }}>
             <ThemeProvider
                 value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-                <MealProvider>
-                    <ChoresProvider>
-                        <TodosProvider>
-                            <AnimatedSplashOverlay />
-                            <AppTabs />
-                        </TodosProvider>
-                    </ChoresProvider>
-                </MealProvider>
+                <MembersProvider>
+                    <MealProvider>
+                        <ChoresProvider>
+                            <TodosProvider>
+                                <AnimatedSplashOverlay />
+                                <AppTabs />
+                            </TodosProvider>
+                        </ChoresProvider>
+                    </MealProvider>
+                </MembersProvider>
             </ThemeProvider>
         </GestureHandlerRootView>
     );

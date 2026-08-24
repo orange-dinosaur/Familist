@@ -6,10 +6,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { MOCK_USERS } from '@/constants/mock-data';
+
 import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
 import { useChores } from '@/hooks/use-chores';
 import { useMeals } from '@/hooks/use-meals';
+import { useMembers } from '@/hooks/use-members';
 import { useTheme } from '@/hooks/use-theme';
 import { useTodos } from '@/hooks/use-todos';
 
@@ -32,6 +33,7 @@ const priorityColors = {
 export default function HomeScreen() {
     const theme = useTheme();
     const router = useRouter();
+    const { members } = useMembers();
     const { meals, loading: mealsLoading } = useMeals();
     const { chores, loading: choresLoading, toggleChore } = useChores();
     const { todos, loading: todosLoading, toggleTodo } = useTodos();
@@ -304,12 +306,10 @@ export default function HomeScreen() {
                                     todayChores.length > 0 ? (
                                         <View style={styles.expandedList}>
                                             {todayChores.map((item) => {
-                                                const assignee =
-                                                    MOCK_USERS.find(
-                                                        (u) =>
-                                                            u.id ===
-                                                            item.assigneeId
-                                                    );
+                                                const assignee = members.find(
+                                                    (u) =>
+                                                        u.id === item.assigneeId
+                                                );
                                                 return (
                                                     <Pressable
                                                         key={item.id}
@@ -388,7 +388,7 @@ export default function HomeScreen() {
                                 ) : todayChores.length > 0 ? (
                                     <>
                                         {todayChores.slice(0, 3).map((item) => {
-                                            const assignee = MOCK_USERS.find(
+                                            const assignee = members.find(
                                                 (u) => u.id === item.assigneeId
                                             );
                                             return (
@@ -550,12 +550,10 @@ export default function HomeScreen() {
                                     todayTodos.length > 0 ? (
                                         <View style={styles.expandedList}>
                                             {todayTodos.map((item) => {
-                                                const assignee =
-                                                    MOCK_USERS.find(
-                                                        (u) =>
-                                                            u.id ===
-                                                            item.assigneeId
-                                                    );
+                                                const assignee = members.find(
+                                                    (u) =>
+                                                        u.id === item.assigneeId
+                                                );
                                                 return (
                                                     <Pressable
                                                         key={item.id}
@@ -648,7 +646,7 @@ export default function HomeScreen() {
                                 ) : activeTodos.length > 0 ? (
                                     <>
                                         {activeTodos.slice(0, 2).map((item) => {
-                                            const assignee = MOCK_USERS.find(
+                                            const assignee = members.find(
                                                 (u) => u.id === item.assigneeId
                                             );
                                             return (

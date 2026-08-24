@@ -18,7 +18,6 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import {
     type TodoItem,
-    MOCK_USERS,
     getDateRange,
     formatLocalDateString,
     formatShortDateString,
@@ -26,6 +25,7 @@ import {
 } from '@/constants/mock-data';
 import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import { useMembers } from '@/hooks/use-members';
 import { useTodos } from '@/hooks/use-todos';
 
 interface TodoRowProps {
@@ -38,6 +38,7 @@ interface TodoRowProps {
 
 const TodoRow = React.memo(
     ({ todo, onToggle, onEdit, onDelete, theme }: TodoRowProps) => {
+        const { members } = useMembers();
         const swipeableRef = useRef<Swipeable>(null);
 
         const renderRightActions = (
@@ -116,7 +117,7 @@ const TodoRow = React.memo(
             );
         };
 
-        const assignee = MOCK_USERS.find((u) => u.id === todo.assigneeId);
+        const assignee = members.find((u) => u.id === todo.assigneeId);
         const priorityColors = {
             low: 'priorityLow',
             medium: 'priorityMedium',
@@ -239,6 +240,7 @@ export default function TodoScreen() {
     const theme = useTheme();
     const { todos, loading, addTodo, toggleTodo, editTodo, deleteTodo } =
         useTodos();
+    const { members } = useMembers();
     const [modalVisible, setModalVisible] = useState(false);
     const [editingTodo, setEditingTodo] = useState<TodoItem | null>(null);
 
@@ -724,7 +726,7 @@ export default function TodoScreen() {
                                 Assignee
                             </ThemedText>
                             <View style={styles.assigneeList}>
-                                {MOCK_USERS.map((user) => {
+                                {members.map((user) => {
                                     const isSelected =
                                         todoAssigneeId === user.id;
                                     return (
