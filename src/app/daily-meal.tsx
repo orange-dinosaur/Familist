@@ -547,7 +547,6 @@ export default function DailyMealScreen() {
                                             onChangeText={setDishName}
                                             onSubmitEditing={addDish}
                                             returnKeyType="done"
-                                            autoFocus
                                             accessibilityLabel="Dish name"
                                         />
                                         <Pressable
