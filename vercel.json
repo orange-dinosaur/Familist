@@ -1,5 +1,15 @@
 {
     "buildCommand": "bun run build",
-    "outputDirectory": "dist",
-    "cleanUrls": true
+    "outputDirectory": "dist/client",
+    "functions": {
+        "api/index.js": {
+            "includeFiles": "dist/server/**"
+        }
+    },
+    "rewrites": [
+        {
+            "source": "/(.*)",
+            "destination": "/api/index"
+        }
+    ]
 }
