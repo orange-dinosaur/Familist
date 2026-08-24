@@ -387,8 +387,11 @@ export default function HomeScreen() {
                                                 (u) => u.id === item.assigneeId
                                             );
                                             return (
-                                                <View
+                                                <Pressable
                                                     key={item.id}
+                                                    onPress={() =>
+                                                        toggleChore(item.id)
+                                                    }
                                                     style={styles.checkItem}>
                                                     <SymbolView
                                                         name={{
@@ -450,7 +453,7 @@ export default function HomeScreen() {
                                                             </ThemedText>
                                                         </View>
                                                     )}
-                                                </View>
+                                                </Pressable>
                                             );
                                         })}
                                         {hiddenChoresCount > 0 && (
@@ -640,8 +643,11 @@ export default function HomeScreen() {
                                                 (u) => u.id === item.assigneeId
                                             );
                                             return (
-                                                <View
+                                                <Pressable
                                                     key={item.id}
+                                                    onPress={() =>
+                                                        toggleTodo(item.id)
+                                                    }
                                                     style={styles.checkItem}>
                                                     <SymbolView
                                                         name={{
@@ -702,7 +708,7 @@ export default function HomeScreen() {
                                                             </ThemedText>
                                                         </View>
                                                     )}
-                                                </View>
+                                                </Pressable>
                                             );
                                         })}
                                         {hiddenTodosCount > 0 && (
