@@ -207,9 +207,10 @@ const TodoRow = React.memo(
                                     <View
                                         style={[
                                             styles.assigneeAvatar,
-                                            { backgroundColor: assignee.color },
+                                            { backgroundColor: theme[assignee.color] },
                                         ]}>
                                         <ThemedText
+                                            themeColor="background"
                                             style={styles.assigneeInitials}>
                                             {assignee.initials}
                                         </ThemedText>
@@ -750,10 +751,13 @@ export default function TodoScreen() {
                                                     styles.assigneeAvatarLarge,
                                                     {
                                                         backgroundColor:
-                                                            user.color,
+                                                            theme[
+                                                                user.color
+                                                            ],
                                                     },
                                                 ]}>
                                                 <ThemedText
+                                                    themeColor="background"
                                                     style={
                                                         styles.assigneeInitialsLarge
                                                     }>
@@ -976,7 +980,6 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
     },
     assigneeInitials: {
-        color: '#FFFFFF',
         fontSize: 8,
         fontWeight: '700',
     },
@@ -1088,7 +1091,6 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
     },
     assigneeInitialsLarge: {
-        color: '#FFFFFF',
         fontSize: 14,
         fontWeight: '700',
     },

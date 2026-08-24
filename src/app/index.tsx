@@ -352,10 +352,14 @@ export default function HomeScreen() {
                                                                     styles.assigneeAvatar,
                                                                     {
                                                                         backgroundColor:
-                                                                            assignee.color,
+                                                                            theme[
+                                                                                assignee
+                                                                                    .color
+                                                                            ],
                                                                     },
                                                                 ]}>
                                                                 <ThemedText
+                                                                    themeColor="background"
                                                                     style={
                                                                         styles.assigneeInitials
                                                                     }>
@@ -423,13 +427,17 @@ export default function HomeScreen() {
                                                                 styles.assigneeAvatar,
                                                                 {
                                                                     backgroundColor:
-                                                                        assignee.color,
+                                                                        theme[
+                                                                            assignee
+                                                                                .color
+                                                                        ],
                                                                     width: 22,
                                                                     height: 22,
                                                                     borderRadius: 11,
                                                                 },
                                                             ]}>
                                                             <ThemedText
+                                                                themeColor="background"
                                                                 style={[
                                                                     styles.assigneeInitials,
                                                                     {
@@ -597,10 +605,14 @@ export default function HomeScreen() {
                                                                     styles.assigneeAvatar,
                                                                     {
                                                                         backgroundColor:
-                                                                            assignee.color,
+                                                                            theme[
+                                                                                assignee
+                                                                                    .color
+                                                                            ],
                                                                     },
                                                                 ]}>
                                                                 <ThemedText
+                                                                    themeColor="background"
                                                                     style={
                                                                         styles.assigneeInitials
                                                                     }>
@@ -667,13 +679,17 @@ export default function HomeScreen() {
                                                                 styles.assigneeAvatar,
                                                                 {
                                                                     backgroundColor:
-                                                                        assignee.color,
+                                                                        theme[
+                                                                            assignee
+                                                                                .color
+                                                                        ],
                                                                     width: 22,
                                                                     height: 22,
                                                                     borderRadius: 11,
                                                                 },
                                                             ]}>
                                                             <ThemedText
+                                                                themeColor="background"
                                                                 style={[
                                                                     styles.assigneeInitials,
                                                                     {
@@ -993,7 +1009,6 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
     },
     assigneeInitials: {
-        color: '#FFFFFF',
         fontSize: 11,
         fontWeight: '700',
     },

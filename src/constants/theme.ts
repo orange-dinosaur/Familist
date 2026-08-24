@@ -19,6 +19,10 @@ export const Colors = {
         priorityHigh: '#A63D2F',
         priorityMedium: '#A86A18',
         priorityLow: '#4E7A3C',
+        memberSage: '#4E6B49',
+        memberWalnut: '#6B4F3A',
+        memberPlum: '#6B3A52',
+        memberSlate: '#3E5C6B',
     },
     dark: {
         text: '#F1EADB',
@@ -31,10 +35,20 @@ export const Colors = {
         priorityHigh: '#E88A7D',
         priorityMedium: '#D9A441',
         priorityLow: '#8FBF6F',
+        memberSage: '#A9BBA3',
+        memberWalnut: '#C9A279',
+        memberPlum: '#C89BB0',
+        memberSlate: '#9FBBC8',
     },
 } as const;
 
 export type ThemeColor = keyof typeof Colors.light & keyof typeof Colors.dark;
+
+export type MemberColor =
+    | 'memberSage'
+    | 'memberWalnut'
+    | 'memberPlum'
+    | 'memberSlate';
 
 export const Fonts = Platform.select({
     ios: {

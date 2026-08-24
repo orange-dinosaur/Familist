@@ -5,6 +5,8 @@
 
 import { AndroidSymbol, SFSymbol } from 'expo-symbols';
 
+import { MemberColor } from '@/constants/theme';
+
 // ─── Types ──────────────────────────────────────────────────────────────
 
 export interface PlatformSymbol {
@@ -16,7 +18,7 @@ export interface User {
     id: string;
     name: string;
     initials: string;
-    color: string;
+    color: MemberColor;
 }
 
 export const DAYS_OF_WEEK = [
@@ -132,10 +134,10 @@ export interface SharedLink {
 // ─── Mock Users ─────────────────────────────────────────────────────────
 
 export const MOCK_USERS: User[] = [
-    { id: 'mom', name: 'Mom', initials: 'M', color: '#D81B60' },
-    { id: 'dad', name: 'Dad', initials: 'D', color: '#1E88E5' },
-    { id: 'giulio', name: 'Giulio', initials: 'G', color: '#43A047' },
-    { id: 'sofia', name: 'Sofia', initials: 'S', color: '#FB8C00' },
+    { id: 'mom', name: 'Mom', initials: 'M', color: 'memberPlum' },
+    { id: 'dad', name: 'Dad', initials: 'D', color: 'memberSlate' },
+    { id: 'giulio', name: 'Giulio', initials: 'G', color: 'memberSage' },
+    { id: 'sofia', name: 'Sofia', initials: 'S', color: 'memberWalnut' },
 ];
 
 // ─── Daily Meals ────────────────────────────────────────────────────────

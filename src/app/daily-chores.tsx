@@ -136,9 +136,11 @@ const ChoreRow = React.memo(
                             <View
                                 style={[
                                     styles.assigneeAvatar,
-                                    { backgroundColor: assignee.color },
+                                    { backgroundColor: theme[assignee.color] },
                                 ]}>
-                                <ThemedText style={styles.assigneeInitials}>
+                                <ThemedText
+                                    themeColor="background"
+                                    style={styles.assigneeInitials}>
                                     {assignee.initials}
                                 </ThemedText>
                             </View>
@@ -647,9 +649,10 @@ export default function DailyChoresScreen() {
                                     <View
                                         style={[
                                             styles.assigneeAvatarLarge,
-                                            { backgroundColor: user.color },
+                                            { backgroundColor: theme[user.color] },
                                         ]}>
                                         <ThemedText
+                                            themeColor="background"
                                             style={
                                                 styles.assigneeInitialsLarge
                                             }>
@@ -843,7 +846,6 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
     },
     assigneeInitials: {
-        color: '#FFFFFF',
         fontSize: 12,
         fontWeight: '700',
     },
@@ -1010,7 +1012,6 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
     },
     assigneeInitialsLarge: {
-        color: '#FFFFFF',
         fontSize: 16,
         fontWeight: '700',
     },
