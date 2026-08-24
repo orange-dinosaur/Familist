@@ -1,7 +1,10 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useCallback } from 'react';
 
-import { dailyMeals, type MealItem } from '@/constants/mock-data';
-import { createId } from '@/utils/id';
+import { type MealItem } from '@/constants/mock-data';
+import { useStoreCollection } from '@/hooks/use-store-collection';
+import { createLocalStore } from '@/store/local-store';
+
+const store = createLocalStore<MealItem>('familist.meals');
 
 interface MealContextValue {
     meals: MealItem[];
@@ -13,19 +16,18 @@ interface MealContextValue {
 const MealContext = createContext<MealContextValue | null>(null);
 
 export function MealProvider({ children }: { children: React.ReactNode }) {
-    const [meals, setMeals] = useState<MealItem[]>(dailyMeals);
+    const { items: meals, loading } = useStoreCollection(store);
 
-    const addMeal = useCallback((meal: Omit<MealItem, 'id'>) => {
-        setMeals((prev) => [...prev, { ...meal, id: createId() }]);
+    const addMeal = useCallback(async (meal: Omit<MealItem, 'id'>) => {
+        await store.create(meal);
     }, []);
 
-    const removeMeal = useCallback((id: string) => {
-        setMeals((prev) => prev.filter((meal) => meal.id !== id));
+    const removeMeal = useCallback(async (id: string) => {
+        await store.remove(id);
     }, []);
 
     return (
-        <MealContext.Provider
-            value={{ meals, loading: false, addMeal, removeMeal }}>
+        <MealContext.Provider value={{ meals, loading, addMeal, removeMeal }}>
             {children}
         </MealContext.Provider>
     );

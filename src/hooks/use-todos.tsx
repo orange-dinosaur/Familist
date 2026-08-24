@@ -1,7 +1,10 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useCallback } from 'react';
 
-import { todoItems, type TodoItem } from '@/constants/mock-data';
-import { createId } from '@/utils/id';
+import { type TodoItem } from '@/constants/mock-data';
+import { useStoreCollection } from '@/hooks/use-store-collection';
+import { createLocalStore } from '@/store/local-store';
+
+const store = createLocalStore<TodoItem>('familist.todos');
 
 interface TodosContextValue {
     todos: TodoItem[];
@@ -27,66 +30,54 @@ interface TodosContextValue {
 const TodosContext = createContext<TodosContextValue | null>(null);
 
 export function TodosProvider({ children }: { children: React.ReactNode }) {
-    const [todos, setTodos] = useState<TodoItem[]>(todoItems);
+    const { items: todos, loading } = useStoreCollection(store);
 
     const addTodo = useCallback(
-        (
+        async (
             label: string,
             priority: TodoItem['priority'],
             day: string,
             assigneeId?: string
         ) => {
-            const newTodo: TodoItem = {
-                id: createId(),
+            await store.create({
                 label,
                 done: false,
                 priority,
                 assigneeId,
                 day,
-            };
-            setTodos((prev) => [...prev, newTodo]);
+            });
         },
         []
     );
 
-    const toggleTodo = useCallback((id: string) => {
-        setTodos((prev) =>
-            prev.map((todo) =>
-                todo.id === id ? { ...todo, done: !todo.done } : todo
-            )
-        );
+    const toggleTodo = useCallback(async (id: string) => {
+        const current = await store.list();
+        const todo = current.find((item) => item.id === id);
+        if (todo) {
+            await store.update(id, { done: !todo.done });
+        }
     }, []);
 
-    const deleteTodo = useCallback((id: string) => {
-        setTodos((prev) => prev.filter((todo) => todo.id !== id));
+    const deleteTodo = useCallback(async (id: string) => {
+        await store.remove(id);
     }, []);
 
     const editTodo = useCallback(
-        (
+        async (
             id: string,
             label: string,
             priority: TodoItem['priority'],
             day: string,
             assigneeId?: string
         ) => {
-            setTodos((prev) =>
-                prev.map((todo) =>
-                    todo.id === id
-                        ? { ...todo, label, priority, day, assigneeId }
-                        : todo
-                )
-            );
+            await store.update(id, { label, priority, day, assigneeId });
         },
         []
     );
 
     const assignTodo = useCallback(
-        (id: string, assigneeId: string | undefined) => {
-            setTodos((prev) =>
-                prev.map((todo) =>
-                    todo.id === id ? { ...todo, assigneeId } : todo
-                )
-            );
+        async (id: string, assigneeId: string | undefined) => {
+            await store.update(id, { assigneeId });
         },
         []
     );
@@ -95,7 +86,7 @@ export function TodosProvider({ children }: { children: React.ReactNode }) {
         <TodosContext.Provider
             value={{
                 todos,
-                loading: false,
+                loading,
                 addTodo,
                 toggleTodo,
                 deleteTodo,

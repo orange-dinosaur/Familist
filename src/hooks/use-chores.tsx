@@ -1,7 +1,10 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useCallback } from 'react';
 
-import { dailyChores, type ChoreItem } from '@/constants/mock-data';
-import { createId } from '@/utils/id';
+import { type ChoreItem } from '@/constants/mock-data';
+import { useStoreCollection } from '@/hooks/use-store-collection';
+import { createLocalStore } from '@/store/local-store';
+
+const store = createLocalStore<ChoreItem>('familist.chores');
 
 export const PRESET_CHORES = [
     'Clean kitchen',
@@ -30,66 +33,48 @@ interface ChoresContextValue {
 const ChoresContext = createContext<ChoresContextValue | null>(null);
 
 export function ChoresProvider({ children }: { children: React.ReactNode }) {
-    const [chores, setChores] = useState<ChoreItem[]>(dailyChores);
+    const { items: chores, loading } = useStoreCollection(store);
 
-    const addChore = useCallback((label: string, day: string) => {
-        const newChore: ChoreItem = {
-            id: createId(),
-            label,
-            done: false,
-            day,
-        };
-        setChores((prev) => [...prev, newChore]);
+    const addChore = useCallback(async (label: string, day: string) => {
+        await store.create({ label, done: false, day });
     }, []);
 
-    const toggleChore = useCallback((id: string) => {
-        setChores((prev) =>
-            prev.map((chore) =>
-                chore.id === id ? { ...chore, done: !chore.done } : chore
-            )
-        );
+    const toggleChore = useCallback(async (id: string) => {
+        const current = await store.list();
+        const chore = current.find((item) => item.id === id);
+        if (chore) {
+            await store.update(id, { done: !chore.done });
+        }
     }, []);
 
-    const deleteChore = useCallback((id: string) => {
-        setChores((prev) => prev.filter((chore) => chore.id !== id));
+    const deleteChore = useCallback(async (id: string) => {
+        await store.remove(id);
     }, []);
 
-    const editChore = useCallback((id: string, newLabel: string) => {
-        setChores((prev) =>
-            prev.map((chore) =>
-                chore.id === id ? { ...chore, label: newLabel } : chore
-            )
-        );
+    const editChore = useCallback(async (id: string, newLabel: string) => {
+        await store.update(id, { label: newLabel });
     }, []);
 
-    const toggleChoreActive = useCallback((label: string, day: string) => {
-        setChores((prev) => {
-            const exists = prev.find(
+    const toggleChoreActive = useCallback(
+        async (label: string, day: string) => {
+            const current = await store.list();
+            const matching = current.filter(
                 (chore) => chore.label === label && chore.day === day
             );
-            if (exists) {
-                return prev.filter(
-                    (chore) => !(chore.label === label && chore.day === day)
-                );
-            } else {
-                const newChore: ChoreItem = {
-                    id: createId(),
-                    label,
-                    done: false,
-                    day,
-                };
-                return [...prev, newChore];
+            if (matching.length === 0) {
+                await store.create({ label, done: false, day });
+                return;
             }
-        });
-    }, []);
+            for (const chore of matching) {
+                await store.remove(chore.id);
+            }
+        },
+        []
+    );
 
     const assignChore = useCallback(
-        (id: string, assigneeId: string | undefined) => {
-            setChores((prev) =>
-                prev.map((chore) =>
-                    chore.id === id ? { ...chore, assigneeId } : chore
-                )
-            );
+        async (id: string, assigneeId: string | undefined) => {
+            await store.update(id, { assigneeId });
         },
         []
     );
@@ -98,7 +83,7 @@ export function ChoresProvider({ children }: { children: React.ReactNode }) {
         <ChoresContext.Provider
             value={{
                 chores,
-                loading: false,
+                loading,
                 addChore,
                 toggleChore,
                 deleteChore,
