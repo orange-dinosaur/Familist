@@ -1033,11 +1033,12 @@ const styles = StyleSheet.create({
         flex: 1,
         flexDirection: 'row',
         alignItems: 'center',
-        gap: Spacing.three,
-        padding: Spacing.three,
+        gap: Spacing.two,
+        paddingVertical: Spacing.two + Spacing.one,
+        paddingHorizontal: Spacing.three,
     },
     assigneeBadgeContainer: {
-        paddingVertical: Spacing.three,
+        paddingVertical: Spacing.two + Spacing.one,
         paddingLeft: Spacing.one,
         paddingRight: Spacing.three,
     },
@@ -1052,7 +1053,7 @@ const styles = StyleSheet.create({
         borderRadius: 3,
     },
     dayTodosList: {
-        gap: Spacing.two,
+        gap: Spacing.one,
     },
     assigneeModalContent: {
         width: '100%',
