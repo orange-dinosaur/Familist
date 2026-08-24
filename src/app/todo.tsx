@@ -237,6 +237,21 @@ export default function TodoScreen() {
     const { members } = useMembers();
     const [modalVisible, setModalVisible] = useState(false);
     const [assigningTodoId, setAssigningTodoId] = useState<string | null>(null);
+    const [daysShowingCompleted, setDaysShowingCompleted] = useState<
+        Set<string>
+    >(new Set());
+
+    const toggleCompletedFor = (day: string) => {
+        setDaysShowingCompleted((prev) => {
+            const next = new Set(prev);
+            if (next.has(day)) {
+                next.delete(day);
+            } else {
+                next.add(day);
+            }
+            return next;
+        });
+    };
     const [editingTodo, setEditingTodo] = useState<TodoItem | null>(null);
 
     const [todoText, setTodoText] = useState('');
@@ -341,9 +356,13 @@ export default function TodoScreen() {
                     {/* Todos grouped by day */}
                     {dates.map((day) => {
                         const dayTodos = todos.filter((t) => t.day === day);
-                        const dayDoneCount = dayTodos.filter(
-                            (t) => t.done
-                        ).length;
+                        const dayOutstanding = dayTodos.filter((t) => !t.done);
+                        const dayCompleted = dayTodos.filter((t) => t.done);
+                        const showingCompleted = daysShowingCompleted.has(day);
+                        const visibleTodos = showingCompleted
+                            ? [...dayOutstanding, ...dayCompleted]
+                            : dayOutstanding;
+                        const dayDoneCount = dayCompleted.length;
                         const dayProgress =
                             dayTodos.length > 0
                                 ? Math.round(
@@ -467,7 +486,7 @@ export default function TodoScreen() {
                                     </ThemedText>
                                 ) : (
                                     <View style={styles.dayTodosList}>
-                                        {dayTodos.map((todo) => (
+                                        {visibleTodos.map((todo) => (
                                             <TodoRow
                                                 key={todo.id}
                                                 todo={todo}
@@ -486,6 +505,47 @@ export default function TodoScreen() {
                                                 }
                                             />
                                         ))}
+
+                                        {dayCompleted.length > 0 && (
+                                            <Pressable
+                                                onPress={() =>
+                                                    toggleCompletedFor(day)
+                                                }
+                                                accessibilityRole="button"
+                                                accessibilityState={{
+                                                    expanded: showingCompleted,
+                                                }}
+                                                style={({ pressed }) => [
+                                                    styles.showCompletedRow,
+                                                    pressed && {
+                                                        opacity: 0.6,
+                                                    },
+                                                ]}>
+                                                <SymbolView
+                                                    name={{
+                                                        ios: showingCompleted
+                                                            ? 'chevron.down'
+                                                            : 'chevron.right',
+                                                        web: showingCompleted
+                                                            ? 'expand_less'
+                                                            : 'expand_more',
+                                                    }}
+                                                    tintColor={
+                                                        theme.textSecondary
+                                                    }
+                                                    size={14}
+                                                />
+                                                <ThemedText
+                                                    themeColor="textSecondary"
+                                                    type="small">
+                                                    {showingCompleted
+                                                        ? 'Hide'
+                                                        : 'Show'}{' '}
+                                                    {dayCompleted.length}{' '}
+                                                    completed
+                                                </ThemedText>
+                                            </Pressable>
+                                        )}
                                     </View>
                                 )}
                             </View>
@@ -1054,6 +1114,12 @@ const styles = StyleSheet.create({
     },
     dayTodosList: {
         gap: Spacing.one,
+    },
+    showCompletedRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: Spacing.one,
+        paddingVertical: Spacing.two,
     },
     assigneeModalContent: {
         width: '100%',
