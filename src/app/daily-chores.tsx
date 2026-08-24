@@ -649,7 +649,10 @@ export default function DailyChoresScreen() {
                                     <View
                                         style={[
                                             styles.assigneeAvatarLarge,
-                                            { backgroundColor: theme[user.color] },
+                                            {
+                                                backgroundColor:
+                                                    theme[user.color],
+                                            },
                                         ]}>
                                         <ThemedText
                                             themeColor="background"

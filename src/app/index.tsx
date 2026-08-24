@@ -93,8 +93,7 @@ export default function HomeScreen() {
                             style={[
                                 styles.userAvatar,
                                 {
-                                    backgroundColor:
-                                        theme.backgroundSelected,
+                                    backgroundColor: theme.backgroundSelected,
                                 },
                             ]}>
                             <SymbolView

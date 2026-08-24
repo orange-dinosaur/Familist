@@ -207,7 +207,10 @@ const TodoRow = React.memo(
                                     <View
                                         style={[
                                             styles.assigneeAvatar,
-                                            { backgroundColor: theme[assignee.color] },
+                                            {
+                                                backgroundColor:
+                                                    theme[assignee.color],
+                                            },
                                         ]}>
                                         <ThemedText
                                             themeColor="background"
@@ -751,9 +754,7 @@ export default function TodoScreen() {
                                                     styles.assigneeAvatarLarge,
                                                     {
                                                         backgroundColor:
-                                                            theme[
-                                                                user.color
-                                                            ],
+                                                            theme[user.color],
                                                     },
                                                 ]}>
                                                 <ThemedText
