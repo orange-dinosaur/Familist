@@ -18,6 +18,7 @@ export const PRESET_CHORES = [
 
 interface ChoresContextValue {
     chores: ChoreItem[];
+    loading: boolean;
     addChore: (label: string, day: string) => void;
     toggleChore: (id: string) => void;
     deleteChore: (id: string) => void;
@@ -97,6 +98,7 @@ export function ChoresProvider({ children }: { children: React.ReactNode }) {
         <ChoresContext.Provider
             value={{
                 chores,
+                loading: false,
                 addChore,
                 toggleChore,
                 deleteChore,

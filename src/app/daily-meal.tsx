@@ -38,7 +38,7 @@ type MealTime = MealItem['time'];
 
 export default function DailyMealScreen() {
     const theme = useTheme();
-    const { meals, addMeal, removeMeal } = useMeals();
+    const { meals, loading, addMeal, removeMeal } = useMeals();
     const [modalVisible, setModalVisible] = useState(false);
     const [selectedTime, setSelectedTime] = useState<MealTime | null>(null);
     const [dishName, setDishName] = useState('');
@@ -120,9 +120,11 @@ export default function DailyMealScreen() {
                     <ThemedText
                         themeColor="textSecondary"
                         style={styles.subtitle}>
-                        {hasMeals
-                            ? `${meals.length} dish${meals.length !== 1 ? 'es' : ''} planned in total`
-                            : 'No meals planned yet'}
+                        {loading
+                            ? ''
+                            : hasMeals
+                              ? `${meals.length} dish${meals.length !== 1 ? 'es' : ''} planned in total`
+                              : 'No meals planned yet'}
                     </ThemedText>
                 </View>
 
@@ -249,7 +251,9 @@ export default function DailyMealScreen() {
                                         themeColor="textSecondary"
                                         type="small"
                                         style={styles.noMealsText}>
-                                        No meals planned for this day.
+                                        {loading
+                                            ? ''
+                                            : 'No meals planned for this day.'}
                                     </ThemedText>
                                 ) : (
                                     <View style={styles.dayMealsContent}>

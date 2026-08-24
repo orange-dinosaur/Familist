@@ -32,9 +32,9 @@ const priorityColors = {
 export default function HomeScreen() {
     const theme = useTheme();
     const router = useRouter();
-    const { meals } = useMeals();
-    const { chores, toggleChore } = useChores();
-    const { todos, toggleTodo } = useTodos();
+    const { meals, loading: mealsLoading } = useMeals();
+    const { chores, loading: choresLoading, toggleChore } = useChores();
+    const { todos, loading: todosLoading, toggleTodo } = useTodos();
 
     const [mealsExpanded, setMealsExpanded] = useState(false);
     const [choresExpanded, setChoresExpanded] = useState(false);
@@ -200,7 +200,9 @@ export default function HomeScreen() {
                                         <ThemedText
                                             themeColor="textSecondary"
                                             type="small">
-                                            No meals planned yet
+                                            {mealsLoading
+                                                ? ''
+                                                : 'No meals planned yet'}
                                         </ThemedText>
                                     )
                                 ) : hasMeals ? (
@@ -242,7 +244,9 @@ export default function HomeScreen() {
                                     <ThemedText
                                         themeColor="textSecondary"
                                         type="small">
-                                        No meals planned yet
+                                        {mealsLoading
+                                            ? ''
+                                            : 'No meals planned yet'}
                                     </ThemedText>
                                 )}
                             </View>
@@ -376,7 +380,9 @@ export default function HomeScreen() {
                                         <ThemedText
                                             themeColor="textSecondary"
                                             type="small">
-                                            No chores for today
+                                            {choresLoading
+                                                ? ''
+                                                : 'No chores for today'}
                                         </ThemedText>
                                     )
                                 ) : todayChores.length > 0 ? (
@@ -486,7 +492,9 @@ export default function HomeScreen() {
                                     <ThemedText
                                         themeColor="textSecondary"
                                         type="small">
-                                        No chores for today
+                                        {choresLoading
+                                            ? ''
+                                            : 'No chores for today'}
                                     </ThemedText>
                                 )}
                             </View>
@@ -632,7 +640,9 @@ export default function HomeScreen() {
                                         <ThemedText
                                             themeColor="textSecondary"
                                             type="small">
-                                            No tasks remaining
+                                            {todosLoading
+                                                ? ''
+                                                : 'No tasks remaining'}
                                         </ThemedText>
                                     )
                                 ) : activeTodos.length > 0 ? (

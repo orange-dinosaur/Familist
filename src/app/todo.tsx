@@ -237,7 +237,8 @@ TodoRow.displayName = 'TodoRow';
 
 export default function TodoScreen() {
     const theme = useTheme();
-    const { todos, addTodo, toggleTodo, editTodo, deleteTodo } = useTodos();
+    const { todos, loading, addTodo, toggleTodo, editTodo, deleteTodo } =
+        useTodos();
     const [modalVisible, setModalVisible] = useState(false);
     const [editingTodo, setEditingTodo] = useState<TodoItem | null>(null);
 
@@ -434,7 +435,9 @@ export default function TodoScreen() {
                                         themeColor="textSecondary"
                                         type="small"
                                         style={styles.noTodosText}>
-                                        No tasks planned for this day.
+                                        {loading
+                                            ? ''
+                                            : 'No tasks planned for this day.'}
                                     </ThemedText>
                                 ) : (
                                     <View style={styles.todoSections}>

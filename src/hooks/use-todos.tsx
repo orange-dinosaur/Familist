@@ -5,6 +5,7 @@ import { createId } from '@/utils/id';
 
 interface TodosContextValue {
     todos: TodoItem[];
+    loading: boolean;
     addTodo: (
         label: string,
         priority: TodoItem['priority'],
@@ -94,6 +95,7 @@ export function TodosProvider({ children }: { children: React.ReactNode }) {
         <TodosContext.Provider
             value={{
                 todos,
+                loading: false,
                 addTodo,
                 toggleTodo,
                 deleteTodo,

@@ -5,6 +5,7 @@ import { createId } from '@/utils/id';
 
 interface MealContextValue {
     meals: MealItem[];
+    loading: boolean;
     addMeal: (meal: Omit<MealItem, 'id'>) => void;
     removeMeal: (id: string) => void;
 }
@@ -23,7 +24,8 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
     }, []);
 
     return (
-        <MealContext.Provider value={{ meals, addMeal, removeMeal }}>
+        <MealContext.Provider
+            value={{ meals, loading: false, addMeal, removeMeal }}>
             {children}
         </MealContext.Provider>
     );

@@ -174,8 +174,14 @@ ChoreRow.displayName = 'ChoreRow';
 
 export default function DailyChoresScreen() {
     const theme = useTheme();
-    const { chores, toggleChore, deleteChore, toggleChoreActive, assignChore } =
-        useChores();
+    const {
+        chores,
+        loading,
+        toggleChore,
+        deleteChore,
+        toggleChoreActive,
+        assignChore,
+    } = useChores();
     const [modalVisible, setModalVisible] = useState(false);
     const [assigningChoreId, setAssigningChoreId] = useState<string | null>(
         null
@@ -232,9 +238,11 @@ export default function DailyChoresScreen() {
                     <ThemedText
                         themeColor="textSecondary"
                         style={styles.subtitle}>
-                        {hasChores
-                            ? `${doneCount} of ${chores.length} completed in total`
-                            : 'No chores planned'}
+                        {loading
+                            ? ''
+                            : hasChores
+                              ? `${doneCount} of ${chores.length} completed in total`
+                              : 'No chores planned'}
                     </ThemedText>
                 </View>
 
@@ -366,7 +374,9 @@ export default function DailyChoresScreen() {
                                         themeColor="textSecondary"
                                         type="small"
                                         style={styles.noChoresText}>
-                                        No chores active for this day.
+                                        {loading
+                                            ? ''
+                                            : 'No chores active for this day.'}
                                     </ThemedText>
                                 ) : (
                                     <View style={styles.dayChoresList}>
