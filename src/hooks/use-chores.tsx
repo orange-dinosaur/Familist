@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
 
 import { dailyChores, type ChoreItem } from '@/constants/mock-data';
+import { createId } from '@/utils/id';
 
 export const PRESET_CHORES = [
     'Clean kitchen',
@@ -32,9 +33,7 @@ export function ChoresProvider({ children }: { children: React.ReactNode }) {
 
     const addChore = useCallback((label: string, day: string) => {
         const newChore: ChoreItem = {
-            id:
-                Math.random().toString(36).substring(7) ||
-                Date.now().toString(),
+            id: createId(),
             label,
             done: false,
             day,
@@ -73,9 +72,7 @@ export function ChoresProvider({ children }: { children: React.ReactNode }) {
                 );
             } else {
                 const newChore: ChoreItem = {
-                    id:
-                        Math.random().toString(36).substring(7) ||
-                        Date.now().toString(),
+                    id: createId(),
                     label,
                     done: false,
                     day,

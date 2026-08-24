@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
 
 import { todoItems, type TodoItem } from '@/constants/mock-data';
+import { createId } from '@/utils/id';
 
 interface TodosContextValue {
     todos: TodoItem[];
@@ -35,9 +36,7 @@ export function TodosProvider({ children }: { children: React.ReactNode }) {
             assigneeId?: string
         ) => {
             const newTodo: TodoItem = {
-                id:
-                    Math.random().toString(36).substring(7) ||
-                    Date.now().toString(),
+                id: createId(),
                 label,
                 done: false,
                 priority,

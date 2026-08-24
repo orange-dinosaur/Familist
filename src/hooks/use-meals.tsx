@@ -1,11 +1,12 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
 
 import { dailyMeals, type MealItem } from '@/constants/mock-data';
+import { createId } from '@/utils/id';
 
 interface MealContextValue {
     meals: MealItem[];
-    addMeal: (meal: MealItem) => void;
-    removeMeal: (index: number) => void;
+    addMeal: (meal: Omit<MealItem, 'id'>) => void;
+    removeMeal: (id: string) => void;
 }
 
 const MealContext = createContext<MealContextValue | null>(null);
@@ -13,12 +14,12 @@ const MealContext = createContext<MealContextValue | null>(null);
 export function MealProvider({ children }: { children: React.ReactNode }) {
     const [meals, setMeals] = useState<MealItem[]>(dailyMeals);
 
-    const addMeal = useCallback((meal: MealItem) => {
-        setMeals((prev) => [...prev, meal]);
+    const addMeal = useCallback((meal: Omit<MealItem, 'id'>) => {
+        setMeals((prev) => [...prev, { ...meal, id: createId() }]);
     }, []);
 
-    const removeMeal = useCallback((index: number) => {
-        setMeals((prev) => prev.filter((_, i) => i !== index));
+    const removeMeal = useCallback((id: string) => {
+        setMeals((prev) => prev.filter((meal) => meal.id !== id));
     }, []);
 
     return (

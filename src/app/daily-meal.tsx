@@ -82,7 +82,7 @@ export default function DailyMealScreen() {
     const addDish = () => {
         if (!selectedTime || !dishName.trim()) return;
 
-        const newMeal: MealItem = {
+        const newMeal: Omit<MealItem, 'id'> = {
             name: dishName.trim(),
             time: selectedTime,
             emoji: '',
@@ -271,19 +271,9 @@ export default function DailyMealScreen() {
                                                         {timeLabel[time]}
                                                     </ThemedText>
                                                     {timeMeals.map((meal) => {
-                                                        const globalIndex =
-                                                            meals.findIndex(
-                                                                (m) =>
-                                                                    m.name ===
-                                                                        meal.name &&
-                                                                    m.time ===
-                                                                        meal.time &&
-                                                                    m.day ===
-                                                                        meal.day
-                                                            );
                                                         return (
                                                             <View
-                                                                key={`${meal.day}-${meal.time}-${meal.name}-${globalIndex}`}
+                                                                key={meal.id}
                                                                 style={[
                                                                     styles.mealRow,
                                                                     {
@@ -301,7 +291,7 @@ export default function DailyMealScreen() {
                                                                 <Pressable
                                                                     onPress={() =>
                                                                         removeMeal(
-                                                                            globalIndex
+                                                                            meal.id
                                                                         )
                                                                     }
                                                                     hitSlop={8}
@@ -605,19 +595,9 @@ export default function DailyMealScreen() {
                                                         m.time === selectedTime
                                                 )
                                                 .map((meal) => {
-                                                    const globalIndex =
-                                                        meals.findIndex(
-                                                            (m) =>
-                                                                m.name ===
-                                                                    meal.name &&
-                                                                m.time ===
-                                                                    meal.time &&
-                                                                m.day ===
-                                                                    meal.day
-                                                        );
                                                     return (
                                                         <View
-                                                            key={`modal-${meal.time}-${meal.name}-${globalIndex}`}
+                                                            key={`modal-${meal.id}`}
                                                             style={[
                                                                 styles.addedDishRow,
                                                                 {
@@ -635,7 +615,7 @@ export default function DailyMealScreen() {
                                                             <Pressable
                                                                 onPress={() =>
                                                                     removeMeal(
-                                                                        globalIndex
+                                                                        meal.id
                                                                     )
                                                                 }
                                                                 hitSlop={8}

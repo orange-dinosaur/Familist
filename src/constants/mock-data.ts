@@ -88,6 +88,7 @@ export function getDateRange(): string[] {
 }
 
 export interface MealItem {
+    id: string;
     name: string;
     time: 'breakfast' | 'lunch' | 'snack' | 'dinner';
     emoji: string;
@@ -144,30 +145,35 @@ export const MOCK_USERS: User[] = [
 
 export const dailyMeals: MealItem[] = [
     {
+        id: 'm1',
         name: 'Greek yogurt with granola',
         time: 'breakfast',
         emoji: '🥣',
         day: getRelativeDateString(0),
     },
     {
+        id: 'm2',
         name: 'Pasta al pomodoro',
         time: 'lunch',
         emoji: '🍝',
         day: getRelativeDateString(0),
     },
     {
+        id: 'm3',
         name: 'Fresh seasonal fruit',
         time: 'snack',
         emoji: '🍎',
         day: getRelativeDateString(1),
     },
     {
+        id: 'm4',
         name: 'Grilled chicken salad',
         time: 'dinner',
         emoji: '🥗',
         day: getRelativeDateString(0),
     },
     {
+        id: 'm5',
         name: 'Margherita Pizza',
         time: 'dinner',
         emoji: '🍕',
