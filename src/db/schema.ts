@@ -9,6 +9,7 @@ import { sql } from 'drizzle-orm';
 import {
     boolean,
     check,
+    date,
     foreignKey,
     index,
     pgEnum,
@@ -178,5 +179,94 @@ export const invitation = pgTable(
             foreignColumns: [familyMember.familyId, familyMember.id],
             name: 'invitation_family_member_fk',
         }).onDelete('cascade'),
+    ]
+);
+
+// ─── Family content ─────────────────────────────────────────────────────
+
+export const mealTime = pgEnum('meal_time', [
+    'breakfast',
+    'lunch',
+    'snack',
+    'dinner',
+]);
+
+export const todoPriority = pgEnum('todo_priority', ['low', 'medium', 'high']);
+
+export const meal = pgTable(
+    'meal',
+    {
+        id: text('id').primaryKey(),
+        familyId: text('family_id')
+            .notNull()
+            .references(() => family.id, { onDelete: 'cascade' }),
+        name: text('name').notNull(),
+        time: mealTime('time').notNull(),
+        emoji: text('emoji').notNull().default(''),
+        day: date('day').notNull(),
+        createdAt: timestamp('created_at').defaultNow().notNull(),
+        updatedAt: timestamp('updated_at')
+            .defaultNow()
+            .$onUpdate(() => new Date())
+            .notNull(),
+        deletedAt: timestamp('deleted_at'),
+    },
+    (table) => [index('meal_family_id_day_idx').on(table.familyId, table.day)]
+);
+
+export const chore = pgTable(
+    'chore',
+    {
+        id: text('id').primaryKey(),
+        familyId: text('family_id')
+            .notNull()
+            .references(() => family.id, { onDelete: 'cascade' }),
+        label: text('label').notNull(),
+        done: boolean('done').notNull().default(false),
+        assigneeId: text('assignee_id'),
+        day: date('day').notNull(),
+        createdAt: timestamp('created_at').defaultNow().notNull(),
+        updatedAt: timestamp('updated_at')
+            .defaultNow()
+            .$onUpdate(() => new Date())
+            .notNull(),
+        deletedAt: timestamp('deleted_at'),
+    },
+    (table) => [
+        index('chore_family_id_day_idx').on(table.familyId, table.day),
+        foreignKey({
+            columns: [table.familyId, table.assigneeId],
+            foreignColumns: [familyMember.familyId, familyMember.id],
+            name: 'chore_assignee_fk',
+        }),
+    ]
+);
+
+export const todo = pgTable(
+    'todo',
+    {
+        id: text('id').primaryKey(),
+        familyId: text('family_id')
+            .notNull()
+            .references(() => family.id, { onDelete: 'cascade' }),
+        label: text('label').notNull(),
+        done: boolean('done').notNull().default(false),
+        priority: todoPriority('priority').notNull(),
+        assigneeId: text('assignee_id'),
+        day: date('day').notNull(),
+        createdAt: timestamp('created_at').defaultNow().notNull(),
+        updatedAt: timestamp('updated_at')
+            .defaultNow()
+            .$onUpdate(() => new Date())
+            .notNull(),
+        deletedAt: timestamp('deleted_at'),
+    },
+    (table) => [
+        index('todo_family_id_day_idx').on(table.familyId, table.day),
+        foreignKey({
+            columns: [table.familyId, table.assigneeId],
+            foreignColumns: [familyMember.familyId, familyMember.id],
+            name: 'todo_assignee_fk',
+        }),
     ]
 );
