@@ -1,9 +1,25 @@
 /**
- * Better Auth owns these four tables. The shapes match what its Drizzle
- * adapter expects, so it can generate its own SQL against them.
+ * Database schema.
+ *
+ * Better Auth owns `user`, `session`, `account` and `verification`; the shapes
+ * match what its Drizzle adapter expects. Everything under `Family` is ours.
  */
 
-import { boolean, index, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
+import { sql } from 'drizzle-orm';
+import {
+    boolean,
+    check,
+    foreignKey,
+    index,
+    pgEnum,
+    pgTable,
+    text,
+    timestamp,
+    unique,
+    uniqueIndex,
+} from 'drizzle-orm/pg-core';
+
+// ─── Better Auth ────────────────────────────────────────────────────────
 
 export const user = pgTable('user', {
     id: text('id').primaryKey(),
@@ -77,4 +93,90 @@ export const verification = pgTable(
             .notNull(),
     },
     (table) => [index('verification_identifier_idx').on(table.identifier)]
+);
+
+// ─── Family ─────────────────────────────────────────────────────────────
+
+export const memberRole = pgEnum('member_role', ['owner', 'editor', 'checker']);
+
+export const family = pgTable('family', {
+    id: text('id').primaryKey(),
+    name: text('name').notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at')
+        .defaultNow()
+        .$onUpdate(() => new Date())
+        .notNull(),
+});
+
+export const familyMember = pgTable(
+    'family_member',
+    {
+        id: text('id').primaryKey(),
+        familyId: text('family_id')
+            .notNull()
+            .references(() => family.id, { onDelete: 'cascade' }),
+        name: text('name').notNull(),
+        initials: text('initials').notNull(),
+        /** A MemberColor token key, never a hex value. */
+        color: text('color').notNull(),
+        /** Null for a placeholder member, who cannot sign in. */
+        userId: text('user_id').references(() => user.id, {
+            onDelete: 'restrict',
+        }),
+        role: memberRole('role'),
+        createdAt: timestamp('created_at').defaultNow().notNull(),
+        updatedAt: timestamp('updated_at')
+            .defaultNow()
+            .$onUpdate(() => new Date())
+            .notNull(),
+        deletedAt: timestamp('deleted_at'),
+    },
+    (table) => [
+        index('family_member_family_id_idx').on(table.familyId),
+        uniqueIndex('family_member_family_id_user_id_idx').on(
+            table.familyId,
+            table.userId
+        ),
+        unique('family_member_family_id_id_key').on(table.familyId, table.id),
+        check(
+            'family_member_account_has_role',
+            sql`(${table.userId} is null) = (${table.role} is null)`
+        ),
+    ]
+);
+
+export const invitation = pgTable(
+    'invitation',
+    {
+        id: text('id').primaryKey(),
+        familyId: text('family_id')
+            .notNull()
+            .references(() => family.id, { onDelete: 'cascade' }),
+        /** Set to promote an existing placeholder rather than add a member. */
+        familyMemberId: text('family_member_id'),
+        role: memberRole('role').notNull(),
+        code: text('code').notNull().unique(),
+        email: text('email'),
+        invitedBy: text('invited_by')
+            .notNull()
+            .references(() => user.id, { onDelete: 'cascade' }),
+        expiresAt: timestamp('expires_at').notNull(),
+        acceptedAt: timestamp('accepted_at'),
+        createdAt: timestamp('created_at').defaultNow().notNull(),
+        updatedAt: timestamp('updated_at')
+            .defaultNow()
+            .$onUpdate(() => new Date())
+            .notNull(),
+    },
+    (table) => [
+        index('invitation_family_id_idx').on(table.familyId),
+        // The target member must belong to the inviting family - a plain
+        // reference to family_member.id could point across families.
+        foreignKey({
+            columns: [table.familyId, table.familyMemberId],
+            foreignColumns: [familyMember.familyId, familyMember.id],
+            name: 'invitation_family_member_fk',
+        }).onDelete('cascade'),
+    ]
 );
