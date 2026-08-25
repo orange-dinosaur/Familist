@@ -154,6 +154,33 @@ export const familyMember = pgTable(
     ]
 );
 
+/**
+ * Which of a person's memberships they are currently acting in.
+ *
+ * A user may belong to several families, and every route resolves the family
+ * from the session rather than from the request - so "which one am I in right
+ * now" has to be stored somewhere the server can read. Here rather than as a
+ * column on `user`, which Better Auth owns, and rather than as something the
+ * client sends, which would make it the client's assertion instead of the
+ * server's fact.
+ *
+ * A pointer at a membership that has since been soft-deleted is not an error:
+ * `getMembership` falls back to the oldest live one. The cascade covers the
+ * hard-delete case that a soft delete does not fire.
+ */
+export const activeMembership = pgTable('active_membership', {
+    userId: text('user_id')
+        .primaryKey()
+        .references(() => user.id, { onDelete: 'cascade' }),
+    familyMemberId: text('family_member_id')
+        .notNull()
+        .references(() => familyMember.id, { onDelete: 'cascade' }),
+    updatedAt: timestamp('updated_at')
+        .defaultNow()
+        .$onUpdate(() => new Date())
+        .notNull(),
+});
+
 export const invitation = pgTable(
     'invitation',
     {

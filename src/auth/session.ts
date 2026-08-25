@@ -9,11 +9,11 @@
  * underneath, so a single unscoped query is a cross-family leak.
  */
 
-import { and, eq, isNull } from 'drizzle-orm';
+import { and, asc, eq, isNull } from 'drizzle-orm';
 
 import { auth } from '@/auth';
 import { db } from '@/db';
-import { familyMember } from '@/db/schema';
+import { activeMembership, familyMember } from '@/db/schema';
 import { type MemberRole } from '@/utils/member';
 
 export type { MemberRole };
@@ -41,6 +41,17 @@ export async function getSessionUser(
  * The caller's membership, or null when they are signed out or have no family
  * yet. A member whose row is soft-deleted has been removed from the family and
  * must not resolve.
+ *
+ * A person may belong to several families, so which one they are acting in is
+ * read from `active_membership` rather than guessed. The join fetches the
+ * pointer alongside the memberships, so this is still one round trip.
+ *
+ * The fallback is the oldest live membership, and it covers three cases that
+ * are not errors: a person who has never switched, one whose pointer names a
+ * membership that has since been revoked, and one whose pointer was written
+ * before they were removed from that family. Ordering by `created_at` and then
+ * `id` makes the answer the same every time, which the previous `limit(1)` on
+ * an unordered query would not have been once there was more than one row.
  */
 export async function getMembership(
     request: Request
@@ -48,25 +59,58 @@ export async function getMembership(
     const user = await getSessionUser(request);
     if (!user) return null;
 
-    const [row] = await db
-        .select()
+    const rows = await db
+        .select({
+            member: familyMember,
+            activeId: activeMembership.familyMemberId,
+        })
         .from(familyMember)
+        .leftJoin(
+            activeMembership,
+            eq(activeMembership.userId, familyMember.userId)
+        )
         .where(
             and(
                 eq(familyMember.userId, user.id),
                 isNull(familyMember.deletedAt)
             )
         )
-        .limit(1);
+        .orderBy(asc(familyMember.createdAt), asc(familyMember.id));
 
-    if (!row || !row.role) return null;
+    const live = rows.filter((row) => row.member.role !== null);
+    if (live.length === 0) return null;
+
+    const activeId = live[0].activeId;
+    const chosen =
+        live.find((row) => row.member.id === activeId)?.member ??
+        live[0].member;
+
+    if (!chosen.role) return null;
 
     return {
         userId: user.id,
-        memberId: row.id,
-        familyId: row.familyId,
-        role: row.role,
+        memberId: chosen.id,
+        familyId: chosen.familyId,
+        role: chosen.role,
     };
+}
+
+/**
+ * Point the caller at one of their memberships. The membership is looked up by
+ * the caller's own id, so there is nothing here that could name someone
+ * else's.
+ */
+export async function setActiveMembership(
+    userId: string,
+    familyMemberId: string
+): Promise<void> {
+    await db
+        .insert(activeMembership)
+        .values({ userId, familyMemberId })
+        .onConflictDoUpdate({
+            target: activeMembership.userId,
+            set: { familyMemberId, updatedAt: new Date() },
+        });
 }
 
 /**
