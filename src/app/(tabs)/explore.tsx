@@ -28,6 +28,7 @@ import {
 import { useFamily } from '@/hooks/use-family';
 import { useMembers } from '@/hooks/use-members';
 import { useTheme } from '@/hooks/use-theme';
+import { clearLocalData } from '@/store/clear-local';
 import { MEMBER_COLORS } from '@/utils/member';
 
 function formatDueDate(dateStr: string): string {
@@ -42,6 +43,16 @@ export default function ExploreScreen() {
     const { data: session } = authClient.useSession();
 
     const canManage = membership?.role === 'owner';
+
+    /**
+     * The device keeps the family's records so they can be read offline, so
+     * signing out has to take them with it. The session goes first: what is
+     * left of it afterwards cannot write anything back.
+     */
+    const signOut = async () => {
+        await authClient.signOut();
+        await clearLocalData();
+    };
 
     const [memberModalVisible, setMemberModalVisible] = useState(false);
     const [editingMemberId, setEditingMemberId] = useState<string | null>(null);
@@ -444,7 +455,7 @@ export default function ExploreScreen() {
                     </View>
 
                     <Pressable
-                        onPress={() => authClient.signOut()}
+                        onPress={signOut}
                         accessibilityLabel="Sign out"
                         accessibilityRole="button"
                         style={({ pressed }) => [
