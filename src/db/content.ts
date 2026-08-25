@@ -9,10 +9,23 @@
 import { and, eq, isNull } from 'drizzle-orm';
 
 import { db } from '@/db';
-import { chore, familyMember, todo } from '@/db/schema';
-import { type TodoItem } from '@/constants/mock-data';
+import { chore, familyMember, meal, todo } from '@/db/schema';
+import { type MealItem, type TodoItem } from '@/constants/mock-data';
 
 export const MAX_LABEL_LENGTH = 200;
+
+/**
+ * Long enough for the sequences that render as one glyph - a family emoji is
+ * eleven code units - and short enough that the column stays an emoji.
+ */
+export const MAX_EMOJI_LENGTH = 16;
+
+export const MEAL_TIMES: MealItem['time'][] = [
+    'breakfast',
+    'lunch',
+    'snack',
+    'dinner',
+];
 
 export const TODO_PRIORITIES: TodoItem['priority'][] = [
     'low',
@@ -21,6 +34,14 @@ export const TODO_PRIORITIES: TodoItem['priority'][] = [
 ];
 
 /** The columns a client is given. `family_id` and the timestamps stay here. */
+export const MEAL_COLUMNS = {
+    id: meal.id,
+    name: meal.name,
+    time: meal.time,
+    emoji: meal.emoji,
+    day: meal.day,
+};
+
 export const CHORE_COLUMNS = {
     id: chore.id,
     label: chore.label,
@@ -44,11 +65,21 @@ export const TODO_COLUMNS = {
  * can share them: the difference between the two is only which fields they
  * look at.
  */
-export function labelError(value: unknown): string | null {
+function textError(value: unknown, noun: string): string | null {
     if (typeof value !== 'string' || !value.trim())
-        return 'A label is required';
-    if (value.trim().length > MAX_LABEL_LENGTH) return 'That label is too long';
+        return `A ${noun} is required`;
+    if (value.trim().length > MAX_LABEL_LENGTH)
+        return `That ${noun} is too long`;
     return null;
+}
+
+export function labelError(value: unknown): string | null {
+    return textError(value, 'label');
+}
+
+/** Meals carry a name where chores and todos carry a label. */
+export function nameError(value: unknown): string | null {
+    return textError(value, 'name');
 }
 
 /** A `date` column round-trips as `YYYY-MM-DD`, so that is what is accepted. */
@@ -63,6 +94,27 @@ export function dayError(value: unknown): string | null {
     ) {
         return 'That is not a real date';
     }
+    return null;
+}
+
+export function timeError(value: unknown): string | null {
+    if (value === undefined || value === null) return 'A time is required';
+    if (
+        typeof value !== 'string' ||
+        !MEAL_TIMES.includes(value as MealItem['time'])
+    ) {
+        return 'Unknown time';
+    }
+    return null;
+}
+
+/**
+ * The column is `NOT NULL DEFAULT ''`, so no emoji is a valid meal - only a
+ * value of the wrong shape is refused.
+ */
+export function emojiError(value: unknown): string | null {
+    if (typeof value !== 'string') return 'Invalid emoji';
+    if (value.length > MAX_EMOJI_LENGTH) return 'That emoji is too long';
     return null;
 }
 
