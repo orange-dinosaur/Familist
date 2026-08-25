@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { authClient } from '@/auth/client';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import {
@@ -41,6 +42,7 @@ function formatDueDate(dateStr: string): string {
 export default function ExploreScreen() {
     const theme = useTheme();
     const { members, addMember, editMember, removeMember } = useMembers();
+    const { data: session } = authClient.useSession();
 
     const [memberModalVisible, setMemberModalVisible] = useState(false);
     const [editingMemberId, setEditingMemberId] = useState<string | null>(null);
@@ -395,6 +397,56 @@ export default function ExploreScreen() {
                             />
                         </Pressable>
                     ))}
+
+                    {/* ─── Account ─── */}
+                    <View
+                        style={[
+                            styles.sectionHeader,
+                            { marginTop: Spacing.three },
+                        ]}>
+                        <SymbolView
+                            name={{
+                                ios: 'person.crop.circle',
+                                web: 'account_circle',
+                            }}
+                            tintColor={theme.text}
+                            size={18}
+                        />
+                        <ThemedText type="default" style={styles.sectionTitle}>
+                            Account
+                        </ThemedText>
+                    </View>
+
+                    <Pressable
+                        onPress={() => authClient.signOut()}
+                        accessibilityLabel="Sign out"
+                        accessibilityRole="button"
+                        style={({ pressed }) => [
+                            styles.row,
+                            { backgroundColor: theme.backgroundElement },
+                            pressed && {
+                                backgroundColor: theme.backgroundSelected,
+                            },
+                        ]}>
+                        <SymbolView
+                            name={{
+                                ios: 'rectangle.portrait.and.arrow.right',
+                                web: 'logout',
+                            }}
+                            tintColor={theme.textSecondary}
+                            size={22}
+                        />
+                        <View style={styles.rowContent}>
+                            <ThemedText type="default">Sign out</ThemedText>
+                            {session?.user.email && (
+                                <ThemedText
+                                    type="small"
+                                    themeColor="textSecondary">
+                                    {session.user.email}
+                                </ThemedText>
+                            )}
+                        </View>
+                    </Pressable>
                 </ScrollView>
             </SafeAreaView>
 

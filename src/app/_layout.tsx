@@ -9,6 +9,7 @@ import { useColorScheme } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { AnimatedSplashOverlay } from '@/components/animated-icon';
+import { useAuthGuard } from '@/hooks/use-auth-guard';
 import { ChoresProvider } from '@/hooks/use-chores';
 import { MealProvider } from '@/hooks/use-meals';
 import { MembersProvider } from '@/hooks/use-members';
@@ -16,6 +17,8 @@ import { TodosProvider } from '@/hooks/use-todos';
 
 export default function RootLayout() {
     const colorScheme = useColorScheme();
+    useAuthGuard();
+
     return (
         <GestureHandlerRootView style={{ flex: 1 }}>
             <ThemeProvider
