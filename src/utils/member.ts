@@ -17,6 +17,9 @@ export type MemberRole = 'owner' | 'editor' | 'checker';
 
 export const MEMBER_ROLES: MemberRole[] = ['owner', 'editor', 'checker'];
 
+/** Long enough for a full name, short enough to render in a row. */
+export const MAX_MEMBER_NAME_LENGTH = 60;
+
 export function initialsOf(name: string): string {
     return name.trim().charAt(0).toUpperCase();
 }

@@ -12,8 +12,15 @@
 import { and, asc, eq, isNull } from 'drizzle-orm';
 
 import { getMembership, unauthorized } from '@/auth/session';
+import { type MemberColor } from '@/constants/theme';
 import { db } from '@/db';
 import { familyMember } from '@/db/schema';
+import { createId } from '@/utils/id';
+import {
+    initialsOf,
+    MAX_MEMBER_NAME_LENGTH,
+    MEMBER_COLORS,
+} from '@/utils/member';
 
 export async function GET(request: Request): Promise<Response> {
     const membership = await getMembership(request);
@@ -37,4 +44,80 @@ export async function GET(request: Request): Promise<Response> {
         .orderBy(asc(familyMember.createdAt), asc(familyMember.id));
 
     return Response.json({ members });
+}
+
+/**
+ * Creating a placeholder: a member of the family who has no account and cannot
+ * sign in, but can be assigned anything. Owners only, like the rest of member
+ * management - `roles.md` gives the member screen to owners, and an editor's
+ * remit is the family's content rather than who is in it.
+ *
+ * `initials` is derived here rather than accepted, so a placeholder and an
+ * account member end up with initials from the same rule.
+ */
+export async function POST(request: Request): Promise<Response> {
+    const membership = await getMembership(request);
+    if (!membership) return unauthorized();
+
+    if (membership.role !== 'owner') {
+        return Response.json(
+            { error: 'Only an owner can manage members' },
+            { status: 403 }
+        );
+    }
+
+    let body: { name?: unknown; color?: unknown };
+    try {
+        body = await request.json();
+    } catch {
+        return Response.json({ error: 'Invalid body' }, { status: 400 });
+    }
+
+    const { name, color } = body;
+
+    if (typeof name !== 'string' || !name.trim()) {
+        return Response.json({ error: 'A name is required' }, { status: 400 });
+    }
+    if (name.trim().length > MAX_MEMBER_NAME_LENGTH) {
+        return Response.json(
+            { error: 'That name is too long' },
+            { status: 400 }
+        );
+    }
+    if (
+        color !== undefined &&
+        (typeof color !== 'string' ||
+            !MEMBER_COLORS.includes(color as MemberColor))
+    ) {
+        return Response.json({ error: 'Unknown colour' }, { status: 400 });
+    }
+
+    /** Omitting the colour cycles, exactly as joining a family does. */
+    let chosen = color as MemberColor | undefined;
+    if (!chosen) {
+        const siblings = await db
+            .select({ id: familyMember.id })
+            .from(familyMember)
+            .where(eq(familyMember.familyId, membership.familyId));
+        chosen = MEMBER_COLORS[siblings.length % MEMBER_COLORS.length];
+    }
+
+    const [created] = await db
+        .insert(familyMember)
+        .values({
+            id: createId(),
+            familyId: membership.familyId,
+            name: name.trim(),
+            initials: initialsOf(name),
+            color: chosen,
+        })
+        .returning({
+            id: familyMember.id,
+            name: familyMember.name,
+            initials: familyMember.initials,
+            color: familyMember.color,
+            role: familyMember.role,
+        });
+
+    return Response.json({ member: created }, { status: 201 });
 }
