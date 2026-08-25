@@ -6,7 +6,7 @@
  * and moves them into it; `PATCH` renames it.
  */
 
-import { eq } from 'drizzle-orm';
+import { and, asc, eq, isNull } from 'drizzle-orm';
 
 import {
     getMembership,
@@ -27,26 +27,47 @@ function nameError(value: unknown): string | null {
     return null;
 }
 
+/**
+ * The active family and every family the caller belongs to, in one answer.
+ * They are the same question at two zoom levels, and asking them separately
+ * would be two round trips on every load that could disagree with each other.
+ *
+ * `family: null` is the onboarding signal and still means what it always did:
+ * this person has no family yet.
+ */
 export async function GET(request: Request): Promise<Response> {
     const membership = await getMembership(request);
     if (!membership) {
         const user = await getSessionUser(request);
         if (!user) return unauthorized();
-        return Response.json({ family: null, member: null });
+        return Response.json({ family: null, member: null, families: [] });
     }
 
-    const [row] = await db
-        .select()
-        .from(family)
-        .where(eq(family.id, membership.familyId))
-        .limit(1);
+    const families = await db
+        .select({
+            id: family.id,
+            name: family.name,
+            role: familyMember.role,
+        })
+        .from(familyMember)
+        .innerJoin(family, eq(family.id, familyMember.familyId))
+        .where(
+            and(
+                eq(familyMember.userId, membership.userId),
+                isNull(familyMember.deletedAt)
+            )
+        )
+        .orderBy(asc(familyMember.createdAt), asc(familyMember.id));
+
+    const active = families.find((row) => row.id === membership.familyId);
 
     return Response.json({
-        family: row ? { id: row.id, name: row.name } : null,
+        family: active ? { id: active.id, name: active.name } : null,
         member: {
             id: membership.memberId,
             role: membership.role,
         },
+        families,
     });
 }
 

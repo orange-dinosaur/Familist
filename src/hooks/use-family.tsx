@@ -19,15 +19,25 @@ export interface Membership {
     role: MemberRole;
 }
 
+/** One of the families the signed-in person belongs to. */
+export interface FamilyOption {
+    id: string;
+    name: string;
+    role: MemberRole;
+}
+
 interface FamilyContextValue {
     family: Family | null;
     member: Membership | null;
+    /** Every family the caller belongs to, oldest membership first. */
+    families: FamilyOption[];
     /** True until the first answer arrives, so nothing acts on a missing family too early. */
     loading: boolean;
     createFamily: (name: string) => Promise<string | null>;
     joinFamily: (code: string) => Promise<string | null>;
     /** Owner only; answers with the reason it did not work, or null. */
     renameFamily: (name: string) => Promise<string | null>;
+    switchFamily: (familyId: string) => Promise<string | null>;
 }
 
 const FamilyContext = createContext<FamilyContextValue | null>(null);
@@ -36,6 +46,7 @@ export function FamilyProvider({ children }: { children: React.ReactNode }) {
     const { data: session, isPending } = authClient.useSession();
     const [family, setFamily] = useState<Family | null>(null);
     const [member, setMember] = useState<Membership | null>(null);
+    const [families, setFamilies] = useState<FamilyOption[]>([]);
     const [loading, setLoading] = useState(true);
 
     const userId = session?.user.id ?? null;
@@ -46,6 +57,7 @@ export function FamilyProvider({ children }: { children: React.ReactNode }) {
         if (!userId) {
             setFamily(null);
             setMember(null);
+            setFamilies([]);
             setLoading(false);
             return;
         }
@@ -59,11 +71,13 @@ export function FamilyProvider({ children }: { children: React.ReactNode }) {
                 if (!active) return;
                 setFamily(body?.family ?? null);
                 setMember(body?.member ?? null);
+                setFamilies(body?.families ?? []);
             })
             .catch(() => {
                 if (!active) return;
                 setFamily(null);
                 setMember(null);
+                setFamilies([]);
             })
             .finally(() => {
                 if (active) setLoading(false);
@@ -88,6 +102,11 @@ export function FamilyProvider({ children }: { children: React.ReactNode }) {
 
         setFamily(body.family);
         setMember(body.member);
+        /** Appended, matching the server's order: oldest membership first. */
+        setFamilies((current) => [
+            ...current,
+            { ...body.family, role: body.member.role },
+        ]);
         return null;
     }, []);
 
@@ -105,6 +124,10 @@ export function FamilyProvider({ children }: { children: React.ReactNode }) {
 
         setFamily(body.family);
         setMember(body.member);
+        setFamilies((current) => [
+            ...current,
+            { ...body.family, role: body.member.role },
+        ]);
         return null;
     }, []);
 
@@ -121,6 +144,35 @@ export function FamilyProvider({ children }: { children: React.ReactNode }) {
         }
 
         setFamily(body.family);
+        setFamilies((current) =>
+            current.map((option) =>
+                option.id === body.family.id
+                    ? { ...option, name: body.family.name }
+                    : option
+            )
+        );
+        return null;
+    }, []);
+
+    /**
+     * The server holds which family the caller is acting in, so this only has
+     * to tell it and take the answer. Every store on the client is keyed by
+     * the family id, so the collections rebuild themselves from there.
+     */
+    const switchFamily = useCallback(async (familyId: string) => {
+        const res = await apiFetch('/api/family/switch', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ familyId }),
+        });
+        const body = await res.json().catch(() => null);
+
+        if (!res.ok) {
+            return body?.error ?? 'Could not switch family.';
+        }
+
+        setFamily(body.family);
+        setMember(body.member);
         return null;
     }, []);
 
@@ -129,10 +181,12 @@ export function FamilyProvider({ children }: { children: React.ReactNode }) {
             value={{
                 family,
                 member,
+                families,
                 loading,
                 createFamily,
                 joinFamily,
                 renameFamily,
+                switchFamily,
             }}>
             {children}
         </FamilyContext.Provider>

@@ -10,6 +10,14 @@ import { useFamily } from '@/hooks/use-family';
 import { useTheme } from '@/hooks/use-theme';
 import { clearLocalData } from '@/store/clear-local';
 
+type Mode = 'family' | 'rename' | 'create' | 'join';
+
+const PROMPT: Record<Exclude<Mode, 'family'>, string> = {
+    rename: 'Family name',
+    create: 'New family name',
+    join: 'Invite code',
+};
+
 /**
  * Which family you are in, and who you are signed in as. Sits above every
  * tab's own header.
@@ -21,30 +29,61 @@ import { clearLocalData } from '@/store/clear-local';
 export function FamilyBar() {
     const theme = useTheme();
     const router = useRouter();
-    const { family, member, renameFamily } = useFamily();
+    const {
+        family,
+        member,
+        families,
+        renameFamily,
+        switchFamily,
+        createFamily,
+        joinFamily,
+    } = useFamily();
     const { data: session } = authClient.useSession();
     const [accountOpen, setAccountOpen] = useState(false);
     const [familyOpen, setFamilyOpen] = useState(false);
-    const [renaming, setRenaming] = useState(false);
-    const [name, setName] = useState('');
+    const [mode, setMode] = useState<Mode>('family');
+    const [draft, setDraft] = useState('');
     const [error, setError] = useState<string | null>(null);
 
     const isOwner = member?.role === 'owner';
+    const others = families.filter((option) => option.id !== family?.id);
 
     const openFamily = () => {
-        setName(family?.name ?? '');
-        setRenaming(false);
+        setMode('family');
+        setDraft('');
         setError(null);
         setFamilyOpen(true);
     };
 
-    const saveName = async () => {
-        const message = await renameFamily(name);
+    const start = (next: Mode) => {
+        setDraft(next === 'rename' ? (family?.name ?? '') : '');
+        setError(null);
+        setMode(next);
+    };
+
+    /** Each face of the sheet runs one call and goes back if it worked. */
+    const submit = async () => {
+        const message =
+            mode === 'rename'
+                ? await renameFamily(draft)
+                : mode === 'create'
+                  ? await createFamily(draft)
+                  : await joinFamily(draft);
+
         if (message) {
             setError(message);
             return;
         }
-        setRenaming(false);
+        setMode('family');
+    };
+
+    const switchTo = async (familyId: string) => {
+        const message = await switchFamily(familyId);
+        if (message) {
+            setError(message);
+            return;
+        }
+        setFamilyOpen(false);
     };
 
     const goToMembers = () => {
@@ -126,19 +165,24 @@ export function FamilyBar() {
                             styles.sheet,
                             { backgroundColor: theme.background },
                         ]}>
-                        {renaming ? (
+                        {mode !== 'family' ? (
                             <>
                                 <ThemedText type="subtitle">
-                                    Family name
+                                    {PROMPT[mode]}
                                 </ThemedText>
                                 <TextInput
-                                    value={name}
-                                    onChangeText={setName}
+                                    value={draft}
+                                    onChangeText={setDraft}
                                     autoFocus
+                                    autoCapitalize={
+                                        mode === 'join'
+                                            ? 'characters'
+                                            : 'sentences'
+                                    }
                                     returnKeyType="done"
-                                    onSubmitEditing={saveName}
-                                    accessibilityLabel="Family name"
-                                    placeholder="Family name"
+                                    onSubmitEditing={submit}
+                                    accessibilityLabel={PROMPT[mode]}
+                                    placeholder={PROMPT[mode]}
                                     placeholderTextColor={theme.textSecondary}
                                     style={[
                                         styles.input,
@@ -151,7 +195,7 @@ export function FamilyBar() {
                                 />
                                 <View style={styles.actions}>
                                     <Pressable
-                                        onPress={() => setRenaming(false)}
+                                        onPress={() => start('family')}
                                         accessibilityLabel="Cancel"
                                         accessibilityRole="button"
                                         style={({ pressed }) => [
@@ -167,14 +211,14 @@ export function FamilyBar() {
                                         </ThemedText>
                                     </Pressable>
                                     <Pressable
-                                        onPress={saveName}
-                                        disabled={!name.trim()}
-                                        accessibilityLabel="Save"
+                                        onPress={submit}
+                                        disabled={!draft.trim()}
+                                        accessibilityLabel="Confirm"
                                         accessibilityRole="button"
                                         style={({ pressed }) => [
                                             styles.action,
                                             {
-                                                backgroundColor: name.trim()
+                                                backgroundColor: draft.trim()
                                                     ? theme.text
                                                     : theme.backgroundElement,
                                             },
@@ -183,11 +227,11 @@ export function FamilyBar() {
                                         <ThemedText
                                             type="default"
                                             style={{
-                                                color: name.trim()
+                                                color: draft.trim()
                                                     ? theme.background
                                                     : theme.textSecondary,
                                             }}>
-                                            Save
+                                            {mode === 'join' ? 'Join' : 'Save'}
                                         </ThemedText>
                                     </Pressable>
                                 </View>
@@ -237,7 +281,7 @@ export function FamilyBar() {
 
                                 {isOwner && (
                                     <Pressable
-                                        onPress={() => setRenaming(true)}
+                                        onPress={() => start('rename')}
                                         accessibilityLabel="Rename family"
                                         accessibilityRole="button"
                                         style={({ pressed }) => [
@@ -264,6 +308,86 @@ export function FamilyBar() {
                                         </ThemedText>
                                     </Pressable>
                                 )}
+
+                                {others.length > 0 && (
+                                    <>
+                                        <ThemedText
+                                            type="small"
+                                            themeColor="textSecondary"
+                                            style={styles.heading}>
+                                            Switch to
+                                        </ThemedText>
+                                        {others.map((option) => (
+                                            <Pressable
+                                                key={option.id}
+                                                onPress={() =>
+                                                    switchTo(option.id)
+                                                }
+                                                accessibilityLabel={`Switch to ${option.name}`}
+                                                accessibilityRole="button"
+                                                style={({ pressed }) => [
+                                                    styles.row,
+                                                    {
+                                                        backgroundColor:
+                                                            theme.backgroundElement,
+                                                    },
+                                                    pressed && {
+                                                        backgroundColor:
+                                                            theme.backgroundSelected,
+                                                    },
+                                                ]}>
+                                                <SymbolView
+                                                    name={{
+                                                        ios: 'house.fill',
+                                                        web: 'home',
+                                                    }}
+                                                    tintColor={
+                                                        theme.textSecondary
+                                                    }
+                                                    size={22}
+                                                />
+                                                <ThemedText type="default">
+                                                    {option.name}
+                                                </ThemedText>
+                                            </Pressable>
+                                        ))}
+                                    </>
+                                )}
+
+                                <View style={styles.actions}>
+                                    <Pressable
+                                        onPress={() => start('create')}
+                                        accessibilityLabel="Create a family"
+                                        accessibilityRole="button"
+                                        style={({ pressed }) => [
+                                            styles.action,
+                                            {
+                                                backgroundColor:
+                                                    theme.backgroundElement,
+                                            },
+                                            pressed && { opacity: 0.8 },
+                                        ]}>
+                                        <ThemedText type="small">
+                                            Create a family
+                                        </ThemedText>
+                                    </Pressable>
+                                    <Pressable
+                                        onPress={() => start('join')}
+                                        accessibilityLabel="Join with a code"
+                                        accessibilityRole="button"
+                                        style={({ pressed }) => [
+                                            styles.action,
+                                            {
+                                                backgroundColor:
+                                                    theme.backgroundElement,
+                                            },
+                                            pressed && { opacity: 0.8 },
+                                        ]}>
+                                        <ThemedText type="small">
+                                            Join with a code
+                                        </ThemedText>
+                                    </Pressable>
+                                </View>
                             </>
                         )}
 
@@ -361,6 +485,9 @@ const styles = StyleSheet.create({
         paddingHorizontal: Spacing.three,
         paddingVertical: Spacing.three,
         fontSize: 16,
+    },
+    heading: {
+        marginTop: Spacing.one,
     },
     actions: {
         flexDirection: 'row',
