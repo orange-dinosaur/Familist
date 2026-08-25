@@ -42,6 +42,7 @@ export default function DailyMealScreen() {
     const { meals, loading, addMeal, removeMeal } = useMeals();
     const { canManageContent } = usePermissions();
     const [modalVisible, setModalVisible] = useState(false);
+    const [error, setError] = useState<string | null>(null);
     const [selectedTime, setSelectedTime] = useState<MealTime | null>(null);
     const [dishName, setDishName] = useState('');
     const [isDayPreselected, setIsDayPreselected] = useState(false);
@@ -70,6 +71,7 @@ export default function DailyMealScreen() {
         setSelectedTime(null);
         setDishName('');
         setIsDayPreselected(false);
+        setError(null);
         setModalVisible(true);
     };
 
@@ -78,10 +80,11 @@ export default function DailyMealScreen() {
         setSelectedTime(null);
         setDishName('');
         setIsDayPreselected(true);
+        setError(null);
         setModalVisible(true);
     };
 
-    const addDish = () => {
+    const addDish = async () => {
         if (!selectedTime || !dishName.trim()) return;
 
         const newMeal: Omit<MealItem, 'id'> = {
@@ -91,7 +94,13 @@ export default function DailyMealScreen() {
             day: selectedDay,
         };
 
-        addMeal(newMeal);
+        setError(null);
+        const message = await addMeal(newMeal);
+        if (message) {
+            setError(message);
+            return;
+        }
+
         setDishName('');
 
         if (isDayPreselected) {
@@ -99,13 +108,20 @@ export default function DailyMealScreen() {
         }
     };
 
+    const removeDish = async (id: string) => {
+        setError(null);
+        const message = await removeMeal(id);
+        if (message) setError(message);
+    };
+
     const closeModal = () => {
+        setError(null);
         setModalVisible(false);
     };
 
-    const handleDone = () => {
+    const handleDone = async () => {
         if (dishName.trim() && selectedTime) {
-            addDish();
+            await addDish();
         } else {
             closeModal();
         }
@@ -128,6 +144,13 @@ export default function DailyMealScreen() {
                               ? `${meals.length} dish${meals.length !== 1 ? 'es' : ''} planned in total`
                               : 'No meals planned yet'}
                     </ThemedText>
+                    {error && (
+                        <ThemedText
+                            type="small"
+                            style={{ color: theme.destructive }}>
+                            {error}
+                        </ThemedText>
+                    )}
                 </View>
 
                 <ScrollView
@@ -300,7 +323,7 @@ export default function DailyMealScreen() {
                                                                 {canManageContent && (
                                                                     <Pressable
                                                                         onPress={() =>
-                                                                            removeMeal(
+                                                                            removeDish(
                                                                                 meal.id
                                                                             )
                                                                         }
@@ -658,6 +681,13 @@ export default function DailyMealScreen() {
 
                         {/* Done button */}
                         <View style={styles.modalFooter}>
+                            {error && (
+                                <ThemedText
+                                    type="small"
+                                    style={{ color: theme.destructive }}>
+                                    {error}
+                                </ThemedText>
+                            )}
                             <Pressable
                                 onPress={handleDone}
                                 accessibilityLabel="Done"
@@ -933,6 +963,7 @@ const styles = StyleSheet.create({
     modalFooter: {
         paddingHorizontal: Spacing.four,
         paddingVertical: Spacing.three,
+        gap: Spacing.two,
     },
     doneButton: {
         alignItems: 'center',
