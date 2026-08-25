@@ -5,22 +5,11 @@
 
 import { AndroidSymbol, SFSymbol } from 'expo-symbols';
 
-import { MemberColor } from '@/constants/theme';
-
 // ─── Types ──────────────────────────────────────────────────────────────
 
 export interface PlatformSymbol {
     ios: SFSymbol;
     web: AndroidSymbol;
-}
-
-export interface Member {
-    id: string;
-    name: string;
-    initials: string;
-    color: MemberColor;
-    /** Set once the member is backed by an account. */
-    userId?: string;
 }
 
 export function getRelativeDateString(offset: number): string {

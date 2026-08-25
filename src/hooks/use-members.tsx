@@ -1,47 +1,120 @@
-import React, { createContext, useContext, useCallback } from 'react';
+import React, {
+    createContext,
+    useCallback,
+    useContext,
+    useEffect,
+    useState,
+} from 'react';
 
-import { type Member } from '@/constants/mock-data';
+import { apiFetch } from '@/auth/client';
 import { type MemberColor } from '@/constants/theme';
-import { useStoreCollection } from '@/hooks/use-store-collection';
-import { createLocalStore } from '@/store/local-store';
-import { initialsOf } from '@/utils/member';
-
-const store = createLocalStore<Member>('familist.members');
+import { useFamily } from '@/hooks/use-family';
+import { type Member } from '@/utils/member';
 
 interface MembersContextValue {
     members: Member[];
     loading: boolean;
-    addMember: (name: string, color: MemberColor) => void;
-    editMember: (id: string, name: string, color: MemberColor) => void;
-    removeMember: (id: string) => void;
+    addMember: (name: string, color: MemberColor) => Promise<string | null>;
+    editMember: (
+        id: string,
+        name: string,
+        color: MemberColor
+    ) => Promise<string | null>;
+    removeMember: (id: string) => Promise<string | null>;
 }
 
 const MembersContext = createContext<MembersContextValue | null>(null);
 
+const asJson = {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+};
+
 export function MembersProvider({ children }: { children: React.ReactNode }) {
-    const { items: members, loading } = useStoreCollection(store);
+    const { family, loading: familyLoading } = useFamily();
+    const [members, setMembers] = useState<Member[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    const familyId = family?.id ?? null;
+
+    useEffect(() => {
+        if (familyLoading) return;
+
+        if (!familyId) {
+            setMembers([]);
+            setLoading(false);
+            return;
+        }
+
+        let active = true;
+        setLoading(true);
+
+        apiFetch('/api/members')
+            .then((res) => (res.ok ? res.json() : null))
+            .then((body) => {
+                if (active) setMembers(body?.members ?? []);
+            })
+            .catch(() => {
+                if (active) setMembers([]);
+            })
+            .finally(() => {
+                if (active) setLoading(false);
+            });
+
+        return () => {
+            active = false;
+        };
+    }, [familyId, familyLoading]);
 
     const addMember = useCallback(async (name: string, color: MemberColor) => {
-        await store.create({
-            name: name.trim(),
-            initials: initialsOf(name),
-            color,
+        const res = await apiFetch('/api/members', {
+            ...asJson,
+            body: JSON.stringify({ name, color }),
         });
+        const body = await res.json().catch(() => null);
+
+        if (!res.ok) return body?.error ?? 'Could not add that member.';
+
+        /** Appending matches the server's order: oldest first. */
+        setMembers((current) => [...current, body.member]);
+        return null;
     }, []);
 
     const editMember = useCallback(
         async (id: string, name: string, color: MemberColor) => {
-            await store.update(id, {
-                name: name.trim(),
-                initials: initialsOf(name),
-                color,
+            const res = await apiFetch('/api/members/edit', {
+                ...asJson,
+                body: JSON.stringify({ memberId: id, name, color }),
             });
+            const body = await res.json().catch(() => null);
+
+            if (!res.ok) return body?.error ?? 'Could not save that member.';
+
+            setMembers((current) =>
+                current.map((member) =>
+                    member.id === id ? body.member : member
+                )
+            );
+            return null;
         },
         []
     );
 
+    /**
+     * Placeholders only. Taking an account member out of the family revokes a
+     * real person's access and has its own routes and its own screen.
+     */
     const removeMember = useCallback(async (id: string) => {
-        await store.remove(id);
+        const res = await apiFetch('/api/members/delete-placeholder', {
+            ...asJson,
+            body: JSON.stringify({ memberId: id }),
+        });
+        const body = await res.json().catch(() => null);
+
+        if (!res.ok) return body?.error ?? 'Could not remove that member.';
+
+        setMembers((current) => current.filter((member) => member.id !== id));
+        return null;
     }, []);
 
     return (

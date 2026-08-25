@@ -24,6 +24,7 @@ import {
     type MemberColor,
     Spacing,
 } from '@/constants/theme';
+import { useFamily } from '@/hooks/use-family';
 import { useMembers } from '@/hooks/use-members';
 import { useTheme } from '@/hooks/use-theme';
 import { MEMBER_COLORS } from '@/utils/member';
@@ -36,7 +37,10 @@ function formatDueDate(dateStr: string): string {
 export default function ExploreScreen() {
     const theme = useTheme();
     const { members, addMember, editMember, removeMember } = useMembers();
+    const { member: membership } = useFamily();
     const { data: session } = authClient.useSession();
+
+    const canManage = membership?.role === 'owner';
 
     const [memberModalVisible, setMemberModalVisible] = useState(false);
     const [editingMemberId, setEditingMemberId] = useState<string | null>(null);
@@ -44,8 +48,10 @@ export default function ExploreScreen() {
     const [memberColor, setMemberColor] = useState<MemberColor>(
         MEMBER_COLORS[0]
     );
+    const [memberError, setMemberError] = useState<string | null>(null);
 
     const openAddMember = () => {
+        setMemberError(null);
         setEditingMemberId(null);
         setMemberName('');
         setMemberColor(MEMBER_COLORS[members.length % MEMBER_COLORS.length]);
@@ -55,18 +61,24 @@ export default function ExploreScreen() {
     const openEditMember = (id: string) => {
         const member = members.find((m) => m.id === id);
         if (!member) return;
+        setMemberError(null);
         setEditingMemberId(id);
         setMemberName(member.name);
         setMemberColor(member.color);
         setMemberModalVisible(true);
     };
 
-    const saveMember = () => {
+    const saveMember = async () => {
         if (!memberName.trim()) return;
-        if (editingMemberId) {
-            editMember(editingMemberId, memberName, memberColor);
-        } else {
-            addMember(memberName, memberColor);
+        setMemberError(null);
+
+        const message = editingMemberId
+            ? await editMember(editingMemberId, memberName, memberColor)
+            : await addMember(memberName, memberColor);
+
+        if (message) {
+            setMemberError(message);
+            return;
         }
         setMemberModalVisible(false);
     };
@@ -117,6 +129,7 @@ export default function ExploreScreen() {
                             ]}>
                             <Pressable
                                 onPress={() => openEditMember(member.id)}
+                                disabled={!canManage}
                                 accessibilityLabel={`Edit ${member.name}`}
                                 accessibilityRole="button"
                                 style={({ pressed }) => [
@@ -143,43 +156,49 @@ export default function ExploreScreen() {
                                     {member.name}
                                 </ThemedText>
                             </Pressable>
-                            <Pressable
-                                onPress={() => removeMember(member.id)}
-                                accessibilityLabel={`Remove ${member.name}`}
-                                accessibilityRole="button"
-                                style={styles.memberDelete}>
-                                <SymbolView
-                                    name={{ ios: 'trash', web: 'delete' }}
-                                    tintColor={theme.textSecondary}
-                                    size={18}
-                                />
-                            </Pressable>
+                            {canManage && member.role === null && (
+                                <Pressable
+                                    onPress={() => removeMember(member.id)}
+                                    accessibilityLabel={`Remove ${member.name}`}
+                                    accessibilityRole="button"
+                                    style={styles.memberDelete}>
+                                    <SymbolView
+                                        name={{ ios: 'trash', web: 'delete' }}
+                                        tintColor={theme.textSecondary}
+                                        size={18}
+                                    />
+                                </Pressable>
+                            )}
                         </View>
                     ))}
 
-                    <Pressable
-                        onPress={openAddMember}
-                        accessibilityLabel="Add family member"
-                        accessibilityRole="button"
-                        style={({ pressed }) => [
-                            styles.row,
-                            { backgroundColor: theme.backgroundElement },
-                            pressed && {
-                                backgroundColor: theme.backgroundSelected,
-                            },
-                        ]}>
-                        <SymbolView
-                            name={{
-                                ios: 'plus.circle.fill',
-                                web: 'add_circle',
-                            }}
-                            tintColor={theme.textSecondary}
-                            size={22}
-                        />
-                        <ThemedText themeColor="textSecondary" type="default">
-                            Add family member
-                        </ThemedText>
-                    </Pressable>
+                    {canManage && (
+                        <Pressable
+                            onPress={openAddMember}
+                            accessibilityLabel="Add family member"
+                            accessibilityRole="button"
+                            style={({ pressed }) => [
+                                styles.row,
+                                { backgroundColor: theme.backgroundElement },
+                                pressed && {
+                                    backgroundColor: theme.backgroundSelected,
+                                },
+                            ]}>
+                            <SymbolView
+                                name={{
+                                    ios: 'plus.circle.fill',
+                                    web: 'add_circle',
+                                }}
+                                tintColor={theme.textSecondary}
+                                size={22}
+                            />
+                            <ThemedText
+                                themeColor="textSecondary"
+                                type="default">
+                                Add family member
+                            </ThemedText>
+                        </Pressable>
+                    )}
 
                     {/* ─── Subscriptions ─── */}
                     <View style={styles.sectionHeader}>
@@ -481,6 +500,14 @@ export default function ExploreScreen() {
                             returnKeyType="done"
                             accessibilityLabel="Member name"
                         />
+
+                        {memberError && (
+                            <ThemedText
+                                type="small"
+                                style={{ color: theme.destructive }}>
+                                {memberError}
+                            </ThemedText>
+                        )}
 
                         <View style={styles.swatchRow}>
                             {MEMBER_COLORS.map((color) => (
