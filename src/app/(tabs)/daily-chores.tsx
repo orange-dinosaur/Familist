@@ -218,8 +218,15 @@ export default function DailyChoresScreen() {
     const [selectedDay, setSelectedDay] = useState<string>(todayStr);
 
     const dates = getDateRange();
-    const doneCount = chores.filter((c) => c.done).length;
-    const hasChores = chores.length > 0;
+
+    /**
+     * An inactive chore is one that is not planned for its day. It is still a
+     * row - that is the point of the flag - so every count and every list on
+     * this screen works from the planned ones.
+     */
+    const activeChores = chores.filter((chore) => chore.active);
+    const doneCount = activeChores.filter((c) => c.done).length;
+    const hasChores = activeChores.length > 0;
 
     useFocusEffect(
         React.useCallback(() => {
@@ -238,7 +245,7 @@ export default function DailyChoresScreen() {
     };
 
     const isChoreActive = (label: string) =>
-        chores.some((c) => c.label === label && c.day === selectedDay);
+        activeChores.some((c) => c.label === label && c.day === selectedDay);
 
     const openAddModal = () => {
         setSelectedDay(todayStr);
@@ -273,7 +280,7 @@ export default function DailyChoresScreen() {
                         {loading
                             ? ''
                             : hasChores
-                              ? `${doneCount} of ${chores.length} completed in total`
+                              ? `${doneCount} of ${activeChores.length} completed in total`
                               : 'No chores planned'}
                     </ThemedText>
                     {error && (
@@ -292,7 +299,9 @@ export default function DailyChoresScreen() {
                     showsVerticalScrollIndicator={false}>
                     {/* Weekly Chores List grouped by day */}
                     {dates.map((day) => {
-                        const dayChores = chores.filter((c) => c.day === day);
+                        const dayChores = activeChores.filter(
+                            (c) => c.day === day
+                        );
                         const dayDoneCount = dayChores.filter(
                             (c) => c.done
                         ).length;

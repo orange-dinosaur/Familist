@@ -46,6 +46,7 @@ export const CHORE_COLUMNS = {
     id: chore.id,
     label: chore.label,
     done: chore.done,
+    active: chore.active,
     assigneeId: chore.assigneeId,
     day: chore.day,
 };

@@ -49,6 +49,7 @@ export async function PATCH(
     const changes: {
         label?: string;
         done?: boolean;
+        active?: boolean;
         day?: string;
         assigneeId?: string | null;
     } = {};
@@ -62,6 +63,17 @@ export async function PATCH(
     if ('done' in body) {
         if (typeof body.done !== 'boolean') return badRequest('Invalid done');
         changes.done = body.done;
+    }
+
+    /**
+     * Planning a chore in or out of a day. A checker never reaches this: the
+     * field allowlist above lets nothing but `done` through.
+     */
+    if ('active' in body) {
+        if (typeof body.active !== 'boolean') {
+            return badRequest('Invalid active');
+        }
+        changes.active = body.active;
     }
 
     if ('day' in body) {

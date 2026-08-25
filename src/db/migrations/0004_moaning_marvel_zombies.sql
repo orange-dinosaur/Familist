@@ -1,0 +1,1 @@
+ALTER TABLE "chore" ADD COLUMN "active" boolean DEFAULT true NOT NULL;

@@ -56,7 +56,8 @@ export default function HomeScreen() {
 
     const todayStr = getTodayDayName();
     const todayMeals = meals.filter((m) => m.day === todayStr);
-    const todayChores = chores.filter((c) => c.day === todayStr);
+    /** Inactive chores are rows for days they are not planned for. */
+    const todayChores = chores.filter((c) => c.active && c.day === todayStr);
     const todayTodos = todos.filter((t) => t.day === todayStr);
 
     const hasMeals = todayMeals.length > 0;

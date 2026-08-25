@@ -68,6 +68,8 @@ export interface ChoreItem {
     id: string;
     label: string;
     done: boolean;
+    /** False for a chore that is not planned for its day but keeps its state. */
+    active: boolean;
     /** Null is how the server says nobody, and how it is told so. */
     assigneeId?: string | null;
     day: string;

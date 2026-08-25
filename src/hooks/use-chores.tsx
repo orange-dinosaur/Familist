@@ -54,7 +54,7 @@ export function ChoresProvider({ children }: { children: React.ReactNode }) {
         async (label: string, day: string) => {
             if (!store) return NO_FAMILY;
             try {
-                await store.create({ label, done: false, day });
+                await store.create({ label, done: false, active: true, day });
                 return null;
             } catch (error) {
                 return writeFailure(error, 'Could not add that chore.');
@@ -107,10 +107,10 @@ export function ChoresProvider({ children }: { children: React.ReactNode }) {
     );
 
     /**
-     * A label is active for a day when a row exists for it, so turning it off
-     * deletes the rows rather than clearing a flag. That churns tombstones once
-     * this syncs - `web-migration-plan.md` has it down as an `active` column to
-     * add before step 24.
+     * Planning a label in or out of a day. Turning it off clears the flag
+     * rather than deleting the row, so the chore comes back with its assignee
+     * and its done state intact - and a day that is planned and unplanned
+     * repeatedly leaves one row behind rather than a trail of tombstones.
      */
     const toggleChoreActive = useCallback(
         async (label: string, day: string) => {
@@ -120,13 +120,23 @@ export function ChoresProvider({ children }: { children: React.ReactNode }) {
                 const matching = current.filter(
                     (chore) => chore.label === label && chore.day === day
                 );
-                if (matching.length === 0) {
-                    await store.create({ label, done: false, day });
+                const active = matching.filter((chore) => chore.active);
+
+                if (active.length > 0) {
+                    for (const chore of active) {
+                        await store.update(chore.id, { active: false });
+                    }
                     return null;
                 }
-                for (const chore of matching) {
-                    await store.remove(chore.id);
+
+                /** The most recent of the label's dormant rows, if it has any. */
+                const dormant = matching[matching.length - 1];
+                if (dormant) {
+                    await store.update(dormant.id, { active: true });
+                    return null;
                 }
+
+                await store.create({ label, done: false, active: true, day });
                 return null;
             } catch (error) {
                 return writeFailure(error, 'Could not change that chore.');

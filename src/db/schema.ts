@@ -230,6 +230,8 @@ export const chore = pgTable(
             .references(() => family.id, { onDelete: 'cascade' }),
         label: text('label').notNull(),
         done: boolean('done').notNull().default(false),
+        /** Off for a day the chore is not planned for, keeping its assignee. */
+        active: boolean('active').notNull().default(true),
         assigneeId: text('assignee_id'),
         day: date('day').notNull(),
         createdAt: timestamp('created_at').defaultNow().notNull(),
