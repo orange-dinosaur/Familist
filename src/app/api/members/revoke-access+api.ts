@@ -7,10 +7,11 @@
  * through it afterwards.
  */
 
-import { and, eq, isNotNull, isNull } from 'drizzle-orm';
+import { and, eq, isNotNull, isNull, sql } from 'drizzle-orm';
 
 import { resolveTargetMember } from '@/auth/session';
 import { db } from '@/db';
+import { isLastOwner } from '@/db/members';
 import { familyMember } from '@/db/schema';
 
 export async function POST(request: Request): Promise<Response> {
@@ -27,10 +28,9 @@ export async function POST(request: Request): Promise<Response> {
     }
 
     /**
-     * Leaving a family is the member's own decision, not something an owner
-     * does to themselves by accident, and it has to answer the last-owner
-     * question in `roles.md` - step 20. Until then, refusing it here also
-     * means an owner always survives every revocation.
+     * Leaving a family is the member's own decision, with its own screen and
+     * its own confirmation, rather than something an owner does to themselves
+     * through the member list.
      */
     if (target.id === membership.memberId) {
         return Response.json(
@@ -39,25 +39,43 @@ export async function POST(request: Request): Promise<Response> {
         );
     }
 
-    const revoked = await db
-        .update(familyMember)
-        .set({ userId: null, role: null })
-        .where(
-            and(
-                eq(familyMember.id, target.id),
-                eq(familyMember.familyId, membership.familyId),
-                isNotNull(familyMember.userId),
-                isNull(familyMember.deletedAt)
-            )
-        )
-        .returning({ id: familyMember.id });
+    const result = await db.transaction(async (tx) => {
+        /** The same family-wide lock as `set-role`, for the same invariant. */
+        await tx.execute(
+            sql`select pg_advisory_xact_lock(hashtext(${membership.familyId}))`
+        );
 
-    if (revoked.length === 0) {
+        if (await isLastOwner(tx, membership.familyId, target.id)) {
+            return null;
+        }
+
+        return tx
+            .update(familyMember)
+            .set({ userId: null, role: null })
+            .where(
+                and(
+                    eq(familyMember.id, target.id),
+                    eq(familyMember.familyId, membership.familyId),
+                    isNotNull(familyMember.userId),
+                    isNull(familyMember.deletedAt)
+                )
+            )
+            .returning({ id: familyMember.id });
+    });
+
+    if (!result) {
+        return Response.json(
+            { error: 'A family must always have an owner' },
+            { status: 409 }
+        );
+    }
+
+    if (result.length === 0) {
         return Response.json(
             { error: 'That member can no longer be revoked' },
             { status: 409 }
         );
     }
 
-    return Response.json({ member: { id: revoked[0].id } });
+    return Response.json({ member: { id: result[0].id } });
 }

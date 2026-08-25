@@ -12,9 +12,8 @@ import { getMembership, unauthorized } from '@/auth/session';
 import { db } from '@/db';
 import { familyMember, invitation } from '@/db/schema';
 import { createId, createInviteCode } from '@/utils/id';
-import { type MemberRole } from '@/utils/member';
+import { MEMBER_ROLES, type MemberRole } from '@/utils/member';
 
-const ROLES: MemberRole[] = ['owner', 'editor', 'checker'];
 const EXPIRY_DAYS = 7;
 
 export async function POST(request: Request): Promise<Response> {
@@ -37,7 +36,10 @@ export async function POST(request: Request): Promise<Response> {
 
     const { role, familyMemberId, email } = body;
 
-    if (typeof role !== 'string' || !ROLES.includes(role as MemberRole)) {
+    if (
+        typeof role !== 'string' ||
+        !MEMBER_ROLES.includes(role as MemberRole)
+    ) {
         return Response.json({ error: 'Unknown role' }, { status: 400 });
     }
     if (

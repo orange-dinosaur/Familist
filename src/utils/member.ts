@@ -15,6 +15,8 @@ export const MEMBER_COLORS: MemberColor[] = [
 
 export type MemberRole = 'owner' | 'editor' | 'checker';
 
+export const MEMBER_ROLES: MemberRole[] = ['owner', 'editor', 'checker'];
+
 export function initialsOf(name: string): string {
     return name.trim().charAt(0).toUpperCase();
 }

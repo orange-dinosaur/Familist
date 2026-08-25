@@ -76,11 +76,17 @@ export async function getMembership(
  *
  * Only the preamble is shared. What each route then does to the row - and what
  * it costs the person on the other end - is deliberately not.
+ *
+ * The parsed body comes back with it: a request body can only be read once, so
+ * a route needing more than `memberId` has to be handed what was already read.
  */
-export async function resolveTargetMember(
-    request: Request
-): Promise<
-    { error: Response } | { membership: Membership; target: FamilyMember }
+export async function resolveTargetMember(request: Request): Promise<
+    | { error: Response }
+    | {
+          membership: Membership;
+          target: FamilyMember;
+          body: Record<string, unknown>;
+      }
 > {
     const membership = await getMembership(request);
     if (!membership) return { error: unauthorized() };
@@ -94,14 +100,16 @@ export async function resolveTargetMember(
         };
     }
 
-    let memberId: unknown;
+    let body: Record<string, unknown>;
     try {
-        ({ memberId } = await request.json());
+        body = await request.json();
     } catch {
         return {
             error: Response.json({ error: 'Invalid body' }, { status: 400 }),
         };
     }
+
+    const { memberId } = body;
 
     if (typeof memberId !== 'string' || !memberId.trim()) {
         return {
@@ -133,7 +141,7 @@ export async function resolveTargetMember(
         };
     }
 
-    return { membership, target };
+    return { membership, target, body };
 }
 
 export function unauthorized(): Response {
