@@ -8,17 +8,27 @@
  * screen never has two places to look.
  */
 
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 import type { Entity, FamilyStore } from '@/store/family-store';
 import { writeFailure } from '@/store/remote-client';
+import { type SyncedStore } from '@/store/synced-store';
 
 const NO_FAMILY = 'You are not in a family yet.';
 
-export function useStoreWrites<T extends Entity>(store: FamilyStore<T> | null) {
+export function useStoreWrites<T extends Entity>(store: SyncedStore<T> | null) {
     const [error, setError] = useState<string | null>(null);
 
     const clearError = useCallback(() => setError(null), []);
+
+    /**
+     * A queued write the server later refused. It has already been undone by
+     * the time this arrives; all that is left is to say so.
+     */
+    useEffect(() => {
+        if (!store) return;
+        return store.onRefusal(setError);
+    }, [store]);
 
     /** Answers whether the write went through, for callers that branch on it. */
     const write = useCallback(
