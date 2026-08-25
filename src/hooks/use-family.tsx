@@ -38,6 +38,9 @@ interface FamilyContextValue {
     /** Owner only; answers with the reason it did not work, or null. */
     renameFamily: (name: string) => Promise<string | null>;
     switchFamily: (familyId: string) => Promise<string | null>;
+    leaveFamily: () => Promise<string | null>;
+    /** Only for a family the caller owns and nobody else has an account in. */
+    deleteFamily: () => Promise<string | null>;
 }
 
 const FamilyContext = createContext<FamilyContextValue | null>(null);
@@ -176,6 +179,49 @@ export function FamilyProvider({ children }: { children: React.ReactNode }) {
         return null;
     }, []);
 
+    /**
+     * Both answer with where the caller has landed - their next family, or
+     * nothing at all, which is the same signal the first load gives and which
+     * the guard already reads as "onboard this person".
+     */
+    const departure = useCallback(
+        async (path: string, method: string, fallback: string) => {
+            const leaving = family?.id;
+            const res = await apiFetch(path, { method });
+            const body = await res.json().catch(() => null);
+
+            if (!res.ok) return body?.error ?? fallback;
+
+            setFamily(body.family ?? null);
+            setMember(body.member ?? null);
+            setFamilies((current) =>
+                current.filter((option) => option.id !== leaving)
+            );
+            return null;
+        },
+        [family?.id]
+    );
+
+    const leaveFamily = useCallback(
+        () =>
+            departure(
+                '/api/family/leave',
+                'POST',
+                'Could not leave the family.'
+            ),
+        [departure]
+    );
+
+    const deleteFamily = useCallback(
+        () =>
+            departure(
+                '/api/family/leave',
+                'DELETE',
+                'Could not delete the family.'
+            ),
+        [departure]
+    );
+
     return (
         <FamilyContext.Provider
             value={{
@@ -187,6 +233,8 @@ export function FamilyProvider({ children }: { children: React.ReactNode }) {
                 joinFamily,
                 renameFamily,
                 switchFamily,
+                leaveFamily,
+                deleteFamily,
             }}>
             {children}
         </FamilyContext.Provider>

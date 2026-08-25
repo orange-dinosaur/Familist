@@ -7,15 +7,32 @@ import { ThemedText } from '@/components/themed-text';
 import { authClient } from '@/auth/client';
 import { MaxContentWidth, Spacing } from '@/constants/theme';
 import { useFamily } from '@/hooks/use-family';
+import { useMembers } from '@/hooks/use-members';
 import { useTheme } from '@/hooks/use-theme';
 import { clearLocalData } from '@/store/clear-local';
 
-type Mode = 'family' | 'rename' | 'create' | 'join';
+type Mode = 'family' | 'rename' | 'create' | 'join' | 'leave' | 'delete';
 
-const PROMPT: Record<Exclude<Mode, 'family'>, string> = {
+type Prompt = 'rename' | 'create' | 'join';
+type Confirm = 'leave' | 'delete';
+
+const PROMPT: Record<Prompt, string> = {
     rename: 'Family name',
     create: 'New family name',
     join: 'Invite code',
+};
+
+const CONFIRM: Record<Confirm, { title: string; body: string; act: string }> = {
+    leave: {
+        title: 'Leave this family?',
+        body: 'You stop seeing its meals, chores and to-dos. Everything in it stays where it is for everyone else.',
+        act: 'Leave',
+    },
+    delete: {
+        title: 'Delete this family?',
+        body: 'Its members, meals, chores and to-dos are deleted for good. There is no way to undo this.',
+        act: 'Delete',
+    },
 };
 
 /**
@@ -37,7 +54,10 @@ export function FamilyBar() {
         switchFamily,
         createFamily,
         joinFamily,
+        leaveFamily,
+        deleteFamily,
     } = useFamily();
+    const { members } = useMembers();
     const { data: session } = authClient.useSession();
     const [accountOpen, setAccountOpen] = useState(false);
     const [familyOpen, setFamilyOpen] = useState(false);
@@ -47,6 +67,15 @@ export function FamilyBar() {
 
     const isOwner = member?.role === 'owner';
     const others = families.filter((option) => option.id !== family?.id);
+
+    /**
+     * Placeholders cannot hold a role, so they are neither somebody to hand
+     * the family to nor somebody who would lose access. An owner who is the
+     * only account in the family therefore has nothing to leave *to*, and is
+     * offered the delete instead.
+     */
+    const accounts = members.filter((one) => one.role !== null);
+    const canDelete = isOwner && accounts.length <= 1;
 
     const openFamily = () => {
         setMode('family');
@@ -59,6 +88,21 @@ export function FamilyBar() {
         setDraft(next === 'rename' ? (family?.name ?? '') : '');
         setError(null);
         setMode(next);
+    };
+
+    /**
+     * Both close the sheet on success. The guard takes over from there when
+     * there is no family left to show.
+     */
+    const confirm = async () => {
+        const message =
+            mode === 'delete' ? await deleteFamily() : await leaveFamily();
+
+        if (message) {
+            setError(message);
+            return;
+        }
+        setFamilyOpen(false);
     };
 
     /** Each face of the sheet runs one call and goes back if it worked. */
@@ -165,7 +209,56 @@ export function FamilyBar() {
                             styles.sheet,
                             { backgroundColor: theme.background },
                         ]}>
-                        {mode !== 'family' ? (
+                        {mode === 'leave' || mode === 'delete' ? (
+                            <>
+                                <View style={styles.identity}>
+                                    <ThemedText type="subtitle">
+                                        {CONFIRM[mode].title}
+                                    </ThemedText>
+                                    <ThemedText
+                                        type="small"
+                                        themeColor="textSecondary">
+                                        {CONFIRM[mode].body}
+                                    </ThemedText>
+                                </View>
+                                <View style={styles.actions}>
+                                    <Pressable
+                                        onPress={() => start('family')}
+                                        accessibilityLabel="Cancel"
+                                        accessibilityRole="button"
+                                        style={({ pressed }) => [
+                                            styles.action,
+                                            {
+                                                backgroundColor:
+                                                    theme.backgroundElement,
+                                            },
+                                            pressed && { opacity: 0.8 },
+                                        ]}>
+                                        <ThemedText type="default">
+                                            Cancel
+                                        </ThemedText>
+                                    </Pressable>
+                                    <Pressable
+                                        onPress={confirm}
+                                        accessibilityLabel={CONFIRM[mode].act}
+                                        accessibilityRole="button"
+                                        style={({ pressed }) => [
+                                            styles.action,
+                                            {
+                                                backgroundColor:
+                                                    theme.destructive,
+                                            },
+                                            pressed && { opacity: 0.8 },
+                                        ]}>
+                                        <ThemedText
+                                            type="default"
+                                            style={styles.destructiveLabel}>
+                                            {CONFIRM[mode].act}
+                                        </ThemedText>
+                                    </Pressable>
+                                </View>
+                            </>
+                        ) : mode !== 'family' ? (
                             <>
                                 <ThemedText type="subtitle">
                                     {PROMPT[mode]}
@@ -354,6 +447,51 @@ export function FamilyBar() {
                                     </>
                                 )}
 
+                                <Pressable
+                                    onPress={() =>
+                                        start(canDelete ? 'delete' : 'leave')
+                                    }
+                                    accessibilityLabel={
+                                        canDelete
+                                            ? 'Delete this family'
+                                            : 'Leave this family'
+                                    }
+                                    accessibilityRole="button"
+                                    style={({ pressed }) => [
+                                        styles.row,
+                                        {
+                                            backgroundColor:
+                                                theme.backgroundElement,
+                                        },
+                                        pressed && {
+                                            backgroundColor:
+                                                theme.backgroundSelected,
+                                        },
+                                    ]}>
+                                    <SymbolView
+                                        name={
+                                            canDelete
+                                                ? {
+                                                      ios: 'trash',
+                                                      web: 'delete',
+                                                  }
+                                                : {
+                                                      ios: 'rectangle.portrait.and.arrow.right',
+                                                      web: 'logout',
+                                                  }
+                                        }
+                                        tintColor={theme.destructive}
+                                        size={22}
+                                    />
+                                    <ThemedText
+                                        type="default"
+                                        style={{ color: theme.destructive }}>
+                                        {canDelete
+                                            ? 'Delete this family'
+                                            : 'Leave this family'}
+                                    </ThemedText>
+                                </Pressable>
+
                                 <View style={styles.actions}>
                                     <Pressable
                                         onPress={() => start('create')}
@@ -488,6 +626,9 @@ const styles = StyleSheet.create({
     },
     heading: {
         marginTop: Spacing.one,
+    },
+    destructiveLabel: {
+        color: '#ffffff',
     },
     actions: {
         flexDirection: 'row',
