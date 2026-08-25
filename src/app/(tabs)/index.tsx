@@ -596,7 +596,11 @@ export default function HomeScreen() {
                                                     <Pressable
                                                         key={item.id}
                                                         onPress={() =>
-                                                            toggleTodo(item.id)
+                                                            report(
+                                                                toggleTodo(
+                                                                    item.id
+                                                                )
+                                                            )
                                                         }
                                                         disabled={
                                                             !canToggle(
@@ -699,7 +703,9 @@ export default function HomeScreen() {
                                                 <Pressable
                                                     key={item.id}
                                                     onPress={() =>
-                                                        toggleTodo(item.id)
+                                                        report(
+                                                            toggleTodo(item.id)
+                                                        )
                                                     }
                                                     disabled={
                                                         !canToggle(

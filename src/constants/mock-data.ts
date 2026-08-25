@@ -78,7 +78,8 @@ export interface TodoItem {
     label: string;
     done: boolean;
     priority: 'low' | 'medium' | 'high';
-    assigneeId?: string;
+    /** Null is how the server says nobody, and how it is told so. */
+    assigneeId?: string | null;
     day: string;
 }
 

@@ -255,6 +255,7 @@ export default function TodoScreen() {
     const { members } = useMembers();
     const { canManageContent, canToggle } = usePermissions();
     const [modalVisible, setModalVisible] = useState(false);
+    const [error, setError] = useState<string | null>(null);
     const [assigningTodoId, setAssigningTodoId] = useState<string | null>(null);
     const [daysShowingCompleted, setDaysShowingCompleted] = useState<
         Set<string>
@@ -300,6 +301,11 @@ export default function TodoScreen() {
         }, [])
     );
 
+    /** Every write answers with a reason or null, and the screen shows it. */
+    const report = async (write: Promise<string | null>) => {
+        setError(await write);
+    };
+
     const openAddModal = () => {
         setEditingTodo(null);
         setTodoText('');
@@ -307,6 +313,7 @@ export default function TodoScreen() {
         setTodoDay(todayStr);
         setTodoAssigneeId(undefined);
         setIsDayPreselected(false);
+        setError(null);
         setModalVisible(true);
     };
 
@@ -317,6 +324,7 @@ export default function TodoScreen() {
         setTodoDay(day);
         setTodoAssigneeId(undefined);
         setIsDayPreselected(true);
+        setError(null);
         setModalVisible(true);
     };
 
@@ -325,29 +333,40 @@ export default function TodoScreen() {
         setTodoText(todo.label);
         setTodoPriority(todo.priority);
         setTodoDay(todo.day);
-        setTodoAssigneeId(todo.assigneeId);
+        setTodoAssigneeId(todo.assigneeId ?? undefined);
         setIsDayPreselected(true);
+        setError(null);
         setModalVisible(true);
     };
 
-    const saveTodo = () => {
+    const saveTodo = async () => {
         if (!todoText.trim()) return;
 
-        if (editingTodo) {
-            editTodo(
-                editingTodo.id,
-                todoText.trim(),
-                todoPriority,
-                todoDay,
-                todoAssigneeId
-            );
-        } else {
-            addTodo(todoText.trim(), todoPriority, todoDay, todoAssigneeId);
+        const message = editingTodo
+            ? await editTodo(
+                  editingTodo.id,
+                  todoText.trim(),
+                  todoPriority,
+                  todoDay,
+                  todoAssigneeId
+              )
+            : await addTodo(
+                  todoText.trim(),
+                  todoPriority,
+                  todoDay,
+                  todoAssigneeId
+              );
+
+        if (message) {
+            setError(message);
+            return;
         }
+
         setModalVisible(false);
     };
 
     const closeModal = () => {
+        setError(null);
         setModalVisible(false);
     };
 
@@ -365,6 +384,13 @@ export default function TodoScreen() {
                         {completedTodos.length} of {todos.length} completed in
                         total
                     </ThemedText>
+                    {error && (
+                        <ThemedText
+                            type="small"
+                            style={{ color: theme.destructive }}>
+                            {error}
+                        </ThemedText>
+                    )}
                 </View>
 
                 <ScrollView
@@ -519,13 +545,13 @@ export default function TodoScreen() {
                                                     todo.assigneeId
                                                 )}
                                                 onToggle={() =>
-                                                    toggleTodo(todo.id)
+                                                    report(toggleTodo(todo.id))
                                                 }
                                                 onEdit={() =>
                                                     openEditModal(todo)
                                                 }
                                                 onDelete={() =>
-                                                    deleteTodo(todo.id)
+                                                    report(deleteTodo(todo.id))
                                                 }
                                                 onAssign={() =>
                                                     setAssigningTodoId(todo.id)
@@ -873,6 +899,13 @@ export default function TodoScreen() {
 
                         {/* Save Button */}
                         <View style={styles.modalFooter}>
+                            {error && (
+                                <ThemedText
+                                    type="small"
+                                    style={{ color: theme.destructive }}>
+                                    {error}
+                                </ThemedText>
+                            )}
                             <Pressable
                                 onPress={saveTodo}
                                 disabled={!todoText.trim()}
@@ -938,9 +971,11 @@ export default function TodoScreen() {
                                     key={member.id}
                                     onPress={() => {
                                         if (assigningTodoId) {
-                                            assignTodo(
-                                                assigningTodoId,
-                                                member.id
+                                            report(
+                                                assignTodo(
+                                                    assigningTodoId,
+                                                    member.id
+                                                )
                                             );
                                         }
                                         setAssigningTodoId(null);
@@ -977,7 +1012,12 @@ export default function TodoScreen() {
                             <Pressable
                                 onPress={() => {
                                     if (assigningTodoId) {
-                                        assignTodo(assigningTodoId, undefined);
+                                        report(
+                                            assignTodo(
+                                                assigningTodoId,
+                                                undefined
+                                            )
+                                        );
                                     }
                                     setAssigningTodoId(null);
                                 }}
@@ -1345,6 +1385,7 @@ const styles = StyleSheet.create({
     modalFooter: {
         paddingHorizontal: Spacing.four,
         paddingVertical: Spacing.three,
+        gap: Spacing.two,
     },
     saveButton: {
         alignItems: 'center',
