@@ -23,6 +23,7 @@ import {
 } from '@/constants/mock-data';
 import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
 import { useMeals } from '@/hooks/use-meals';
+import { usePermissions } from '@/hooks/use-permissions';
 import { useTheme } from '@/hooks/use-theme';
 
 const timeLabel: Record<MealItem['time'], string> = {
@@ -39,6 +40,7 @@ type MealTime = MealItem['time'];
 export default function DailyMealScreen() {
     const theme = useTheme();
     const { meals, loading, addMeal, removeMeal } = useMeals();
+    const { canManageContent } = usePermissions();
     const [modalVisible, setModalVisible] = useState(false);
     const [selectedTime, setSelectedTime] = useState<MealTime | null>(null);
     const [dishName, setDishName] = useState('');
@@ -145,8 +147,9 @@ export default function DailyMealScreen() {
                             <ThemedText
                                 themeColor="textSecondary"
                                 style={styles.emptyText}>
-                                Tap the button below to start planning your
-                                meals for the week
+                                {canManageContent
+                                    ? 'Tap the button below to start planning your meals for the week'
+                                    : 'No meals have been planned for this week'}
                             </ThemedText>
                         </View>
                     )}
@@ -226,23 +229,25 @@ export default function DailyMealScreen() {
                                             </View>
                                         )}
                                     </View>
-                                    <Pressable
-                                        onPress={() => openModalForDay(day)}
-                                        accessibilityLabel={`Add meal for ${formatLocalDateString(day)}`}
-                                        accessibilityRole="button"
-                                        style={({ pressed }) => [
-                                            styles.dayAddButton,
-                                            pressed && { opacity: 0.7 },
-                                        ]}>
-                                        <SymbolView
-                                            name={{
-                                                ios: 'plus.circle.fill',
-                                                web: 'add_circle',
-                                            }}
-                                            tintColor={theme.text}
-                                            size={22}
-                                        />
-                                    </Pressable>
+                                    {canManageContent && (
+                                        <Pressable
+                                            onPress={() => openModalForDay(day)}
+                                            accessibilityLabel={`Add meal for ${formatLocalDateString(day)}`}
+                                            accessibilityRole="button"
+                                            style={({ pressed }) => [
+                                                styles.dayAddButton,
+                                                pressed && { opacity: 0.7 },
+                                            ]}>
+                                            <SymbolView
+                                                name={{
+                                                    ios: 'plus.circle.fill',
+                                                    web: 'add_circle',
+                                                }}
+                                                tintColor={theme.text}
+                                                size={22}
+                                            />
+                                        </Pressable>
+                                    )}
                                 </View>
 
                                 {/* Day Meals list */}
@@ -292,28 +297,32 @@ export default function DailyMealScreen() {
                                                                     }>
                                                                     {meal.name}
                                                                 </ThemedText>
-                                                                <Pressable
-                                                                    onPress={() =>
-                                                                        removeMeal(
-                                                                            meal.id
-                                                                        )
-                                                                    }
-                                                                    hitSlop={8}
-                                                                    accessibilityLabel={`Remove ${meal.name}`}
-                                                                    accessibilityRole="button">
-                                                                    <SymbolView
-                                                                        name={{
-                                                                            ios: 'xmark.circle.fill',
-                                                                            web: 'cancel',
-                                                                        }}
-                                                                        tintColor={
-                                                                            theme.textSecondary
+                                                                {canManageContent && (
+                                                                    <Pressable
+                                                                        onPress={() =>
+                                                                            removeMeal(
+                                                                                meal.id
+                                                                            )
                                                                         }
-                                                                        size={
-                                                                            20
+                                                                        hitSlop={
+                                                                            8
                                                                         }
-                                                                    />
-                                                                </Pressable>
+                                                                        accessibilityLabel={`Remove ${meal.name}`}
+                                                                        accessibilityRole="button">
+                                                                        <SymbolView
+                                                                            name={{
+                                                                                ios: 'xmark.circle.fill',
+                                                                                web: 'cancel',
+                                                                            }}
+                                                                            tintColor={
+                                                                                theme.textSecondary
+                                                                            }
+                                                                            size={
+                                                                                20
+                                                                            }
+                                                                        />
+                                                                    </Pressable>
+                                                                )}
                                                             </View>
                                                         );
                                                     })}
@@ -349,33 +358,35 @@ export default function DailyMealScreen() {
                 </ScrollView>
 
                 {/* Add meal button */}
-                <View style={styles.addButtonContainer}>
-                    <Pressable
-                        onPress={openModal}
-                        accessibilityLabel="Add a meal"
-                        accessibilityRole="button"
-                        style={({ pressed }) => [
-                            styles.addButton,
-                            { backgroundColor: theme.text },
-                            pressed && { opacity: 0.8 },
-                        ]}>
-                        <SymbolView
-                            name={{
-                                ios: 'plus',
-                                web: 'add',
-                            }}
-                            tintColor={theme.background}
-                            size={20}
-                        />
-                        <ThemedText
-                            style={[
-                                styles.addButtonText,
-                                { color: theme.background },
+                {canManageContent && (
+                    <View style={styles.addButtonContainer}>
+                        <Pressable
+                            onPress={openModal}
+                            accessibilityLabel="Add a meal"
+                            accessibilityRole="button"
+                            style={({ pressed }) => [
+                                styles.addButton,
+                                { backgroundColor: theme.text },
+                                pressed && { opacity: 0.8 },
                             ]}>
-                            Add Meal
-                        </ThemedText>
-                    </Pressable>
-                </View>
+                            <SymbolView
+                                name={{
+                                    ios: 'plus',
+                                    web: 'add',
+                                }}
+                                tintColor={theme.background}
+                                size={20}
+                            />
+                            <ThemedText
+                                style={[
+                                    styles.addButtonText,
+                                    { color: theme.background },
+                                ]}>
+                                Add Meal
+                            </ThemedText>
+                        </Pressable>
+                    </View>
+                )}
             </SafeAreaView>
 
             {/* Add meal modal */}
