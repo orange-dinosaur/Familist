@@ -1,3 +1,4 @@
+import { Link } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import React, { useState } from 'react';
 import {
@@ -118,6 +119,18 @@ export default function ExploreScreen() {
                         <ThemedText type="default" style={styles.sectionTitle}>
                             Family
                         </ThemedText>
+                        {canManage && (
+                            <Link href="/members" asChild>
+                                <Pressable
+                                    accessibilityLabel="Manage family members"
+                                    accessibilityRole="button"
+                                    style={styles.sectionAction}>
+                                    <ThemedText type="linkPrimary">
+                                        Manage
+                                    </ThemedText>
+                                </Pressable>
+                            </Link>
+                        )}
                     </View>
 
                     {members.map((member) => (
@@ -595,6 +608,9 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         gap: Spacing.two,
         marginTop: Spacing.one,
+    },
+    sectionAction: {
+        marginLeft: 'auto',
     },
     sectionTitle: {
         fontSize: 16,

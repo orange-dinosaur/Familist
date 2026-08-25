@@ -60,7 +60,13 @@ export async function POST(request: Request): Promise<Response> {
                     isNull(familyMember.deletedAt)
                 )
             )
-            .returning({ id: familyMember.id });
+            .returning({
+                id: familyMember.id,
+                name: familyMember.name,
+                initials: familyMember.initials,
+                color: familyMember.color,
+                role: familyMember.role,
+            });
     });
 
     if (!result) {
@@ -77,5 +83,5 @@ export async function POST(request: Request): Promise<Response> {
         );
     }
 
-    return Response.json({ member: { id: result[0].id } });
+    return Response.json({ member: result[0] });
 }

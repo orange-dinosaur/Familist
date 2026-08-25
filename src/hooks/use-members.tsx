@@ -9,7 +9,7 @@ import React, {
 import { apiFetch } from '@/auth/client';
 import { type MemberColor } from '@/constants/theme';
 import { useFamily } from '@/hooks/use-family';
-import { type Member } from '@/utils/member';
+import { type Member, type MemberRole } from '@/utils/member';
 
 interface MembersContextValue {
     members: Member[];
@@ -21,6 +21,9 @@ interface MembersContextValue {
         color: MemberColor
     ) => Promise<string | null>;
     removeMember: (id: string) => Promise<string | null>;
+    setRole: (id: string, role: MemberRole) => Promise<string | null>;
+    revokeAccess: (id: string) => Promise<string | null>;
+    removeFromFamily: (id: string) => Promise<string | null>;
 }
 
 const MembersContext = createContext<MembersContextValue | null>(null);
@@ -117,9 +120,62 @@ export function MembersProvider({ children }: { children: React.ReactNode }) {
         return null;
     }, []);
 
+    const setRole = useCallback(async (id: string, role: MemberRole) => {
+        const res = await apiFetch('/api/members/set-role', {
+            ...asJson,
+            body: JSON.stringify({ memberId: id, role }),
+        });
+        const body = await res.json().catch(() => null);
+
+        if (!res.ok) return body?.error ?? 'Could not change that role.';
+
+        setMembers((current) =>
+            current.map((member) => (member.id === id ? body.member : member))
+        );
+        return null;
+    }, []);
+
+    /** The member stays in the family, back to being a placeholder. */
+    const revokeAccess = useCallback(async (id: string) => {
+        const res = await apiFetch('/api/members/revoke-access', {
+            ...asJson,
+            body: JSON.stringify({ memberId: id }),
+        });
+        const body = await res.json().catch(() => null);
+
+        if (!res.ok) return body?.error ?? 'Could not revoke that access.';
+
+        setMembers((current) =>
+            current.map((member) => (member.id === id ? body.member : member))
+        );
+        return null;
+    }, []);
+
+    const removeFromFamily = useCallback(async (id: string) => {
+        const res = await apiFetch('/api/members/remove-member', {
+            ...asJson,
+            body: JSON.stringify({ memberId: id }),
+        });
+        const body = await res.json().catch(() => null);
+
+        if (!res.ok) return body?.error ?? 'Could not remove that member.';
+
+        setMembers((current) => current.filter((member) => member.id !== id));
+        return null;
+    }, []);
+
     return (
         <MembersContext.Provider
-            value={{ members, loading, addMember, editMember, removeMember }}>
+            value={{
+                members,
+                loading,
+                addMember,
+                editMember,
+                removeMember,
+                setRole,
+                revokeAccess,
+                removeFromFamily,
+            }}>
             {children}
         </MembersContext.Provider>
     );
