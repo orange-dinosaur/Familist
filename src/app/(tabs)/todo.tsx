@@ -14,6 +14,7 @@ import {
 import Swipeable from 'react-native-gesture-handler/Swipeable';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { FamilyBar } from '@/components/family-bar';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import {
@@ -364,6 +365,8 @@ export default function TodoScreen() {
     return (
         <ThemedView style={styles.container}>
             <SafeAreaView style={styles.safeArea}>
+                <FamilyBar />
+
                 {/* Header */}
                 <View style={styles.header}>
                     <ThemedText type="title" style={styles.pageTitle}>

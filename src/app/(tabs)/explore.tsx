@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { authClient } from '@/auth/client';
+import { FamilyBar } from '@/components/family-bar';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import {
@@ -28,7 +28,6 @@ import {
 import { useFamily } from '@/hooks/use-family';
 import { useMembers } from '@/hooks/use-members';
 import { useTheme } from '@/hooks/use-theme';
-import { clearLocalData } from '@/store/clear-local';
 import { MEMBER_COLORS } from '@/utils/member';
 
 function formatDueDate(dateStr: string): string {
@@ -40,19 +39,8 @@ export default function ExploreScreen() {
     const theme = useTheme();
     const { members, addMember, editMember, removeMember } = useMembers();
     const { member: membership } = useFamily();
-    const { data: session } = authClient.useSession();
 
     const canManage = membership?.role === 'owner';
-
-    /**
-     * The device keeps the family's records so they can be read offline, so
-     * signing out has to take them with it. The session goes first: what is
-     * left of it afterwards cannot write anything back.
-     */
-    const signOut = async () => {
-        await authClient.signOut();
-        await clearLocalData();
-    };
 
     const [memberModalVisible, setMemberModalVisible] = useState(false);
     const [editingMemberId, setEditingMemberId] = useState<string | null>(null);
@@ -106,6 +94,8 @@ export default function ExploreScreen() {
     return (
         <ThemedView style={styles.container}>
             <SafeAreaView style={styles.safeArea}>
+                <FamilyBar />
+
                 {/* Header */}
                 <View style={styles.header}>
                     <ThemedText type="title" style={styles.pageTitle}>
@@ -434,56 +424,6 @@ export default function ExploreScreen() {
                             />
                         </Pressable>
                     ))}
-
-                    {/* ─── Account ─── */}
-                    <View
-                        style={[
-                            styles.sectionHeader,
-                            { marginTop: Spacing.three },
-                        ]}>
-                        <SymbolView
-                            name={{
-                                ios: 'person.crop.circle',
-                                web: 'account_circle',
-                            }}
-                            tintColor={theme.text}
-                            size={18}
-                        />
-                        <ThemedText type="default" style={styles.sectionTitle}>
-                            Account
-                        </ThemedText>
-                    </View>
-
-                    <Pressable
-                        onPress={signOut}
-                        accessibilityLabel="Sign out"
-                        accessibilityRole="button"
-                        style={({ pressed }) => [
-                            styles.row,
-                            { backgroundColor: theme.backgroundElement },
-                            pressed && {
-                                backgroundColor: theme.backgroundSelected,
-                            },
-                        ]}>
-                        <SymbolView
-                            name={{
-                                ios: 'rectangle.portrait.and.arrow.right',
-                                web: 'logout',
-                            }}
-                            tintColor={theme.textSecondary}
-                            size={22}
-                        />
-                        <View style={styles.rowContent}>
-                            <ThemedText type="default">Sign out</ThemedText>
-                            {session?.user.email && (
-                                <ThemedText
-                                    type="small"
-                                    themeColor="textSecondary">
-                                    {session.user.email}
-                                </ThemedText>
-                            )}
-                        </View>
-                    </Pressable>
                 </ScrollView>
             </SafeAreaView>
 

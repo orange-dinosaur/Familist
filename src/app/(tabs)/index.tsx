@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { FamilyBar } from '@/components/family-bar';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 
@@ -100,27 +101,11 @@ export default function HomeScreen() {
     return (
         <ThemedView style={styles.container}>
             <SafeAreaView style={styles.safeArea}>
-                {/* Header: Title and User Avatar */}
+                <FamilyBar />
+
+                {/* Header */}
                 <View style={styles.header}>
-                    <View style={styles.titleRow}>
-                        <ThemedText type="title">FamiList</ThemedText>
-                        <View
-                            style={[
-                                styles.userAvatar,
-                                {
-                                    backgroundColor: theme.backgroundSelected,
-                                },
-                            ]}>
-                            <SymbolView
-                                name={{
-                                    ios: 'person.fill',
-                                    web: 'person',
-                                }}
-                                tintColor={theme.textSecondary}
-                                size={20}
-                            />
-                        </View>
-                    </View>
+                    <ThemedText type="title">FamiList</ThemedText>
 
                     {/* Date and day of the week */}
                     <ThemedText
@@ -954,18 +939,6 @@ const styles = StyleSheet.create({
         paddingBottom: Spacing.three,
         gap: Spacing.one,
         marginBottom: Spacing.two,
-    },
-    titleRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-    },
-    userAvatar: {
-        width: 36,
-        height: 36,
-        borderRadius: 18,
-        alignItems: 'center',
-        justifyContent: 'center',
     },
     dateText: {
         marginTop: -Spacing.two,
