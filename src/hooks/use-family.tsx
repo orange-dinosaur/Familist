@@ -26,6 +26,8 @@ interface FamilyContextValue {
     loading: boolean;
     createFamily: (name: string) => Promise<string | null>;
     joinFamily: (code: string) => Promise<string | null>;
+    /** Owner only; answers with the reason it did not work, or null. */
+    renameFamily: (name: string) => Promise<string | null>;
 }
 
 const FamilyContext = createContext<FamilyContextValue | null>(null);
@@ -106,9 +108,32 @@ export function FamilyProvider({ children }: { children: React.ReactNode }) {
         return null;
     }, []);
 
+    const renameFamily = useCallback(async (name: string) => {
+        const res = await apiFetch('/api/family', {
+            method: 'PATCH',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ name }),
+        });
+        const body = await res.json().catch(() => null);
+
+        if (!res.ok) {
+            return body?.error ?? 'Could not rename the family.';
+        }
+
+        setFamily(body.family);
+        return null;
+    }, []);
+
     return (
         <FamilyContext.Provider
-            value={{ family, member, loading, createFamily, joinFamily }}>
+            value={{
+                family,
+                member,
+                loading,
+                createFamily,
+                joinFamily,
+                renameFamily,
+            }}>
             {children}
         </FamilyContext.Provider>
     );

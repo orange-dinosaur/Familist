@@ -1,7 +1,7 @@
 /**
  * The caller's family. `GET` answers "does this user have one yet", which is
  * what the signed-in app asks before deciding whether to onboard; `POST`
- * creates one with the caller as its first owner.
+ * creates one with the caller as its first owner; `PATCH` renames it.
  */
 
 import { and, eq, isNull, sql } from 'drizzle-orm';
@@ -13,6 +13,12 @@ import { createId } from '@/utils/id';
 import { initialsOf, MEMBER_COLORS } from '@/utils/member';
 
 const MAX_NAME_LENGTH = 60;
+
+function nameError(value: unknown): string | null {
+    if (typeof value !== 'string' || !value.trim()) return 'A name is required';
+    if (value.trim().length > MAX_NAME_LENGTH) return 'That name is too long';
+    return null;
+}
 
 export async function GET(request: Request): Promise<Response> {
     const membership = await getMembership(request);
@@ -48,15 +54,10 @@ export async function POST(request: Request): Promise<Response> {
         return Response.json({ error: 'Invalid body' }, { status: 400 });
     }
 
-    if (typeof name !== 'string' || !name.trim()) {
-        return Response.json({ error: 'A name is required' }, { status: 400 });
-    }
-    if (name.trim().length > MAX_NAME_LENGTH) {
-        return Response.json(
-            { error: 'That name is too long' },
-            { status: 400 }
-        );
-    }
+    const invalid = nameError(name);
+    if (invalid) return Response.json({ error: invalid }, { status: 400 });
+
+    const familyName = (name as string).trim();
 
     const created = await db.transaction(async (tx) => {
         /**
@@ -85,7 +86,7 @@ export async function POST(request: Request): Promise<Response> {
         if (existing) return null;
 
         const familyId = createId();
-        await tx.insert(family).values({ id: familyId, name: name.trim() });
+        await tx.insert(family).values({ id: familyId, name: familyName });
         const memberId = createId();
         await tx.insert(familyMember).values({
             id: memberId,
@@ -109,9 +110,53 @@ export async function POST(request: Request): Promise<Response> {
 
     return Response.json(
         {
-            family: { id: created.familyId, name: name.trim() },
+            family: { id: created.familyId, name: familyName },
             member: { id: created.memberId, role: 'owner' },
         },
         { status: 201 }
     );
+}
+
+/**
+ * Renaming the family. Owner only, the same rule the member routes apply to
+ * everything that changes who or what the family is.
+ *
+ * The `WHERE` names the family the caller is actually in rather than taking an
+ * id from the body, so there is no id here to belong to somebody else.
+ */
+export async function PATCH(request: Request): Promise<Response> {
+    const membership = await getMembership(request);
+    if (!membership) return unauthorized();
+
+    if (membership.role !== 'owner') {
+        return Response.json(
+            { error: 'Only an owner can rename the family' },
+            { status: 403 }
+        );
+    }
+
+    let name: unknown;
+    try {
+        ({ name } = await request.json());
+    } catch {
+        return Response.json({ error: 'Invalid body' }, { status: 400 });
+    }
+
+    const invalid = nameError(name);
+    if (invalid) return Response.json({ error: invalid }, { status: 400 });
+
+    const [row] = await db
+        .update(family)
+        .set({ name: (name as string).trim() })
+        .where(eq(family.id, membership.familyId))
+        .returning({ id: family.id, name: family.name });
+
+    if (!row) {
+        return Response.json(
+            { error: 'That family is no longer there' },
+            { status: 404 }
+        );
+    }
+
+    return Response.json({ family: row });
 }

@@ -168,7 +168,7 @@ export default function MembersScreen() {
                         onPress={() =>
                             router.canGoBack()
                                 ? router.back()
-                                : router.replace('/explore')
+                                : router.replace('/')
                         }
                         accessibilityLabel="Back"
                         accessibilityRole="button"

@@ -1,14 +1,6 @@
-import { Link } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
-import React, { useState } from 'react';
-import {
-    Modal,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    TextInput,
-    View,
-} from 'react-native';
+import React from 'react';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { FamilyBar } from '@/components/family-bar';
@@ -19,16 +11,8 @@ import {
     sharedLinks,
     subscriptions,
 } from '@/constants/mock-data';
-import {
-    BottomTabInset,
-    MaxContentWidth,
-    type MemberColor,
-    Spacing,
-} from '@/constants/theme';
-import { useFamily } from '@/hooks/use-family';
-import { useMembers } from '@/hooks/use-members';
+import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
-import { MEMBER_COLORS } from '@/utils/member';
 
 function formatDueDate(dateStr: string): string {
     const d = new Date(dateStr);
@@ -37,52 +21,6 @@ function formatDueDate(dateStr: string): string {
 
 export default function ExploreScreen() {
     const theme = useTheme();
-    const { members, addMember, editMember, removeMember } = useMembers();
-    const { member: membership } = useFamily();
-
-    const canManage = membership?.role === 'owner';
-
-    const [memberModalVisible, setMemberModalVisible] = useState(false);
-    const [editingMemberId, setEditingMemberId] = useState<string | null>(null);
-    const [memberName, setMemberName] = useState('');
-    const [memberColor, setMemberColor] = useState<MemberColor>(
-        MEMBER_COLORS[0]
-    );
-    const [memberError, setMemberError] = useState<string | null>(null);
-
-    const openAddMember = () => {
-        setMemberError(null);
-        setEditingMemberId(null);
-        setMemberName('');
-        setMemberColor(MEMBER_COLORS[members.length % MEMBER_COLORS.length]);
-        setMemberModalVisible(true);
-    };
-
-    const openEditMember = (id: string) => {
-        const member = members.find((m) => m.id === id);
-        if (!member) return;
-        setMemberError(null);
-        setEditingMemberId(id);
-        setMemberName(member.name);
-        setMemberColor(member.color);
-        setMemberModalVisible(true);
-    };
-
-    const saveMember = async () => {
-        if (!memberName.trim()) return;
-        setMemberError(null);
-
-        const message = editingMemberId
-            ? await editMember(editingMemberId, memberName, memberColor)
-            : await addMember(memberName, memberColor);
-
-        if (message) {
-            setMemberError(message);
-            return;
-        }
-        setMemberModalVisible(false);
-    };
-
     const totalMonthly = subscriptions
         .filter((s) => s.cycle === 'monthly')
         .reduce(
@@ -107,113 +45,6 @@ export default function ExploreScreen() {
                     style={styles.scrollView}
                     contentContainerStyle={styles.scrollContent}
                     showsVerticalScrollIndicator={false}>
-                    {/* ─── Family ─── */}
-                    <View style={styles.sectionHeader}>
-                        <SymbolView
-                            name={{
-                                ios: 'person.2.fill',
-                                web: 'group',
-                            }}
-                            tintColor={theme.text}
-                            size={18}
-                        />
-                        <ThemedText type="default" style={styles.sectionTitle}>
-                            Family
-                        </ThemedText>
-                        {canManage && (
-                            <Link href="/members" asChild>
-                                <Pressable
-                                    accessibilityLabel="Manage family members"
-                                    accessibilityRole="button"
-                                    style={styles.sectionAction}>
-                                    <ThemedText type="linkPrimary">
-                                        Manage
-                                    </ThemedText>
-                                </Pressable>
-                            </Link>
-                        )}
-                    </View>
-
-                    {members.map((member) => (
-                        <View
-                            key={member.id}
-                            style={[
-                                styles.memberRow,
-                                { backgroundColor: theme.backgroundElement },
-                            ]}>
-                            <Pressable
-                                onPress={() => openEditMember(member.id)}
-                                disabled={!canManage}
-                                accessibilityLabel={`Edit ${member.name}`}
-                                accessibilityRole="button"
-                                style={({ pressed }) => [
-                                    styles.memberMain,
-                                    pressed && { opacity: 0.6 },
-                                ]}>
-                                <View
-                                    style={[
-                                        styles.memberAvatar,
-                                        {
-                                            backgroundColor:
-                                                theme[member.color],
-                                        },
-                                    ]}>
-                                    <ThemedText
-                                        themeColor="background"
-                                        style={styles.memberInitials}>
-                                        {member.initials}
-                                    </ThemedText>
-                                </View>
-                                <ThemedText
-                                    type="default"
-                                    style={styles.memberName}>
-                                    {member.name}
-                                </ThemedText>
-                            </Pressable>
-                            {canManage && member.role === null && (
-                                <Pressable
-                                    onPress={() => removeMember(member.id)}
-                                    accessibilityLabel={`Remove ${member.name}`}
-                                    accessibilityRole="button"
-                                    style={styles.memberDelete}>
-                                    <SymbolView
-                                        name={{ ios: 'trash', web: 'delete' }}
-                                        tintColor={theme.textSecondary}
-                                        size={18}
-                                    />
-                                </Pressable>
-                            )}
-                        </View>
-                    ))}
-
-                    {canManage && (
-                        <Pressable
-                            onPress={openAddMember}
-                            accessibilityLabel="Add family member"
-                            accessibilityRole="button"
-                            style={({ pressed }) => [
-                                styles.row,
-                                { backgroundColor: theme.backgroundElement },
-                                pressed && {
-                                    backgroundColor: theme.backgroundSelected,
-                                },
-                            ]}>
-                            <SymbolView
-                                name={{
-                                    ios: 'plus.circle.fill',
-                                    web: 'add_circle',
-                                }}
-                                tintColor={theme.textSecondary}
-                                size={22}
-                            />
-                            <ThemedText
-                                themeColor="textSecondary"
-                                type="default">
-                                Add family member
-                            </ThemedText>
-                        </Pressable>
-                    )}
-
                     {/* ─── Subscriptions ─── */}
                     <View style={styles.sectionHeader}>
                         <SymbolView
@@ -426,102 +257,6 @@ export default function ExploreScreen() {
                     ))}
                 </ScrollView>
             </SafeAreaView>
-
-            <Modal
-                visible={memberModalVisible}
-                transparent
-                animationType="fade"
-                onRequestClose={() => setMemberModalVisible(false)}>
-                <View style={styles.modalOverlay}>
-                    <Pressable
-                        style={StyleSheet.absoluteFill}
-                        onPress={() => setMemberModalVisible(false)}
-                        accessibilityLabel="Close"
-                        accessibilityRole="button"
-                    />
-                    <View
-                        style={[
-                            styles.modalContent,
-                            { backgroundColor: theme.background },
-                        ]}>
-                        <ThemedText type="default" style={styles.modalLabel}>
-                            {editingMemberId ? 'Edit member' : 'New member'}
-                        </ThemedText>
-
-                        <TextInput
-                            style={[
-                                styles.memberInput,
-                                {
-                                    backgroundColor: theme.backgroundElement,
-                                    color: theme.text,
-                                },
-                            ]}
-                            placeholder="Name"
-                            placeholderTextColor={theme.textSecondary}
-                            value={memberName}
-                            onChangeText={setMemberName}
-                            onSubmitEditing={saveMember}
-                            returnKeyType="done"
-                            accessibilityLabel="Member name"
-                        />
-
-                        {memberError && (
-                            <ThemedText
-                                type="small"
-                                style={{ color: theme.destructive }}>
-                                {memberError}
-                            </ThemedText>
-                        )}
-
-                        <View style={styles.swatchRow}>
-                            {MEMBER_COLORS.map((color) => (
-                                <Pressable
-                                    key={color}
-                                    onPress={() => setMemberColor(color)}
-                                    accessibilityLabel={`Colour ${color}`}
-                                    accessibilityRole="button"
-                                    accessibilityState={{
-                                        selected: color === memberColor,
-                                    }}
-                                    style={[
-                                        styles.swatch,
-                                        {
-                                            backgroundColor: theme[color],
-                                            borderColor:
-                                                color === memberColor
-                                                    ? theme.text
-                                                    : 'transparent',
-                                        },
-                                    ]}
-                                />
-                            ))}
-                        </View>
-
-                        <View style={styles.modalActions}>
-                            <Pressable
-                                onPress={() => setMemberModalVisible(false)}
-                                accessibilityRole="button">
-                                <ThemedText themeColor="textSecondary">
-                                    Cancel
-                                </ThemedText>
-                            </Pressable>
-                            <Pressable
-                                onPress={saveMember}
-                                disabled={!memberName.trim()}
-                                accessibilityRole="button">
-                                <ThemedText
-                                    themeColor={
-                                        memberName.trim()
-                                            ? 'link'
-                                            : 'textSecondary'
-                                    }>
-                                    Save
-                                </ThemedText>
-                            </Pressable>
-                        </View>
-                    </View>
-                </View>
-            </Modal>
         </ThemedView>
     );
 }
@@ -560,80 +295,9 @@ const styles = StyleSheet.create({
         gap: Spacing.two,
         marginTop: Spacing.one,
     },
-    sectionAction: {
-        marginLeft: 'auto',
-    },
     sectionTitle: {
         fontSize: 16,
         fontWeight: '600',
-    },
-    memberAvatar: {
-        width: 36,
-        height: 36,
-        borderRadius: 18,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    memberInitials: {
-        fontSize: 15,
-        fontWeight: '700',
-    },
-    memberName: {
-        flex: 1,
-    },
-    memberRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        borderRadius: 14,
-    },
-    memberMain: {
-        flex: 1,
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: Spacing.three,
-        padding: Spacing.three,
-    },
-    memberDelete: {
-        padding: Spacing.three,
-    },
-    modalOverlay: {
-        flex: 1,
-        backgroundColor: 'rgba(0, 0, 0, 0.4)',
-        justifyContent: 'center',
-        alignItems: 'center',
-        paddingHorizontal: Spacing.four,
-    },
-    modalContent: {
-        width: '100%',
-        maxWidth: 420,
-        borderRadius: 20,
-        padding: Spacing.four,
-        gap: Spacing.three,
-    },
-    modalLabel: {
-        fontWeight: '600',
-    },
-    memberInput: {
-        borderRadius: 12,
-        paddingHorizontal: Spacing.three,
-        paddingVertical: Spacing.two,
-        fontSize: 16,
-    },
-    swatchRow: {
-        flexDirection: 'row',
-        gap: Spacing.three,
-    },
-    swatch: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        borderWidth: 3,
-    },
-    modalActions: {
-        flexDirection: 'row',
-        justifyContent: 'flex-end',
-        gap: Spacing.three,
-        marginTop: Spacing.one,
     },
     row: {
         flexDirection: 'row',
