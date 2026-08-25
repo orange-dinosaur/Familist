@@ -26,7 +26,13 @@ import {
 } from '@/constants/theme';
 import { useMembers } from '@/hooks/use-members';
 import { useTheme } from '@/hooks/use-theme';
-import { MEMBER_COLORS } from '@/utils/member';
+
+const MEMBER_COLORS: MemberColor[] = [
+    'memberSage',
+    'memberWalnut',
+    'memberPlum',
+    'memberSlate',
+];
 
 function formatDueDate(dateStr: string): string {
     const d = new Date(dateStr);
