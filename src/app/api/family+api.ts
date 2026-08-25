@@ -1,12 +1,19 @@
 /**
- * The caller's family. `GET` answers "does this user have one yet", which is
- * what the signed-in app asks before deciding whether to onboard; `POST`
- * creates one with the caller as its first owner; `PATCH` renames it.
+ * The caller's family - the one they are currently acting in, which since the
+ * pointer landed need not be their only one. `GET` answers "does this user
+ * have a family yet", which is what the signed-in app asks before deciding
+ * whether to onboard; `POST` creates one with the caller as its first owner
+ * and moves them into it; `PATCH` renames it.
  */
 
-import { and, eq, isNull, sql } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 
-import { getMembership, getSessionUser, unauthorized } from '@/auth/session';
+import {
+    getMembership,
+    getSessionUser,
+    setActiveMembership,
+    unauthorized,
+} from '@/auth/session';
 import { db } from '@/db';
 import { family, familyMember } from '@/db/schema';
 import { createId } from '@/utils/id';
@@ -59,34 +66,17 @@ export async function POST(request: Request): Promise<Response> {
 
     const familyName = (name as string).trim();
 
+    /**
+     * Unconditional now. This used to refuse anyone who already belonged
+     * somewhere, under an advisory lock that existed only to make that check
+     * safe against a double tap - with the rule gone, so is its reason. A
+     * person may own several families, and the transaction is here so that a
+     * family and its first member land together or not at all.
+     */
     const created = await db.transaction(async (tx) => {
-        /**
-         * Serialised per user for the length of the transaction. Re-reading
-         * inside the transaction is not enough on its own: under READ
-         * COMMITTED two concurrent creates both see no membership and both
-         * insert, because nothing in the schema forbids one user holding two
-         * memberships - by design, since a person may join a second family
-         * later.
-         */
-        await tx.execute(
-            sql`select pg_advisory_xact_lock(hashtext(${user.id}))`
-        );
-
-        const [existing] = await tx
-            .select()
-            .from(familyMember)
-            .where(
-                and(
-                    eq(familyMember.userId, user.id),
-                    isNull(familyMember.deletedAt)
-                )
-            )
-            .limit(1);
-
-        if (existing) return null;
-
         const familyId = createId();
         await tx.insert(family).values({ id: familyId, name: familyName });
+
         const memberId = createId();
         await tx.insert(familyMember).values({
             id: memberId,
@@ -98,15 +88,11 @@ export async function POST(request: Request): Promise<Response> {
             role: 'owner',
         });
 
+        /** You are in the family you just made, not the one you were in. */
+        await setActiveMembership(user.id, memberId, tx);
+
         return { familyId, memberId };
     });
-
-    if (!created) {
-        return Response.json(
-            { error: 'You already belong to a family' },
-            { status: 409 }
-        );
-    }
 
     return Response.json(
         {

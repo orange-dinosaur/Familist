@@ -99,12 +99,18 @@ export async function getMembership(
  * Point the caller at one of their memberships. The membership is looked up by
  * the caller's own id, so there is nothing here that could name someone
  * else's.
+ *
+ * Takes the executor so that joining or creating a family can point at the
+ * membership inside the same transaction that made it - a family created
+ * without a pointer would still resolve, by the fallback, but pointing at the
+ * one you just made is the answer rather than a coincidence of ordering.
  */
 export async function setActiveMembership(
     userId: string,
-    familyMemberId: string
+    familyMemberId: string,
+    executor: Pick<typeof db, 'insert'> = db
 ): Promise<void> {
-    await db
+    await executor
         .insert(activeMembership)
         .values({ userId, familyMemberId })
         .onConflictDoUpdate({

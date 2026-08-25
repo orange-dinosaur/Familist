@@ -6,11 +6,17 @@
  *                          assignment already made against it
  *
  * The caller needs a session but not a membership; this is how they get one.
+ * They may already have others: what is refused is a second membership in the
+ * family this code belongs to, not a second family.
  */
 
 import { and, eq, isNull, sql } from 'drizzle-orm';
 
-import { getSessionUser, unauthorized } from '@/auth/session';
+import {
+    getSessionUser,
+    setActiveMembership,
+    unauthorized,
+} from '@/auth/session';
 import { db } from '@/db';
 import { family, familyMember, invitation } from '@/db/schema';
 import { createId } from '@/utils/id';
@@ -43,9 +49,10 @@ export async function POST(request: Request): Promise<Response> {
 
     const result = await db.transaction<Failure | Joined>(async (tx) => {
         /**
-         * Same lock as creating a family, for the same reason: this reads
-         * state, decides, then writes, and two taps would otherwise both
-         * pass the "do you already belong somewhere" check.
+         * Serialised per user for the length of the transaction. This reads
+         * state, decides, then writes, and two codes for the same family
+         * accepted at once would otherwise both pass the check below and
+         * collide on the unique index instead of being answered properly.
          */
         await tx.execute(
             sql`select pg_advisory_xact_lock(hashtext(${user.id}))`
@@ -67,19 +74,26 @@ export async function POST(request: Request): Promise<Response> {
             return { status: 410, error: 'That code has expired' };
         }
 
+        /**
+         * Belonging elsewhere is fine - a person may be in several families.
+         * Belonging *here* is not: `family_member` is unique on
+         * `(family_id, user_id)`, and there would be nothing for a second
+         * membership in the same family to mean.
+         */
         const [existing] = await tx
             .select()
             .from(familyMember)
             .where(
                 and(
                     eq(familyMember.userId, user.id),
+                    eq(familyMember.familyId, invite.familyId),
                     isNull(familyMember.deletedAt)
                 )
             )
             .limit(1);
 
         if (existing) {
-            return { status: 409, error: 'You already belong to a family' };
+            return { status: 409, error: 'You are already in that family' };
         }
 
         let memberId: string;
@@ -132,6 +146,9 @@ export async function POST(request: Request): Promise<Response> {
             .update(invitation)
             .set({ acceptedAt: new Date() })
             .where(eq(invitation.id, invite.id));
+
+        /** You are in the family you just joined, not the one you were in. */
+        await setActiveMembership(user.id, memberId, tx);
 
         const [row] = await tx
             .select({ name: family.name })
