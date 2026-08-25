@@ -4,12 +4,9 @@ import { type Member } from '@/constants/mock-data';
 import { type MemberColor } from '@/constants/theme';
 import { useStoreCollection } from '@/hooks/use-store-collection';
 import { createLocalStore } from '@/store/local-store';
+import { initialsOf } from '@/utils/member';
 
 const store = createLocalStore<Member>('familist.members');
-
-function initialsOf(name: string): string {
-    return name.trim().charAt(0).toUpperCase();
-}
 
 interface MembersContextValue {
     members: Member[];
