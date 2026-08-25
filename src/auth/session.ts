@@ -18,6 +18,8 @@ import { type MemberRole } from '@/utils/member';
 
 export type { MemberRole };
 
+type FamilyMember = typeof familyMember.$inferSelect;
+
 export interface Membership {
     userId: string;
     memberId: string;
@@ -65,6 +67,73 @@ export async function getMembership(
         familyId: row.familyId,
         role: row.role,
     };
+}
+
+/**
+ * The member an owner is acting on, resolved the same way for every route that
+ * manages members: the caller must be an owner, and the target is looked up by
+ * id *and* the caller's `familyId`, never by the submitted id alone.
+ *
+ * Only the preamble is shared. What each route then does to the row - and what
+ * it costs the person on the other end - is deliberately not.
+ */
+export async function resolveTargetMember(
+    request: Request
+): Promise<
+    { error: Response } | { membership: Membership; target: FamilyMember }
+> {
+    const membership = await getMembership(request);
+    if (!membership) return { error: unauthorized() };
+
+    if (membership.role !== 'owner') {
+        return {
+            error: Response.json(
+                { error: 'Only an owner can manage members' },
+                { status: 403 }
+            ),
+        };
+    }
+
+    let memberId: unknown;
+    try {
+        ({ memberId } = await request.json());
+    } catch {
+        return {
+            error: Response.json({ error: 'Invalid body' }, { status: 400 }),
+        };
+    }
+
+    if (typeof memberId !== 'string' || !memberId.trim()) {
+        return {
+            error: Response.json(
+                { error: 'A member is required' },
+                { status: 400 }
+            ),
+        };
+    }
+
+    const [target] = await db
+        .select()
+        .from(familyMember)
+        .where(
+            and(
+                eq(familyMember.id, memberId),
+                eq(familyMember.familyId, membership.familyId),
+                isNull(familyMember.deletedAt)
+            )
+        )
+        .limit(1);
+
+    if (!target) {
+        return {
+            error: Response.json(
+                { error: 'That member is not in your family' },
+                { status: 404 }
+            ),
+        };
+    }
+
+    return { membership, target };
 }
 
 export function unauthorized(): Response {
