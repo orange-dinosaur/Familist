@@ -14,39 +14,56 @@ import { MaxContentWidth, Spacing } from '@/constants/theme';
 import { useFamily } from '@/hooks/use-family';
 import { useTheme } from '@/hooks/use-theme';
 
+type Mode = 'create' | 'join';
+
 export default function WelcomeScreen() {
     const theme = useTheme();
-    const { createFamily } = useFamily();
+    const { createFamily, joinFamily } = useFamily();
 
+    const [mode, setMode] = useState<Mode>('create');
     const [name, setName] = useState('');
+    const [code, setCode] = useState('');
     const [error, setError] = useState<string | null>(null);
     const [pending, setPending] = useState(false);
 
-    const canSubmit = name.trim().length > 0;
+    const joining = mode === 'join';
+    const canSubmit = joining ? code.trim().length > 0 : name.trim().length > 0;
 
-    const create = async () => {
+    const submit = async () => {
         if (!canSubmit || pending) return;
         setPending(true);
         setError(null);
 
-        const message = await createFamily(name.trim());
+        const message = joining
+            ? await joinFamily(code.trim())
+            : await createFamily(name.trim());
 
         setPending(false);
         if (message) setError(message);
+    };
+
+    const switchMode = () => {
+        if (pending) return;
+        setMode(joining ? 'create' : 'join');
+        setError(null);
     };
 
     return (
         <ThemedView style={styles.container}>
             <SafeAreaView style={styles.safeArea}>
                 <View style={styles.content}>
-                    <ThemedText type="subtitle">Set up your family</ThemedText>
+                    <ThemedText type="subtitle">
+                        {joining ? 'Join your family' : 'Set up your family'}
+                    </ThemedText>
                     <ThemedText type="small" themeColor="textSecondary">
-                        Give it a name. You can add everyone else afterwards.
+                        {joining
+                            ? 'Enter the code you were sent.'
+                            : 'Give it a name. You can add everyone else afterwards.'}
                     </ThemedText>
 
                     <View style={styles.form}>
                         <ThemedText type="default" style={styles.label}>
-                            Family name
+                            {joining ? 'Invite code' : 'Family name'}
                         </ThemedText>
                         <TextInput
                             style={[
@@ -56,12 +73,18 @@ export default function WelcomeScreen() {
                                     color: theme.text,
                                 },
                             ]}
-                            placeholder="The Rossis"
+                            placeholder={joining ? 'ABCD234XYZ' : 'The Rossis'}
                             placeholderTextColor={theme.textSecondary}
-                            value={name}
-                            onChangeText={setName}
-                            onSubmitEditing={create}
-                            accessibilityLabel="Family name"
+                            value={joining ? code : name}
+                            onChangeText={joining ? setCode : setName}
+                            autoCapitalize={
+                                joining ? 'characters' : 'sentences'
+                            }
+                            autoCorrect={!joining}
+                            onSubmitEditing={submit}
+                            accessibilityLabel={
+                                joining ? 'Invite code' : 'Family name'
+                            }
                         />
                     </View>
 
@@ -74,9 +97,11 @@ export default function WelcomeScreen() {
                     )}
 
                     <Pressable
-                        onPress={create}
+                        onPress={submit}
                         disabled={!canSubmit || pending}
-                        accessibilityLabel="Create family"
+                        accessibilityLabel={
+                            joining ? 'Join family' : 'Create family'
+                        }
                         accessibilityRole="button"
                         style={({ pressed }) => [
                             styles.submitButton,
@@ -100,10 +125,30 @@ export default function WelcomeScreen() {
                                             : theme.textSecondary,
                                     },
                                 ]}>
-                                Create family
+                                {joining ? 'Join family' : 'Create family'}
                             </ThemedText>
                         )}
                     </Pressable>
+
+                    <View style={styles.footer}>
+                        <ThemedText type="small" themeColor="textSecondary">
+                            {joining
+                                ? 'Starting fresh?'
+                                : 'Got an invite code?'}
+                        </ThemedText>
+                        <Pressable
+                            onPress={switchMode}
+                            accessibilityLabel={
+                                joining
+                                    ? 'Create a family instead'
+                                    : 'Join a family with a code'
+                            }
+                            accessibilityRole="button">
+                            <ThemedText type="linkPrimary">
+                                {joining ? 'Create a family' : 'Join a family'}
+                            </ThemedText>
+                        </Pressable>
+                    </View>
                 </View>
             </SafeAreaView>
         </ThemedView>
@@ -149,5 +194,11 @@ const styles = StyleSheet.create({
     submitButtonText: {
         fontSize: 16,
         fontWeight: '600',
+    },
+    footer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: Spacing.two,
     },
 });

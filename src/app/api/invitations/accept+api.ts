@@ -12,11 +12,17 @@ import { and, eq, isNull, sql } from 'drizzle-orm';
 
 import { getSessionUser, unauthorized } from '@/auth/session';
 import { db } from '@/db';
-import { familyMember, invitation } from '@/db/schema';
+import { family, familyMember, invitation } from '@/db/schema';
 import { createId } from '@/utils/id';
-import { initialsOf, MEMBER_COLORS } from '@/utils/member';
+import { initialsOf, MEMBER_COLORS, type MemberRole } from '@/utils/member';
 
 type Failure = { status: number; error: string };
+type Joined = {
+    familyId: string;
+    familyName: string;
+    memberId: string;
+    role: MemberRole;
+};
 
 export async function POST(request: Request): Promise<Response> {
     const user = await getSessionUser(request);
@@ -35,9 +41,7 @@ export async function POST(request: Request): Promise<Response> {
 
     const normalised = code.trim().toUpperCase();
 
-    const result = await db.transaction<
-        Failure | { familyId: string; memberId: string }
-    >(async (tx) => {
+    const result = await db.transaction<Failure | Joined>(async (tx) => {
         /**
          * Same lock as creating a family, for the same reason: this reads
          * state, decides, then writes, and two taps would otherwise both
@@ -129,7 +133,18 @@ export async function POST(request: Request): Promise<Response> {
             .set({ acceptedAt: new Date() })
             .where(eq(invitation.id, invite.id));
 
-        return { familyId: invite.familyId, memberId };
+        const [row] = await tx
+            .select({ name: family.name })
+            .from(family)
+            .where(eq(family.id, invite.familyId))
+            .limit(1);
+
+        return {
+            familyId: invite.familyId,
+            familyName: row.name,
+            memberId,
+            role: invite.role,
+        };
     });
 
     if ('error' in result) {
@@ -140,7 +155,7 @@ export async function POST(request: Request): Promise<Response> {
     }
 
     return Response.json({
-        family: { id: result.familyId },
-        member: { id: result.memberId },
+        family: { id: result.familyId, name: result.familyName },
+        member: { id: result.memberId, role: result.role },
     });
 }

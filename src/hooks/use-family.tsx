@@ -25,6 +25,7 @@ interface FamilyContextValue {
     /** True until the first answer arrives, so nothing acts on a missing family too early. */
     loading: boolean;
     createFamily: (name: string) => Promise<string | null>;
+    joinFamily: (code: string) => Promise<string | null>;
 }
 
 const FamilyContext = createContext<FamilyContextValue | null>(null);
@@ -88,9 +89,26 @@ export function FamilyProvider({ children }: { children: React.ReactNode }) {
         return null;
     }, []);
 
+    const joinFamily = useCallback(async (code: string) => {
+        const res = await apiFetch('/api/invitations/accept', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ code }),
+        });
+        const body = await res.json().catch(() => null);
+
+        if (!res.ok) {
+            return body?.error ?? 'Could not join the family.';
+        }
+
+        setFamily(body.family);
+        setMember(body.member);
+        return null;
+    }, []);
+
     return (
         <FamilyContext.Provider
-            value={{ family, member, loading, createFamily }}>
+            value={{ family, member, loading, createFamily, joinFamily }}>
             {children}
         </FamilyContext.Provider>
     );
