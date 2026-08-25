@@ -2,68 +2,20 @@
  * FamilyStore backed by a collection's API routes.
  *
  * Online only: every method is a request, and the cache exists to serve
- * `subscribe` rather than to answer reads on its own. Scoping is the server's
- * job - the routes resolve the family from the session - so nothing here ever
- * sends a family id.
+ * `subscribe` rather than to answer reads on its own.
  */
 
-import { apiFetch } from '@/auth/client';
 import type { Entity, FamilyStore } from '@/store/family-store';
+import {
+    createRemoteClient,
+    type RemoteCollection,
+} from '@/store/remote-client';
 
-/**
- * A refusal the server put into words. A dropped connection is not one of
- * these, which is how a caller tells the two apart.
- */
-export class StoreError extends Error {
-    readonly status: number;
+export function createRemoteStore<T extends Entity>(
+    collection: RemoteCollection
+): FamilyStore<T> {
+    const client = createRemoteClient<T>(collection);
 
-    constructor(message: string, status: number) {
-        super(message);
-        this.status = status;
-    }
-}
-
-/** The server's own words when it refused, and a fallback when it never answered. */
-export function writeFailure(error: unknown, fallback: string): string {
-    return error instanceof StoreError ? error.message : fallback;
-}
-
-export interface RemoteCollection {
-    /** The list route, `/api/meals`; one record is that path plus its id. */
-    path: string;
-    /** The keys the routes wrap their answers in: `meal` and `meals`. */
-    one: string;
-    many: string;
-}
-
-async function send(
-    path: string,
-    init?: RequestInit
-): Promise<Record<string, unknown>> {
-    const res = await apiFetch(path, init);
-    const body = await res.json().catch(() => null);
-
-    if (!res.ok) {
-        throw new StoreError(
-            typeof body?.error === 'string' ? body.error : 'That did not work.',
-            res.status
-        );
-    }
-
-    return body ?? {};
-}
-
-const withBody = (method: string, payload: unknown): RequestInit => ({
-    method,
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify(payload),
-});
-
-export function createRemoteStore<T extends Entity>({
-    path,
-    one,
-    many,
-}: RemoteCollection): FamilyStore<T> {
     let items: T[] = [];
     let loaded: Promise<void> | null = null;
     const listeners = new Set<(items: T[]) => void>();
@@ -79,9 +31,10 @@ export function createRemoteStore<T extends Entity>({
      */
     const load = () => {
         if (!loaded) {
-            loaded = send(path)
-                .then((body) => {
-                    items = (body[many] as T[]) ?? [];
+            loaded = client
+                .pull(null)
+                .then((pulled) => {
+                    items = pulled;
                 })
                 .catch(() => {
                     items = [];
@@ -104,8 +57,7 @@ export function createRemoteStore<T extends Entity>({
          */
         async create(input) {
             await load();
-            const body = await send(path, withBody('POST', input));
-            const created = body[one] as T;
+            const created = await client.create(input);
             items = [...items, created];
             emit();
             return created;
@@ -113,11 +65,7 @@ export function createRemoteStore<T extends Entity>({
 
         async update(id, changes) {
             await load();
-            const body = await send(
-                `${path}/${id}`,
-                withBody('PATCH', changes)
-            );
-            const updated = body[one] as T;
+            const updated = await client.update(id, changes);
             items = items.map((item) => (item.id === id ? updated : item));
             emit();
             return updated;
@@ -125,14 +73,7 @@ export function createRemoteStore<T extends Entity>({
 
         async remove(id) {
             await load();
-            try {
-                await send(`${path}/${id}`, { method: 'DELETE' });
-            } catch (error) {
-                /** Removing what is not there succeeds, and a 404 says it is not there. */
-                const gone =
-                    error instanceof StoreError && error.status === 404;
-                if (!gone) throw error;
-            }
+            await client.remove(id);
             items = items.filter((item) => item.id !== id);
             emit();
         },

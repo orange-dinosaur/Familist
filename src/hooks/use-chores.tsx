@@ -3,7 +3,8 @@ import React, { createContext, useContext, useCallback, useMemo } from 'react';
 import { type ChoreItem } from '@/constants/mock-data';
 import { useFamily } from '@/hooks/use-family';
 import { useStoreCollection } from '@/hooks/use-store-collection';
-import { createRemoteStore, writeFailure } from '@/store/remote-store';
+import { writeFailure } from '@/store/remote-client';
+import { createRemoteStore } from '@/store/remote-store';
 
 const CHORES = { path: '/api/chores', one: 'chore', many: 'chores' };
 
