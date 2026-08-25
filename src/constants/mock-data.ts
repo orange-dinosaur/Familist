@@ -1,6 +1,8 @@
 /**
- * Mock data for all screens.
- * Will be replaced with database reads in the future.
+ * The record types the screens share, and the date helpers they all use.
+ *
+ * The name is a leftover: this began as the template's fixtures and is now
+ * only types and helpers, everything else having moved to the database.
  */
 
 import { AndroidSymbol, SFSymbol } from 'expo-symbols';
@@ -84,118 +86,3 @@ export interface TodoItem {
     assigneeId?: string | null;
     day: string;
 }
-
-export interface SubscriptionItem {
-    name: string;
-    price: string;
-    cycle: 'monthly' | 'yearly';
-    icon: PlatformSymbol;
-}
-
-export interface PaymentDeadline {
-    name: string;
-    dueDate: string;
-    amount: string;
-    isPaid: boolean;
-}
-
-export interface SharedLink {
-    title: string;
-    url: string;
-    addedBy: string;
-}
-
-// ─── Subscriptions ──────────────────────────────────────────────────────
-
-export const subscriptions: SubscriptionItem[] = [
-    {
-        name: 'Netflix',
-        price: '€15.99',
-        cycle: 'monthly',
-        icon: { ios: 'play.rectangle.fill', web: 'smart_display' },
-    },
-    {
-        name: 'Spotify',
-        price: '€9.99',
-        cycle: 'monthly',
-        icon: { ios: 'music.note', web: 'music_note' },
-    },
-    {
-        name: 'iCloud+',
-        price: '€2.99',
-        cycle: 'monthly',
-        icon: { ios: 'icloud.fill', web: 'cloud' },
-    },
-    {
-        name: 'Gym membership',
-        price: '€39.00',
-        cycle: 'monthly',
-        icon: { ios: 'figure.run', web: 'fitness_center' },
-    },
-    {
-        name: 'Adobe Creative Cloud',
-        price: '€59.99',
-        cycle: 'monthly',
-        icon: { ios: 'paintbrush.fill', web: 'brush' },
-    },
-];
-
-// ─── Payment Deadlines ──────────────────────────────────────────────────
-
-export const paymentDeadlines: PaymentDeadline[] = [
-    {
-        name: 'Electricity bill',
-        dueDate: '2026-04-20',
-        amount: '€87.50',
-        isPaid: false,
-    },
-    {
-        name: 'Internet bill',
-        dueDate: '2026-04-25',
-        amount: '€34.99',
-        isPaid: false,
-    },
-    {
-        name: 'Car insurance',
-        dueDate: '2026-05-01',
-        amount: '€145.00',
-        isPaid: false,
-    },
-    {
-        name: 'Water bill',
-        dueDate: '2026-04-15',
-        amount: '€42.30',
-        isPaid: true,
-    },
-    {
-        name: 'Rent',
-        dueDate: '2026-05-01',
-        amount: '€1,200.00',
-        isPaid: false,
-    },
-];
-
-// ─── Shared Links ───────────────────────────────────────────────────────
-
-export const sharedLinks: SharedLink[] = [
-    {
-        title: 'IKEA KALLAX Shelf',
-        url: 'https://ikea.com/kallax',
-        addedBy: 'Giulio',
-    },
-    {
-        title: 'Holiday house in Sardinia',
-        url: 'https://airbnb.com/listing/12345',
-        addedBy: 'Sara',
-    },
-    {
-        title: 'Family photo album',
-        url: 'https://photos.google.com/album/xyz',
-        addedBy: 'Giulio',
-    },
-    {
-        title: 'Kids school calendar',
-        url: 'https://school.edu/calendar',
-        addedBy: 'Sara',
-    },
-];

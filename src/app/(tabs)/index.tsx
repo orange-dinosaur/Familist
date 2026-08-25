@@ -830,85 +830,6 @@ export default function HomeScreen() {
                             </View>
                         </View>
                     </View>
-
-                    {/* ─── Bottom Row: 3 utility cards ─── */}
-                    <View style={styles.bottomRow}>
-                        <Pressable
-                            onPress={() => router.navigate('/explore')}
-                            style={({ pressed }) => [
-                                styles.bottomCard,
-                                {
-                                    backgroundColor: theme.backgroundElement,
-                                },
-                                pressed && {
-                                    backgroundColor: theme.backgroundSelected,
-                                },
-                            ]}>
-                            <SymbolView
-                                name={{
-                                    ios: 'creditcard.fill',
-                                    web: 'credit_card',
-                                }}
-                                tintColor={theme.text}
-                                size={22}
-                            />
-                            <ThemedText
-                                type="small"
-                                style={styles.bottomCardLabel}>
-                                Bills
-                            </ThemedText>
-                        </Pressable>
-
-                        <Pressable
-                            style={({ pressed }) => [
-                                styles.bottomCard,
-                                {
-                                    backgroundColor: theme.backgroundElement,
-                                },
-                                pressed && {
-                                    backgroundColor: theme.backgroundSelected,
-                                },
-                            ]}>
-                            <SymbolView
-                                name={{
-                                    ios: 'link',
-                                    web: 'link',
-                                }}
-                                tintColor={theme.text}
-                                size={22}
-                            />
-                            <ThemedText
-                                type="small"
-                                style={styles.bottomCardLabel}>
-                                Links
-                            </ThemedText>
-                        </Pressable>
-
-                        <Pressable
-                            style={({ pressed }) => [
-                                styles.bottomCard,
-                                {
-                                    backgroundColor: theme.backgroundElement,
-                                },
-                                pressed && {
-                                    backgroundColor: theme.backgroundSelected,
-                                },
-                            ]}>
-                            <SymbolView
-                                name={{
-                                    ios: 'gearshape.fill',
-                                    web: 'settings',
-                                }}
-                                tintColor={theme.text}
-                                size={22}
-                            />
-                            <ThemedText
-                                type="small"
-                                style={styles.bottomCardLabel}>
-                                Settings
-                            </ThemedText>
-                        </Pressable>
-                    </View>
                 </ScrollView>
             </SafeAreaView>
         </ThemedView>
@@ -963,12 +884,6 @@ const styles = StyleSheet.create({
     cardPreview: {
         gap: Spacing.one,
     },
-    cardArrow: {
-        width: 32,
-        borderRadius: 12,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
     checkItem: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -983,22 +898,6 @@ const styles = StyleSheet.create({
         textDecorationLine: 'line-through',
     },
     /* ── Bottom row ── */
-    bottomRow: {
-        flexDirection: 'row',
-        gap: Spacing.two,
-    },
-    bottomCard: {
-        flex: 1,
-        borderRadius: 16,
-        padding: Spacing.three,
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: Spacing.two,
-        minHeight: 100,
-    },
-    bottomCardLabel: {
-        textAlign: 'center',
-    },
     cardHeaderRow: {
         flexDirection: 'row',
         alignItems: 'center',
