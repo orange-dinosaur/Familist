@@ -39,10 +39,10 @@ type MealTime = MealItem['time'];
 
 export default function DailyMealScreen() {
     const theme = useTheme();
-    const { meals, loading, addMeal, removeMeal } = useMeals();
+    const { meals, loading, error, clearError, addMeal, removeMeal } =
+        useMeals();
     const { canManageContent } = usePermissions();
     const [modalVisible, setModalVisible] = useState(false);
-    const [error, setError] = useState<string | null>(null);
     const [selectedTime, setSelectedTime] = useState<MealTime | null>(null);
     const [dishName, setDishName] = useState('');
     const [isDayPreselected, setIsDayPreselected] = useState(false);
@@ -71,7 +71,7 @@ export default function DailyMealScreen() {
         setSelectedTime(null);
         setDishName('');
         setIsDayPreselected(false);
-        setError(null);
+        clearError();
         setModalVisible(true);
     };
 
@@ -80,7 +80,7 @@ export default function DailyMealScreen() {
         setSelectedTime(null);
         setDishName('');
         setIsDayPreselected(true);
-        setError(null);
+        clearError();
         setModalVisible(true);
     };
 
@@ -94,12 +94,7 @@ export default function DailyMealScreen() {
             day: selectedDay,
         };
 
-        setError(null);
-        const message = await addMeal(newMeal);
-        if (message) {
-            setError(message);
-            return;
-        }
+        if (!(await addMeal(newMeal))) return;
 
         setDishName('');
 
@@ -108,14 +103,8 @@ export default function DailyMealScreen() {
         }
     };
 
-    const removeDish = async (id: string) => {
-        setError(null);
-        const message = await removeMeal(id);
-        if (message) setError(message);
-    };
-
     const closeModal = () => {
-        setError(null);
+        clearError();
         setModalVisible(false);
     };
 
@@ -323,7 +312,7 @@ export default function DailyMealScreen() {
                                                                 {canManageContent && (
                                                                     <Pressable
                                                                         onPress={() =>
-                                                                            removeDish(
+                                                                            removeMeal(
                                                                                 meal.id
                                                                             )
                                                                         }

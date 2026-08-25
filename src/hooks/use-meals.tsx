@@ -3,7 +3,7 @@ import React, { createContext, useContext, useCallback, useMemo } from 'react';
 import { type MealItem } from '@/constants/mock-data';
 import { useFamily } from '@/hooks/use-family';
 import { useStoreCollection } from '@/hooks/use-store-collection';
-import { writeFailure } from '@/store/remote-client';
+import { useStoreWrites } from '@/hooks/use-store-writes';
 import { createSyncedStore } from '@/store/synced-store';
 
 const MEALS = { path: '/api/meals', one: 'meal', many: 'meals' };
@@ -11,9 +11,12 @@ const MEALS = { path: '/api/meals', one: 'meal', many: 'meals' };
 interface MealContextValue {
     meals: MealItem[];
     loading: boolean;
-    /** Both answer with the reason it did not work, or null. */
-    addMeal: (meal: Omit<MealItem, 'id'>) => Promise<string | null>;
-    removeMeal: (id: string) => Promise<string | null>;
+    /** The reason the last write did not work, or null. */
+    error: string | null;
+    clearError: () => void;
+    /** Both answer whether the write went through. */
+    addMeal: (meal: Omit<MealItem, 'id'>) => Promise<boolean>;
+    removeMeal: (id: string) => Promise<boolean>;
 }
 
 const MealContext = createContext<MealContextValue | null>(null);
@@ -39,31 +42,18 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
     );
 
     const { items: meals, loading } = useStoreCollection(store);
+    const { error, clearError, write } = useStoreWrites(store);
 
     const addMeal = useCallback(
-        async (meal: Omit<MealItem, 'id'>) => {
-            if (!store) return 'You are not in a family yet.';
-            try {
-                await store.create(meal);
-                return null;
-            } catch (error) {
-                return writeFailure(error, 'Could not add that meal.');
-            }
-        },
-        [store]
+        (meal: Omit<MealItem, 'id'>) =>
+            write('Could not add that meal.', (store) => store.create(meal)),
+        [write]
     );
 
     const removeMeal = useCallback(
-        async (id: string) => {
-            if (!store) return 'You are not in a family yet.';
-            try {
-                await store.remove(id);
-                return null;
-            } catch (error) {
-                return writeFailure(error, 'Could not remove that meal.');
-            }
-        },
-        [store]
+        (id: string) =>
+            write('Could not remove that meal.', (store) => store.remove(id)),
+        [write]
     );
 
     return (
@@ -71,6 +61,8 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
             value={{
                 meals,
                 loading: familyLoading || loading,
+                error,
+                clearError,
                 addMeal,
                 removeMeal,
             }}>

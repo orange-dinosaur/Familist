@@ -198,6 +198,8 @@ export default function DailyChoresScreen() {
     const {
         chores,
         loading,
+        error,
+        clearError,
         toggleChore,
         deleteChore,
         toggleChoreActive,
@@ -206,7 +208,6 @@ export default function DailyChoresScreen() {
     const { members } = useMembers();
     const { canManageContent, canToggle } = usePermissions();
     const [modalVisible, setModalVisible] = useState(false);
-    const [error, setError] = useState<string | null>(null);
     const [assigningChoreId, setAssigningChoreId] = useState<string | null>(
         null
     );
@@ -239,30 +240,25 @@ export default function DailyChoresScreen() {
         }, [])
     );
 
-    /** Every write answers with a reason or null, and the screen shows it. */
-    const report = async (write: Promise<string | null>) => {
-        setError(await write);
-    };
-
     const isChoreActive = (label: string) =>
         activeChores.some((c) => c.label === label && c.day === selectedDay);
 
     const openAddModal = () => {
         setSelectedDay(todayStr);
         setIsDayPreselected(false);
-        setError(null);
+        clearError();
         setModalVisible(true);
     };
 
     const openAddModalForDay = (day: string) => {
         setSelectedDay(day);
         setIsDayPreselected(true);
-        setError(null);
+        clearError();
         setModalVisible(true);
     };
 
     const closeModal = () => {
-        setError(null);
+        clearError();
         setModalVisible(false);
     };
 
@@ -442,14 +438,10 @@ export default function DailyChoresScreen() {
                                                     chore.assigneeId
                                                 )}
                                                 onToggle={() =>
-                                                    report(
-                                                        toggleChore(chore.id)
-                                                    )
+                                                    toggleChore(chore.id)
                                                 }
                                                 onDelete={() =>
-                                                    report(
-                                                        deleteChore(chore.id)
-                                                    )
+                                                    deleteChore(chore.id)
                                                 }
                                                 onAssign={() =>
                                                     setAssigningChoreId(
@@ -606,11 +598,9 @@ export default function DailyChoresScreen() {
                                             <Pressable
                                                 key={preset}
                                                 onPress={() =>
-                                                    report(
-                                                        toggleChoreActive(
-                                                            preset,
-                                                            selectedDay
-                                                        )
+                                                    toggleChoreActive(
+                                                        preset,
+                                                        selectedDay
                                                     )
                                                 }
                                                 accessibilityLabel={`Toggle ${preset}`}
@@ -717,11 +707,9 @@ export default function DailyChoresScreen() {
                                     key={user.id}
                                     onPress={() => {
                                         if (assigningChoreId) {
-                                            report(
-                                                assignChore(
-                                                    assigningChoreId,
-                                                    user.id
-                                                )
+                                            assignChore(
+                                                assigningChoreId,
+                                                user.id
                                             );
                                         }
                                         setAssigningChoreId(null);
@@ -758,11 +746,9 @@ export default function DailyChoresScreen() {
                             <Pressable
                                 onPress={() => {
                                     if (assigningChoreId) {
-                                        report(
-                                            assignChore(
-                                                assigningChoreId,
-                                                undefined
-                                            )
+                                        assignChore(
+                                            assigningChoreId,
+                                            undefined
                                         );
                                     }
                                     setAssigningChoreId(null);

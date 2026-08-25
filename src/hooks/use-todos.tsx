@@ -3,36 +3,37 @@ import React, { createContext, useContext, useCallback, useMemo } from 'react';
 import { type TodoItem } from '@/constants/mock-data';
 import { useFamily } from '@/hooks/use-family';
 import { useStoreCollection } from '@/hooks/use-store-collection';
-import { writeFailure } from '@/store/remote-client';
+import { useStoreWrites } from '@/hooks/use-store-writes';
 import { createSyncedStore } from '@/store/synced-store';
 
 const TODOS = { path: '/api/todos', one: 'todo', many: 'todos' };
 
-const NO_FAMILY = 'You are not in a family yet.';
-
 interface TodosContextValue {
     todos: TodoItem[];
     loading: boolean;
-    /** Every write answers with the reason it did not work, or null. */
+    /** The reason the last write did not work, or null. */
+    error: string | null;
+    clearError: () => void;
+    /** Every write answers whether it went through. */
     addTodo: (
         label: string,
         priority: TodoItem['priority'],
         day: string,
         assigneeId?: string
-    ) => Promise<string | null>;
-    toggleTodo: (id: string) => Promise<string | null>;
-    deleteTodo: (id: string) => Promise<string | null>;
+    ) => Promise<boolean>;
+    toggleTodo: (id: string) => Promise<boolean>;
+    deleteTodo: (id: string) => Promise<boolean>;
     editTodo: (
         id: string,
         label: string,
         priority: TodoItem['priority'],
         day: string,
         assigneeId?: string
-    ) => Promise<string | null>;
+    ) => Promise<boolean>;
     assignTodo: (
         id: string,
         assigneeId: string | undefined
-    ) => Promise<string | null>;
+    ) => Promise<boolean>;
 }
 
 const TodosContext = createContext<TodosContextValue | null>(null);
@@ -53,97 +54,63 @@ export function TodosProvider({ children }: { children: React.ReactNode }) {
     );
 
     const { items: todos, loading } = useStoreCollection(store);
+    const { error, clearError, write } = useStoreWrites(store);
 
     const addTodo = useCallback(
-        async (
+        (
             label: string,
             priority: TodoItem['priority'],
             day: string,
             assigneeId?: string
-        ) => {
-            if (!store) return NO_FAMILY;
-            try {
-                await store.create({
-                    label,
-                    done: false,
-                    priority,
-                    assigneeId,
-                    day,
-                });
-                return null;
-            } catch (error) {
-                return writeFailure(error, 'Could not add that task.');
-            }
-        },
-        [store]
+        ) =>
+            write('Could not add that task.', (store) =>
+                store.create({ label, done: false, priority, assigneeId, day })
+            ),
+        [write]
     );
 
     const toggleTodo = useCallback(
-        async (id: string) => {
-            if (!store) return NO_FAMILY;
-            try {
+        (id: string) =>
+            write('Could not change that task.', async (store) => {
                 const current = await store.list();
                 const todo = current.find((item) => item.id === id);
-                if (todo) {
-                    await store.update(id, { done: !todo.done });
-                }
-                return null;
-            } catch (error) {
-                return writeFailure(error, 'Could not change that task.');
-            }
-        },
-        [store]
+                if (todo) await store.update(id, { done: !todo.done });
+            }),
+        [write]
     );
 
     const deleteTodo = useCallback(
-        async (id: string) => {
-            if (!store) return NO_FAMILY;
-            try {
-                await store.remove(id);
-                return null;
-            } catch (error) {
-                return writeFailure(error, 'Could not delete that task.');
-            }
-        },
-        [store]
+        (id: string) =>
+            write('Could not delete that task.', (store) => store.remove(id)),
+        [write]
     );
 
     /** An omitted assignee here means clear it, so it travels as null. */
     const editTodo = useCallback(
-        async (
+        (
             id: string,
             label: string,
             priority: TodoItem['priority'],
             day: string,
             assigneeId?: string
-        ) => {
-            if (!store) return NO_FAMILY;
-            try {
-                await store.update(id, {
+        ) =>
+            write('Could not save that task.', (store) =>
+                store.update(id, {
                     label,
                     priority,
                     day,
                     assigneeId: assigneeId ?? null,
-                });
-                return null;
-            } catch (error) {
-                return writeFailure(error, 'Could not save that task.');
-            }
-        },
-        [store]
+                })
+            ),
+        [write]
     );
 
     const assignTodo = useCallback(
-        async (id: string, assigneeId: string | undefined) => {
-            if (!store) return NO_FAMILY;
-            try {
-                await store.update(id, { assigneeId: assigneeId ?? null });
-                return null;
-            } catch (error) {
-                return writeFailure(error, 'Could not assign that task.');
-            }
-        },
-        [store]
+        (id: string, assigneeId: string | undefined) =>
+            write('Could not assign that task.', (store) =>
+                store.update(id, { assigneeId: assigneeId ?? null })
+            ),
+        [write]
     );
 
     return (
@@ -151,6 +118,8 @@ export function TodosProvider({ children }: { children: React.ReactNode }) {
             value={{
                 todos,
                 loading: familyLoading || loading,
+                error,
+                clearError,
                 addTodo,
                 toggleTodo,
                 deleteTodo,

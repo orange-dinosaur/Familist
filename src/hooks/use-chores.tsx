@@ -3,12 +3,10 @@ import React, { createContext, useContext, useCallback, useMemo } from 'react';
 import { type ChoreItem } from '@/constants/mock-data';
 import { useFamily } from '@/hooks/use-family';
 import { useStoreCollection } from '@/hooks/use-store-collection';
-import { writeFailure } from '@/store/remote-client';
+import { useStoreWrites } from '@/hooks/use-store-writes';
 import { createSyncedStore } from '@/store/synced-store';
 
 const CHORES = { path: '/api/chores', one: 'chore', many: 'chores' };
-
-const NO_FAMILY = 'You are not in a family yet.';
 
 export const PRESET_CHORES = [
     'Clean kitchen',
@@ -26,16 +24,19 @@ export const PRESET_CHORES = [
 interface ChoresContextValue {
     chores: ChoreItem[];
     loading: boolean;
-    /** Every write answers with the reason it did not work, or null. */
-    addChore: (label: string, day: string) => Promise<string | null>;
-    toggleChore: (id: string) => Promise<string | null>;
-    deleteChore: (id: string) => Promise<string | null>;
-    editChore: (id: string, newLabel: string) => Promise<string | null>;
-    toggleChoreActive: (label: string, day: string) => Promise<string | null>;
+    /** The reason the last write did not work, or null. */
+    error: string | null;
+    clearError: () => void;
+    /** Every write answers whether it went through. */
+    addChore: (label: string, day: string) => Promise<boolean>;
+    toggleChore: (id: string) => Promise<boolean>;
+    deleteChore: (id: string) => Promise<boolean>;
+    editChore: (id: string, newLabel: string) => Promise<boolean>;
+    toggleChoreActive: (label: string, day: string) => Promise<boolean>;
     assignChore: (
         id: string,
         assigneeId: string | undefined
-    ) => Promise<string | null>;
+    ) => Promise<boolean>;
 }
 
 const ChoresContext = createContext<ChoresContextValue | null>(null);
@@ -56,61 +57,38 @@ export function ChoresProvider({ children }: { children: React.ReactNode }) {
     );
 
     const { items: chores, loading } = useStoreCollection(store);
+    const { error, clearError, write } = useStoreWrites(store);
 
     const addChore = useCallback(
-        async (label: string, day: string) => {
-            if (!store) return NO_FAMILY;
-            try {
-                await store.create({ label, done: false, active: true, day });
-                return null;
-            } catch (error) {
-                return writeFailure(error, 'Could not add that chore.');
-            }
-        },
-        [store]
+        (label: string, day: string) =>
+            write('Could not add that chore.', (store) =>
+                store.create({ label, done: false, active: true, day })
+            ),
+        [write]
     );
 
     const toggleChore = useCallback(
-        async (id: string) => {
-            if (!store) return NO_FAMILY;
-            try {
+        (id: string) =>
+            write('Could not change that chore.', async (store) => {
                 const current = await store.list();
                 const chore = current.find((item) => item.id === id);
-                if (chore) {
-                    await store.update(id, { done: !chore.done });
-                }
-                return null;
-            } catch (error) {
-                return writeFailure(error, 'Could not change that chore.');
-            }
-        },
-        [store]
+                if (chore) await store.update(id, { done: !chore.done });
+            }),
+        [write]
     );
 
     const deleteChore = useCallback(
-        async (id: string) => {
-            if (!store) return NO_FAMILY;
-            try {
-                await store.remove(id);
-                return null;
-            } catch (error) {
-                return writeFailure(error, 'Could not delete that chore.');
-            }
-        },
-        [store]
+        (id: string) =>
+            write('Could not delete that chore.', (store) => store.remove(id)),
+        [write]
     );
 
     const editChore = useCallback(
-        async (id: string, newLabel: string) => {
-            if (!store) return NO_FAMILY;
-            try {
-                await store.update(id, { label: newLabel });
-                return null;
-            } catch (error) {
-                return writeFailure(error, 'Could not save that chore.');
-            }
-        },
-        [store]
+        (id: string, newLabel: string) =>
+            write('Could not save that chore.', (store) =>
+                store.update(id, { label: newLabel })
+            ),
+        [write]
     );
 
     /**
@@ -120,9 +98,8 @@ export function ChoresProvider({ children }: { children: React.ReactNode }) {
      * repeatedly leaves one row behind rather than a trail of tombstones.
      */
     const toggleChoreActive = useCallback(
-        async (label: string, day: string) => {
-            if (!store) return NO_FAMILY;
-            try {
+        (label: string, day: string) =>
+            write('Could not change that chore.', async (store) => {
                 const current = await store.list();
                 const matching = current.filter(
                     (chore) => chore.label === label && chore.day === day
@@ -133,23 +110,19 @@ export function ChoresProvider({ children }: { children: React.ReactNode }) {
                     for (const chore of active) {
                         await store.update(chore.id, { active: false });
                     }
-                    return null;
+                    return;
                 }
 
                 /** The most recent of the label's dormant rows, if it has any. */
                 const dormant = matching[matching.length - 1];
                 if (dormant) {
                     await store.update(dormant.id, { active: true });
-                    return null;
+                    return;
                 }
 
                 await store.create({ label, done: false, active: true, day });
-                return null;
-            } catch (error) {
-                return writeFailure(error, 'Could not change that chore.');
-            }
-        },
-        [store]
+            }),
+        [write]
     );
 
     /**
@@ -157,16 +130,11 @@ export function ChoresProvider({ children }: { children: React.ReactNode }) {
      * undefined value, and the route reads an empty body as nothing to change.
      */
     const assignChore = useCallback(
-        async (id: string, assigneeId: string | undefined) => {
-            if (!store) return NO_FAMILY;
-            try {
-                await store.update(id, { assigneeId: assigneeId ?? null });
-                return null;
-            } catch (error) {
-                return writeFailure(error, 'Could not assign that chore.');
-            }
-        },
-        [store]
+        (id: string, assigneeId: string | undefined) =>
+            write('Could not assign that chore.', (store) =>
+                store.update(id, { assigneeId: assigneeId ?? null })
+            ),
+        [write]
     );
 
     return (
@@ -174,6 +142,8 @@ export function ChoresProvider({ children }: { children: React.ReactNode }) {
             value={{
                 chores,
                 loading: familyLoading || loading,
+                error,
+                clearError,
                 addChore,
                 toggleChore,
                 deleteChore,

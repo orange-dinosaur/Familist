@@ -36,19 +36,23 @@ export default function HomeScreen() {
     const router = useRouter();
     const { members } = useMembers();
     const { meals, loading: mealsLoading } = useMeals();
-    const { chores, loading: choresLoading, toggleChore } = useChores();
-    const { todos, loading: todosLoading, toggleTodo } = useTodos();
+    const {
+        chores,
+        loading: choresLoading,
+        error: choresError,
+        toggleChore,
+    } = useChores();
+    const {
+        todos,
+        loading: todosLoading,
+        error: todosError,
+        toggleTodo,
+    } = useTodos();
     const { canToggle } = usePermissions();
 
-    const [error, setError] = useState<string | null>(null);
     const [mealsExpanded, setMealsExpanded] = useState(false);
     const [choresExpanded, setChoresExpanded] = useState(false);
     const [todosExpanded, setTodosExpanded] = useState(false);
-
-    /** Every write answers with a reason or null, and the screen shows it. */
-    const report = async (write: Promise<string | null>) => {
-        setError(await write);
-    };
 
     const getTodayDayName = (): string => {
         return new Date().toISOString().split('T')[0];
@@ -125,11 +129,12 @@ export default function HomeScreen() {
                         {getFormattedDate()}
                     </ThemedText>
 
-                    {error && (
+                    {/* Two collections, one line; chores win if both spoke. */}
+                    {(choresError ?? todosError) && (
                         <ThemedText
                             type="small"
                             style={{ color: theme.destructive }}>
-                            {error}
+                            {choresError ?? todosError}
                         </ThemedText>
                     )}
                 </View>
@@ -331,11 +336,7 @@ export default function HomeScreen() {
                                                     <Pressable
                                                         key={item.id}
                                                         onPress={() =>
-                                                            report(
-                                                                toggleChore(
-                                                                    item.id
-                                                                )
-                                                            )
+                                                            toggleChore(item.id)
                                                         }
                                                         disabled={
                                                             !canToggle(
@@ -424,9 +425,7 @@ export default function HomeScreen() {
                                                 <Pressable
                                                     key={item.id}
                                                     onPress={() =>
-                                                        report(
-                                                            toggleChore(item.id)
-                                                        )
+                                                        toggleChore(item.id)
                                                     }
                                                     disabled={
                                                         !canToggle(
@@ -597,11 +596,7 @@ export default function HomeScreen() {
                                                     <Pressable
                                                         key={item.id}
                                                         onPress={() =>
-                                                            report(
-                                                                toggleTodo(
-                                                                    item.id
-                                                                )
-                                                            )
+                                                            toggleTodo(item.id)
                                                         }
                                                         disabled={
                                                             !canToggle(
@@ -704,9 +699,7 @@ export default function HomeScreen() {
                                                 <Pressable
                                                     key={item.id}
                                                     onPress={() =>
-                                                        report(
-                                                            toggleTodo(item.id)
-                                                        )
+                                                        toggleTodo(item.id)
                                                     }
                                                     disabled={
                                                         !canToggle(

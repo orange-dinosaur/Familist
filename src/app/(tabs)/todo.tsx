@@ -246,6 +246,8 @@ export default function TodoScreen() {
     const {
         todos,
         loading,
+        error,
+        clearError,
         addTodo,
         toggleTodo,
         editTodo,
@@ -255,7 +257,6 @@ export default function TodoScreen() {
     const { members } = useMembers();
     const { canManageContent, canToggle } = usePermissions();
     const [modalVisible, setModalVisible] = useState(false);
-    const [error, setError] = useState<string | null>(null);
     const [assigningTodoId, setAssigningTodoId] = useState<string | null>(null);
     const [daysShowingCompleted, setDaysShowingCompleted] = useState<
         Set<string>
@@ -301,11 +302,6 @@ export default function TodoScreen() {
         }, [])
     );
 
-    /** Every write answers with a reason or null, and the screen shows it. */
-    const report = async (write: Promise<string | null>) => {
-        setError(await write);
-    };
-
     const openAddModal = () => {
         setEditingTodo(null);
         setTodoText('');
@@ -313,7 +309,7 @@ export default function TodoScreen() {
         setTodoDay(todayStr);
         setTodoAssigneeId(undefined);
         setIsDayPreselected(false);
-        setError(null);
+        clearError();
         setModalVisible(true);
     };
 
@@ -324,7 +320,7 @@ export default function TodoScreen() {
         setTodoDay(day);
         setTodoAssigneeId(undefined);
         setIsDayPreselected(true);
-        setError(null);
+        clearError();
         setModalVisible(true);
     };
 
@@ -335,14 +331,14 @@ export default function TodoScreen() {
         setTodoDay(todo.day);
         setTodoAssigneeId(todo.assigneeId ?? undefined);
         setIsDayPreselected(true);
-        setError(null);
+        clearError();
         setModalVisible(true);
     };
 
     const saveTodo = async () => {
         if (!todoText.trim()) return;
 
-        const message = editingTodo
+        const saved = editingTodo
             ? await editTodo(
                   editingTodo.id,
                   todoText.trim(),
@@ -357,16 +353,11 @@ export default function TodoScreen() {
                   todoAssigneeId
               );
 
-        if (message) {
-            setError(message);
-            return;
-        }
-
-        setModalVisible(false);
+        if (saved) setModalVisible(false);
     };
 
     const closeModal = () => {
-        setError(null);
+        clearError();
         setModalVisible(false);
     };
 
@@ -545,13 +536,13 @@ export default function TodoScreen() {
                                                     todo.assigneeId
                                                 )}
                                                 onToggle={() =>
-                                                    report(toggleTodo(todo.id))
+                                                    toggleTodo(todo.id)
                                                 }
                                                 onEdit={() =>
                                                     openEditModal(todo)
                                                 }
                                                 onDelete={() =>
-                                                    report(deleteTodo(todo.id))
+                                                    deleteTodo(todo.id)
                                                 }
                                                 onAssign={() =>
                                                     setAssigningTodoId(todo.id)
@@ -971,11 +962,9 @@ export default function TodoScreen() {
                                     key={member.id}
                                     onPress={() => {
                                         if (assigningTodoId) {
-                                            report(
-                                                assignTodo(
-                                                    assigningTodoId,
-                                                    member.id
-                                                )
+                                            assignTodo(
+                                                assigningTodoId,
+                                                member.id
                                             );
                                         }
                                         setAssigningTodoId(null);
@@ -1012,12 +1001,7 @@ export default function TodoScreen() {
                             <Pressable
                                 onPress={() => {
                                     if (assigningTodoId) {
-                                        report(
-                                            assignTodo(
-                                                assigningTodoId,
-                                                undefined
-                                            )
-                                        );
+                                        assignTodo(assigningTodoId, undefined);
                                     }
                                     setAssigningTodoId(null);
                                 }}
