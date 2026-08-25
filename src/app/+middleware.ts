@@ -17,13 +17,20 @@ import { getSessionCookie } from 'better-auth/cookies';
 import type { MiddlewareFunction, MiddlewareSettings } from 'expo-server';
 
 const AUTH_SCREENS = ['/login', '/signup'];
-const APP_SCREENS = ['/', '/todo', '/daily-meal', '/daily-chores', '/explore'];
+const APP_SCREENS = [
+    '/',
+    '/todo',
+    '/daily-meal',
+    '/daily-chores',
+    '/explore',
+    '/welcome',
+];
 
 /**
  * Route groups stay in the URL as an optional segment, so `/(tabs)/todo` serves
  * the same screen as `/todo` and has to be matched as well.
  */
-const GROUPED = /^\/\((?:tabs|auth)\)\//;
+const GROUPED = /^\/\((?:tabs|auth|onboarding)\)\//;
 
 export const unstable_settings: MiddlewareSettings = {
     matcher: {
@@ -34,7 +41,8 @@ export const unstable_settings: MiddlewareSettings = {
 
 const middleware: MiddlewareFunction = (request) => {
     const url = new URL(request.url);
-    const pathname = url.pathname.replace(/^\/\((?:tabs|auth)\)/, '') || '/';
+    const pathname =
+        url.pathname.replace(/^\/\((?:tabs|auth|onboarding)\)/, '') || '/';
     const onAuthScreen = AUTH_SCREENS.includes(pathname);
     const signedIn = getSessionCookie(request.headers) !== null;
 

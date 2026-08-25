@@ -11,28 +11,45 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { AnimatedSplashOverlay } from '@/components/animated-icon';
 import { useAuthGuard } from '@/hooks/use-auth-guard';
 import { ChoresProvider } from '@/hooks/use-chores';
+import { FamilyProvider } from '@/hooks/use-family';
 import { MealProvider } from '@/hooks/use-meals';
 import { MembersProvider } from '@/hooks/use-members';
 import { TodosProvider } from '@/hooks/use-todos';
 
+/**
+ * The guard reads the family as well as the session, so it has to sit inside
+ * the provider that supplies it.
+ */
+function Guarded({ children }: { children: React.ReactNode }) {
+    useAuthGuard();
+    return children;
+}
+
 export default function RootLayout() {
     const colorScheme = useColorScheme();
-    useAuthGuard();
 
     return (
         <GestureHandlerRootView style={{ flex: 1 }}>
             <ThemeProvider
                 value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-                <MembersProvider>
-                    <MealProvider>
-                        <ChoresProvider>
-                            <TodosProvider>
-                                <AnimatedSplashOverlay />
-                                <Stack screenOptions={{ headerShown: false }} />
-                            </TodosProvider>
-                        </ChoresProvider>
-                    </MealProvider>
-                </MembersProvider>
+                <FamilyProvider>
+                    <MembersProvider>
+                        <MealProvider>
+                            <ChoresProvider>
+                                <TodosProvider>
+                                    <Guarded>
+                                        <AnimatedSplashOverlay />
+                                        <Stack
+                                            screenOptions={{
+                                                headerShown: false,
+                                            }}
+                                        />
+                                    </Guarded>
+                                </TodosProvider>
+                            </ChoresProvider>
+                        </MealProvider>
+                    </MembersProvider>
+                </FamilyProvider>
             </ThemeProvider>
         </GestureHandlerRootView>
     );

@@ -13,3 +13,11 @@ import { createAuthClient } from 'better-auth/react';
 export const verificationCallbackURL = '/';
 
 export const authClient = createAuthClient();
+
+/**
+ * Calls an API route as the signed-in user. The routes are same-origin, so the
+ * browser attaches the session cookie itself.
+ */
+export function apiFetch(path: string, init?: RequestInit): Promise<Response> {
+    return fetch(path, init);
+}

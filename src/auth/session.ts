@@ -14,8 +14,9 @@ import { and, eq, isNull } from 'drizzle-orm';
 import { auth } from '@/auth';
 import { db } from '@/db';
 import { familyMember } from '@/db/schema';
+import { type MemberRole } from '@/utils/member';
 
-export type MemberRole = 'owner' | 'editor' | 'checker';
+export type { MemberRole };
 
 export interface Membership {
     userId: string;
