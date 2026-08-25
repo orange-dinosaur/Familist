@@ -8,7 +8,7 @@
  * hide exactly the part a reviewer needs to see.
  */
 
-import { and, asc, eq, isNull } from 'drizzle-orm';
+import { and, asc, eq, gt, isNull } from 'drizzle-orm';
 
 import { getMembership, unauthorized } from '@/auth/session';
 import { type TodoItem } from '@/constants/mock-data';
@@ -21,6 +21,7 @@ import {
     labelError,
     notFound,
     priorityError,
+    readSince,
     TODO_COLUMNS,
 } from '@/db/content';
 import { todo } from '@/db/schema';
@@ -30,11 +31,17 @@ export async function GET(request: Request): Promise<Response> {
     const membership = await getMembership(request);
     if (!membership) return unauthorized();
 
+    const { at: since, error: invalid } = readSince(request);
+    if (invalid) return badRequest(invalid);
+
     const todos = await db
         .select(TODO_COLUMNS)
         .from(todo)
         .where(
-            and(eq(todo.familyId, membership.familyId), isNull(todo.deletedAt))
+            and(
+                eq(todo.familyId, membership.familyId),
+                since ? gt(todo.updatedAt, since) : isNull(todo.deletedAt)
+            )
         )
         .orderBy(asc(todo.day), asc(todo.createdAt), asc(todo.id));
 

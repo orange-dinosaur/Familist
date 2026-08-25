@@ -33,13 +33,20 @@ export const TODO_PRIORITIES: TodoItem['priority'][] = [
     'high',
 ];
 
-/** The columns a client is given. `family_id` and the timestamps stay here. */
+/**
+ * The columns a client is given. `family_id` and `created_at` stay here;
+ * `updated_at` and `deleted_at` go out because a synced client reconciles on
+ * them - it needs to know which of two versions is newer, and that a record it
+ * still holds has since been deleted.
+ */
 export const MEAL_COLUMNS = {
     id: meal.id,
     name: meal.name,
     time: meal.time,
     emoji: meal.emoji,
     day: meal.day,
+    updatedAt: meal.updatedAt,
+    deletedAt: meal.deletedAt,
 };
 
 export const CHORE_COLUMNS = {
@@ -49,6 +56,8 @@ export const CHORE_COLUMNS = {
     active: chore.active,
     assigneeId: chore.assigneeId,
     day: chore.day,
+    updatedAt: chore.updatedAt,
+    deletedAt: chore.deletedAt,
 };
 
 export const TODO_COLUMNS = {
@@ -58,6 +67,8 @@ export const TODO_COLUMNS = {
     priority: todo.priority,
     assigneeId: todo.assigneeId,
     day: todo.day,
+    updatedAt: todo.updatedAt,
+    deletedAt: todo.deletedAt,
 };
 
 /**
@@ -152,6 +163,30 @@ export async function assigneeInFamily(
         .limit(1);
 
     return member !== undefined;
+}
+
+/**
+ * `?since=` turns a read into an incremental one: everything the family has
+ * touched after that instant, tombstones included, so a puller learns about
+ * deletions as well as edits. Absent, the read is the live collection.
+ *
+ * The value has to be one the server itself sent - the largest `updated_at`
+ * the caller has seen - rather than a client clock, which would drift and skip
+ * records.
+ */
+export function readSince(request: Request): {
+    at: Date | null;
+    error: string | null;
+} {
+    const raw = new URL(request.url).searchParams.get('since');
+    if (raw === null) return { at: null, error: null };
+
+    const at = new Date(raw);
+    if (Number.isNaN(at.getTime())) {
+        return { at: null, error: 'Invalid since' };
+    }
+
+    return { at, error: null };
 }
 
 export function badRequest(error: string): Response {

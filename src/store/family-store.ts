@@ -7,6 +7,17 @@
 
 export interface Entity {
     id: string;
+
+    /**
+     * Written by the server, never by a screen, which is why both are
+     * optional: a record the client has just built has neither yet. A synced
+     * store reconciles on them - `updatedAt` decides which of two versions of
+     * a record wins, and `deletedAt` is how a deletion travels, since a row
+     * that is simply absent from an incremental read is a row that did not
+     * change.
+     */
+    updatedAt?: string;
+    deletedAt?: string | null;
 }
 
 export type Changes<T extends Entity> = Partial<Omit<T, 'id'>>;

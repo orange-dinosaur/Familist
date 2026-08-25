@@ -7,7 +7,7 @@
  * apply to and a checker only ever reads.
  */
 
-import { and, asc, eq, isNull } from 'drizzle-orm';
+import { and, asc, eq, gt, isNull } from 'drizzle-orm';
 
 import { getMembership, unauthorized } from '@/auth/session';
 import { type MealItem } from '@/constants/mock-data';
@@ -19,6 +19,7 @@ import {
     forbidden,
     MEAL_COLUMNS,
     nameError,
+    readSince,
     timeError,
 } from '@/db/content';
 import { meal } from '@/db/schema';
@@ -27,6 +28,9 @@ import { createId } from '@/utils/id';
 export async function GET(request: Request): Promise<Response> {
     const membership = await getMembership(request);
     if (!membership) return unauthorized();
+
+    const { at: since, error: invalid } = readSince(request);
+    if (invalid) return badRequest(invalid);
 
     /**
      * A pg enum sorts by the order its values were declared, which for
@@ -37,7 +41,10 @@ export async function GET(request: Request): Promise<Response> {
         .select(MEAL_COLUMNS)
         .from(meal)
         .where(
-            and(eq(meal.familyId, membership.familyId), isNull(meal.deletedAt))
+            and(
+                eq(meal.familyId, membership.familyId),
+                since ? gt(meal.updatedAt, since) : isNull(meal.deletedAt)
+            )
         )
         .orderBy(
             asc(meal.day),
