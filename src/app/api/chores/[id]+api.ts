@@ -12,13 +12,16 @@ import { and, eq, isNull } from 'drizzle-orm';
 
 import { getMembership, unauthorized } from '@/auth/session';
 import { db } from '@/db';
-import { chore, familyMember } from '@/db/schema';
 import {
+    assigneeInFamily,
+    badRequest,
     CHORE_COLUMNS,
+    dayError,
     forbidden,
-    isDay,
-    MAX_LABEL_LENGTH,
-} from '@/utils/content';
+    labelError,
+    notFound,
+} from '@/db/content';
+import { chore } from '@/db/schema';
 
 export async function PATCH(
     request: Request,
@@ -31,13 +34,11 @@ export async function PATCH(
     try {
         body = await request.json();
     } catch {
-        return Response.json({ error: 'Invalid body' }, { status: 400 });
+        return badRequest('Invalid body');
     }
 
     const submitted = Object.keys(body);
-    if (submitted.length === 0) {
-        return Response.json({ error: 'Nothing to change' }, { status: 400 });
-    }
+    if (submitted.length === 0) return badRequest('Nothing to change');
 
     const checker = membership.role === 'checker';
 
@@ -53,65 +54,32 @@ export async function PATCH(
     } = {};
 
     if ('label' in body) {
-        const { label } = body;
-        if (typeof label !== 'string' || !label.trim()) {
-            return Response.json(
-                { error: 'A label is required' },
-                { status: 400 }
-            );
-        }
-        if (label.trim().length > MAX_LABEL_LENGTH) {
-            return Response.json(
-                { error: 'That label is too long' },
-                { status: 400 }
-            );
-        }
-        changes.label = label.trim();
+        const invalid = labelError(body.label);
+        if (invalid) return badRequest(invalid);
+        changes.label = (body.label as string).trim();
     }
 
     if ('done' in body) {
-        if (typeof body.done !== 'boolean') {
-            return Response.json({ error: 'Invalid done' }, { status: 400 });
-        }
+        if (typeof body.done !== 'boolean') return badRequest('Invalid done');
         changes.done = body.done;
     }
 
     if ('day' in body) {
-        const { day } = body;
-        if (typeof day !== 'string' || !isDay(day)) {
-            return Response.json({ error: 'Invalid day' }, { status: 400 });
-        }
-        changes.day = day;
+        const invalid = dayError(body.day);
+        if (invalid) return badRequest(invalid);
+        changes.day = body.day as string;
     }
 
     if ('assigneeId' in body) {
         const { assigneeId } = body;
         if (assigneeId !== null && typeof assigneeId !== 'string') {
-            return Response.json(
-                { error: 'Invalid assignee' },
-                { status: 400 }
-            );
+            return badRequest('Invalid assignee');
         }
-
-        if (typeof assigneeId === 'string') {
-            const [member] = await db
-                .select({ id: familyMember.id })
-                .from(familyMember)
-                .where(
-                    and(
-                        eq(familyMember.id, assigneeId),
-                        eq(familyMember.familyId, membership.familyId),
-                        isNull(familyMember.deletedAt)
-                    )
-                )
-                .limit(1);
-
-            if (!member) {
-                return Response.json(
-                    { error: 'That member is not in your family' },
-                    { status: 404 }
-                );
-            }
+        if (
+            typeof assigneeId === 'string' &&
+            !(await assigneeInFamily(membership.familyId, assigneeId))
+        ) {
+            return notFound('That member is not in your family');
         }
         changes.assigneeId = assigneeId;
     }
@@ -124,20 +92,17 @@ export async function PATCH(
                 eq(chore.id, id),
                 eq(chore.familyId, membership.familyId),
                 isNull(chore.deletedAt),
-                /** A checker's rows, decided by the statement rather than by a read. */
+                /** A checker's rows, decided by the statement rather than a read. */
                 ...(checker ? [eq(chore.assigneeId, membership.memberId)] : [])
             )
         )
         .returning(CHORE_COLUMNS);
 
     if (updated.length === 0) {
-        return Response.json(
-            {
-                error: checker
-                    ? 'That chore is not yours to change'
-                    : 'That chore is no longer there',
-            },
-            { status: 404 }
+        return notFound(
+            checker
+                ? 'That chore is not yours to change'
+                : 'That chore is no longer there'
         );
     }
 
@@ -168,10 +133,7 @@ export async function DELETE(
         .returning({ id: chore.id });
 
     if (deleted.length === 0) {
-        return Response.json(
-            { error: 'That chore is no longer there' },
-            { status: 404 }
-        );
+        return notFound('That chore is no longer there');
     }
 
     return Response.json({ chore: { id: deleted[0].id } });

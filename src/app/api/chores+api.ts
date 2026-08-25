@@ -14,14 +14,17 @@ import { and, asc, eq, isNull } from 'drizzle-orm';
 
 import { getMembership, unauthorized } from '@/auth/session';
 import { db } from '@/db';
-import { chore, familyMember } from '@/db/schema';
-import { createId } from '@/utils/id';
 import {
-    forbidden,
-    isDay,
-    MAX_LABEL_LENGTH,
+    assigneeInFamily,
+    badRequest,
     CHORE_COLUMNS,
-} from '@/utils/content';
+    dayError,
+    forbidden,
+    labelError,
+    notFound,
+} from '@/db/content';
+import { chore } from '@/db/schema';
+import { createId } from '@/utils/id';
 
 export async function GET(request: Request): Promise<Response> {
     const membership = await getMembership(request);
@@ -53,57 +56,26 @@ export async function POST(request: Request): Promise<Response> {
     try {
         body = await request.json();
     } catch {
-        return Response.json({ error: 'Invalid body' }, { status: 400 });
+        return badRequest('Invalid body');
     }
 
     const { label, day, assigneeId } = body;
 
-    if (typeof label !== 'string' || !label.trim()) {
-        return Response.json({ error: 'A label is required' }, { status: 400 });
-    }
-    if (label.trim().length > MAX_LABEL_LENGTH) {
-        return Response.json(
-            { error: 'That label is too long' },
-            { status: 400 }
-        );
-    }
-    if (typeof day !== 'string' || !isDay(day)) {
-        return Response.json({ error: 'A day is required' }, { status: 400 });
-    }
+    const invalid = labelError(label) ?? dayError(day);
+    if (invalid) return badRequest(invalid);
+
     if (
         assigneeId !== undefined &&
         assigneeId !== null &&
         typeof assigneeId !== 'string'
     ) {
-        return Response.json({ error: 'Invalid assignee' }, { status: 400 });
+        return badRequest('Invalid assignee');
     }
 
     const assignee = typeof assigneeId === 'string' ? assigneeId : null;
 
-    if (assignee) {
-        /**
-         * Scoped by the caller's family, like every other lookup. The composite
-         * foreign key would refuse a member of another family anyway, but as a
-         * 500 rather than an answer.
-         */
-        const [member] = await db
-            .select({ id: familyMember.id })
-            .from(familyMember)
-            .where(
-                and(
-                    eq(familyMember.id, assignee),
-                    eq(familyMember.familyId, membership.familyId),
-                    isNull(familyMember.deletedAt)
-                )
-            )
-            .limit(1);
-
-        if (!member) {
-            return Response.json(
-                { error: 'That member is not in your family' },
-                { status: 404 }
-            );
-        }
+    if (assignee && !(await assigneeInFamily(membership.familyId, assignee))) {
+        return notFound('That member is not in your family');
     }
 
     const [created] = await db
@@ -111,8 +83,8 @@ export async function POST(request: Request): Promise<Response> {
         .values({
             id: createId(),
             familyId: membership.familyId,
-            label: label.trim(),
-            day,
+            label: (label as string).trim(),
+            day: day as string,
             assigneeId: assignee,
         })
         .returning(CHORE_COLUMNS);
