@@ -6,6 +6,7 @@
 import { expoClient } from '@better-auth/expo/client';
 import { createAuthClient } from 'better-auth/react';
 import Constants from 'expo-constants';
+import * as Linking from 'expo-linking';
 import * as SecureStore from 'expo-secure-store';
 
 /**
@@ -19,6 +20,13 @@ const baseURL =
     (Constants.expoConfig?.hostUri
         ? `http://${Constants.expoConfig.hostUri}`
         : undefined);
+
+/**
+ * Where the verification link sends the browser once the token is accepted.
+ * The mail is opened outside the app, so this has to be a deep link back into
+ * it rather than a path.
+ */
+export const verificationCallbackURL = Linking.createURL('/');
 
 export const authClient = createAuthClient({
     baseURL,

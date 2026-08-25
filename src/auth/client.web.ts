@@ -5,4 +5,11 @@
 
 import { createAuthClient } from 'better-auth/react';
 
+/**
+ * Where the verification link sends the browser once the token is accepted.
+ * The link is opened in a browser already, so a path on the same origin is all
+ * that is needed.
+ */
+export const verificationCallbackURL = '/';
+
 export const authClient = createAuthClient();
