@@ -68,7 +68,8 @@ export interface ChoreItem {
     id: string;
     label: string;
     done: boolean;
-    assigneeId?: string;
+    /** Null is how the server says nobody, and how it is told so. */
+    assigneeId?: string | null;
     day: string;
 }
 

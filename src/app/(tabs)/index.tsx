@@ -40,9 +40,15 @@ export default function HomeScreen() {
     const { todos, loading: todosLoading, toggleTodo } = useTodos();
     const { canToggle } = usePermissions();
 
+    const [error, setError] = useState<string | null>(null);
     const [mealsExpanded, setMealsExpanded] = useState(false);
     const [choresExpanded, setChoresExpanded] = useState(false);
     const [todosExpanded, setTodosExpanded] = useState(false);
+
+    /** Every write answers with a reason or null, and the screen shows it. */
+    const report = async (write: Promise<string | null>) => {
+        setError(await write);
+    };
 
     const getTodayDayName = (): string => {
         return new Date().toISOString().split('T')[0];
@@ -117,6 +123,14 @@ export default function HomeScreen() {
                         style={styles.dateText}>
                         {getFormattedDate()}
                     </ThemedText>
+
+                    {error && (
+                        <ThemedText
+                            type="small"
+                            style={{ color: theme.destructive }}>
+                            {error}
+                        </ThemedText>
+                    )}
                 </View>
 
                 <ScrollView
@@ -316,7 +330,11 @@ export default function HomeScreen() {
                                                     <Pressable
                                                         key={item.id}
                                                         onPress={() =>
-                                                            toggleChore(item.id)
+                                                            report(
+                                                                toggleChore(
+                                                                    item.id
+                                                                )
+                                                            )
                                                         }
                                                         disabled={
                                                             !canToggle(
@@ -405,7 +423,9 @@ export default function HomeScreen() {
                                                 <Pressable
                                                     key={item.id}
                                                     onPress={() =>
-                                                        toggleChore(item.id)
+                                                        report(
+                                                            toggleChore(item.id)
+                                                        )
                                                     }
                                                     disabled={
                                                         !canToggle(

@@ -22,7 +22,7 @@ export function usePermissions() {
          * Ticking something off. A checker may only touch what is assigned to
          * them, which is the one rule the routes fold into the `WHERE` clause.
          */
-        canToggle: (assigneeId?: string) =>
+        canToggle: (assigneeId?: string | null) =>
             role === 'checker' ? assigneeId === member?.id : canManageContent,
     };
 }

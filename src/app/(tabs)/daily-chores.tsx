@@ -206,6 +206,7 @@ export default function DailyChoresScreen() {
     const { members } = useMembers();
     const { canManageContent, canToggle } = usePermissions();
     const [modalVisible, setModalVisible] = useState(false);
+    const [error, setError] = useState<string | null>(null);
     const [assigningChoreId, setAssigningChoreId] = useState<string | null>(
         null
     );
@@ -231,22 +232,30 @@ export default function DailyChoresScreen() {
         }, [])
     );
 
+    /** Every write answers with a reason or null, and the screen shows it. */
+    const report = async (write: Promise<string | null>) => {
+        setError(await write);
+    };
+
     const isChoreActive = (label: string) =>
         chores.some((c) => c.label === label && c.day === selectedDay);
 
     const openAddModal = () => {
         setSelectedDay(todayStr);
         setIsDayPreselected(false);
+        setError(null);
         setModalVisible(true);
     };
 
     const openAddModalForDay = (day: string) => {
         setSelectedDay(day);
         setIsDayPreselected(true);
+        setError(null);
         setModalVisible(true);
     };
 
     const closeModal = () => {
+        setError(null);
         setModalVisible(false);
     };
 
@@ -267,6 +276,13 @@ export default function DailyChoresScreen() {
                               ? `${doneCount} of ${chores.length} completed in total`
                               : 'No chores planned'}
                     </ThemedText>
+                    {error && (
+                        <ThemedText
+                            type="small"
+                            style={{ color: theme.destructive }}>
+                            {error}
+                        </ThemedText>
+                    )}
                 </View>
 
                 <ScrollView
@@ -417,10 +433,14 @@ export default function DailyChoresScreen() {
                                                     chore.assigneeId
                                                 )}
                                                 onToggle={() =>
-                                                    toggleChore(chore.id)
+                                                    report(
+                                                        toggleChore(chore.id)
+                                                    )
                                                 }
                                                 onDelete={() =>
-                                                    deleteChore(chore.id)
+                                                    report(
+                                                        deleteChore(chore.id)
+                                                    )
                                                 }
                                                 onAssign={() =>
                                                     setAssigningChoreId(
@@ -577,9 +597,11 @@ export default function DailyChoresScreen() {
                                             <Pressable
                                                 key={preset}
                                                 onPress={() =>
-                                                    toggleChoreActive(
-                                                        preset,
-                                                        selectedDay
+                                                    report(
+                                                        toggleChoreActive(
+                                                            preset,
+                                                            selectedDay
+                                                        )
                                                     )
                                                 }
                                                 accessibilityLabel={`Toggle ${preset}`}
@@ -619,6 +641,13 @@ export default function DailyChoresScreen() {
 
                         {/* Modal footer */}
                         <View style={styles.modalFooter}>
+                            {error && (
+                                <ThemedText
+                                    type="small"
+                                    style={{ color: theme.destructive }}>
+                                    {error}
+                                </ThemedText>
+                            )}
                             <Pressable
                                 onPress={closeModal}
                                 accessibilityLabel="Done"
@@ -679,9 +708,11 @@ export default function DailyChoresScreen() {
                                     key={user.id}
                                     onPress={() => {
                                         if (assigningChoreId) {
-                                            assignChore(
-                                                assigningChoreId,
-                                                user.id
+                                            report(
+                                                assignChore(
+                                                    assigningChoreId,
+                                                    user.id
+                                                )
                                             );
                                         }
                                         setAssigningChoreId(null);
@@ -718,9 +749,11 @@ export default function DailyChoresScreen() {
                             <Pressable
                                 onPress={() => {
                                     if (assigningChoreId) {
-                                        assignChore(
-                                            assigningChoreId,
-                                            undefined
+                                        report(
+                                            assignChore(
+                                                assigningChoreId,
+                                                undefined
+                                            )
                                         );
                                     }
                                     setAssigningChoreId(null);
@@ -996,6 +1029,7 @@ const styles = StyleSheet.create({
     modalFooter: {
         paddingHorizontal: Spacing.four,
         paddingVertical: Spacing.three,
+        gap: Spacing.two,
     },
     doneButton: {
         alignItems: 'center',
