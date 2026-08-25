@@ -26,11 +26,25 @@ export default function Root({ children }: PropsWithChildren) {
 
                 <ScrollViewStyleReset />
                 <style dangerouslySetInnerHTML={{ __html: rootStyle }} />
+                <script dangerouslySetInnerHTML={{ __html: registerWorker }} />
             </head>
             <body>{children}</body>
         </html>
     );
 }
+
+/**
+ * Registered only over https, which is what keeps it out of development: the
+ * dev server is plain http on localhost and on the LAN, and its bundles are
+ * not content-hashed, so a worker caching them would serve yesterday's code.
+ */
+const registerWorker = `
+if ('serviceWorker' in navigator && location.protocol === 'https:') {
+    window.addEventListener('load', function () {
+        navigator.serviceWorker.register('/service-worker.js').catch(function () {});
+    });
+}
+`;
 
 const rootStyle = `
 body {
