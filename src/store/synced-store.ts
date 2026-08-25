@@ -8,6 +8,7 @@
  * and reported, because retrying it would never succeed.
  */
 
+import { forgetLegacy, readLegacy } from '@/store/adopt-local';
 import type { Changes, Entity, FamilyStore } from '@/store/family-store';
 import { getItem, setItem } from '@/store/key-value';
 import { createLocalStore } from '@/store/local-store';
@@ -69,7 +70,8 @@ function merge<T extends Entity>(current: T[], incoming: T[]): T[] {
 
 export function createSyncedStore<T extends Entity>(
     key: string,
-    collection: RemoteCollection
+    collection: RemoteCollection,
+    legacy?: string
 ): SyncedStore<T> {
     const local = createLocalStore<T>(key);
     const remote = createRemoteClient<T>(collection);
@@ -248,17 +250,46 @@ export function createSyncedStore<T extends Entity>(
         if (latest) await setItem(mark, latest);
     };
 
+    /**
+     * Records an earlier version of the app left behind, taken into this
+     * family as though they had just been made here. Their own ids are kept,
+     * which is what makes it safe to run twice: a second attempt posts the
+     * same ids and the routes answer with the records they already hold.
+     *
+     * The old key is dropped only once they are in the outbox, so a failure in
+     * between leaves them to be read again rather than losing them.
+     */
+    const adopt = async () => {
+        if (!legacy) return;
+
+        const records = await readLegacy<T>(legacy);
+        if (records.length > 0) {
+            const current = await local.list();
+            const held = new Set(current.map((item) => item.id));
+            const fresh = records.filter((record) => !held.has(record.id));
+
+            await local.replace([...current, ...fresh]);
+            for (const record of fresh) {
+                await enqueue({ kind: 'create', id: record.id, record });
+            }
+        }
+
+        await forgetLegacy(legacy);
+    };
+
     let pulled: Promise<void> | null = null;
 
     /**
-     * The queue goes first. A full pull replaces the collection outright, and
-     * doing that with changes still pending would throw them away; a queue
-     * that would not drain means the server is unreachable, so there is
-     * nothing to pull either.
+     * Adoption first, then the queue, then the pull. Each has to precede the
+     * next: adopted records are only in the outbox until it drains, and a full
+     * pull replaces the collection outright, so pulling before either would
+     * throw them away. A queue that would not drain means the server is
+     * unreachable, so there is nothing to pull either.
      */
     const sync = () => {
         if (!pulled) {
-            pulled = flush()
+            pulled = adopt()
+                .then(flush)
                 .then(async () => {
                     if ((await readQueue()).length === 0) await pull();
                 })

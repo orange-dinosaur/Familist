@@ -35,7 +35,8 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
             familyId
                 ? createSyncedStore<MealItem>(
                       `familist.meals.${familyId}`,
-                      MEALS
+                      MEALS,
+                      'familist.meals'
                   )
                 : null,
         [familyId]

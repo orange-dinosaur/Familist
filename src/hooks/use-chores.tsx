@@ -50,7 +50,8 @@ export function ChoresProvider({ children }: { children: React.ReactNode }) {
             familyId
                 ? createSyncedStore<ChoreItem>(
                       `familist.chores.${familyId}`,
-                      CHORES
+                      CHORES,
+                      'familist.chores'
                   )
                 : null,
         [familyId]
