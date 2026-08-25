@@ -8,8 +8,10 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { MaxContentWidth, Spacing } from '@/constants/theme';
 import { useFamily } from '@/hooks/use-family';
+import { type Invitation, useInvitations } from '@/hooks/use-invitations';
 import { useMembers } from '@/hooks/use-members';
 import { useTheme } from '@/hooks/use-theme';
+import { copyToClipboard } from '@/utils/clipboard';
 import { MEMBER_ROLES, type Member, type MemberRole } from '@/utils/member';
 
 const ROLE_LABELS: Record<MemberRole, string> = {
@@ -52,6 +54,13 @@ const CONFIRMATIONS: Record<
     },
 };
 
+/**
+ * Inviting is a mode of its own rather than another action on a member: it ends
+ * in a code that has to reach a person, not in a changed row. `target` is the
+ * placeholder being invited to sign in, or null for a brand new member.
+ */
+type Inviting = { target: Member | null };
+
 export default function MembersScreen() {
     const theme = useTheme();
     const { member: membership } = useFamily();
@@ -63,9 +72,14 @@ export default function MembersScreen() {
         removeFromFamily,
         removeMember,
     } = useMembers();
+    const { createInvitation } = useInvitations();
 
     const [openId, setOpenId] = useState<string | null>(null);
     const [confirming, setConfirming] = useState<Confirm | null>(null);
+    const [inviting, setInviting] = useState<Inviting | null>(null);
+    const [inviteRole, setInviteRole] = useState<MemberRole>('editor');
+    const [invitation, setInvitation] = useState<Invitation | null>(null);
+    const [copied, setCopied] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [pending, setPending] = useState(false);
 
@@ -82,7 +96,41 @@ export default function MembersScreen() {
     const close = () => {
         setOpenId(null);
         setConfirming(null);
+        setInviting(null);
+        setInvitation(null);
+        setCopied(false);
         setError(null);
+    };
+
+    const startInviting = (target: Member | null) => {
+        setOpenId(null);
+        setConfirming(null);
+        setError(null);
+        setInvitation(null);
+        setCopied(false);
+        setInviteRole(target?.role ?? 'editor');
+        setInviting({ target });
+    };
+
+    const createCode = async () => {
+        if (!inviting || pending) return;
+        setPending(true);
+        setError(null);
+
+        const result = await createInvitation(inviteRole, inviting.target?.id);
+
+        setPending(false);
+        if ('error' in result) {
+            setError(result.error);
+            return;
+        }
+        setInvitation(result);
+    };
+
+    const copyCode = () => {
+        if (!invitation) return;
+        copyToClipboard(invitation.code);
+        setCopied(true);
     };
 
     const run = async (
@@ -183,6 +231,30 @@ export default function MembersScreen() {
                         </Pressable>
                     ))}
 
+                    {canManage && (
+                        <Pressable
+                            onPress={() => startInviting(null)}
+                            accessibilityLabel="Invite someone to the family"
+                            accessibilityRole="button"
+                            style={({ pressed }) => [
+                                styles.memberRow,
+                                { backgroundColor: theme.backgroundElement },
+                                pressed && { opacity: 0.6 },
+                            ]}>
+                            <SymbolView
+                                name={{
+                                    ios: 'person.badge.plus',
+                                    web: 'person_add',
+                                }}
+                                tintColor={theme.textSecondary}
+                                size={22}
+                            />
+                            <ThemedText themeColor="textSecondary">
+                                Invite someone
+                            </ThemedText>
+                        </Pressable>
+                    )}
+
                     {!canManage && members.length > 0 && (
                         <ThemedText type="small" themeColor="textSecondary">
                             Only an owner can change roles or remove people.
@@ -192,7 +264,7 @@ export default function MembersScreen() {
             </SafeAreaView>
 
             <Modal
-                visible={open !== null}
+                visible={open !== null || inviting !== null}
                 transparent
                 animationType="fade"
                 onRequestClose={close}>
@@ -315,6 +387,18 @@ export default function MembersScreen() {
 
                                 {open.role === null && (
                                     <Pressable
+                                        onPress={() => startInviting(open)}
+                                        accessibilityRole="button"
+                                        accessibilityLabel={`Invite ${open.name} to sign in`}
+                                        style={styles.option}>
+                                        <ThemedText type="default">
+                                            Invite them to sign in
+                                        </ThemedText>
+                                    </Pressable>
+                                )}
+
+                                {open.role === null && (
+                                    <Pressable
                                         onPress={() => setConfirming('delete')}
                                         accessibilityRole="button"
                                         style={styles.option}>
@@ -329,6 +413,147 @@ export default function MembersScreen() {
                                 )}
 
                                 <View style={styles.modalActions}>
+                                    <Pressable
+                                        onPress={close}
+                                        accessibilityRole="button">
+                                        <ThemedText themeColor="textSecondary">
+                                            Done
+                                        </ThemedText>
+                                    </Pressable>
+                                </View>
+                            </>
+                        )}
+
+                        {inviting && invitation === null && (
+                            <>
+                                <ThemedText type="subtitle">
+                                    {inviting.target
+                                        ? `Invite ${inviting.target.name}`
+                                        : 'Invite someone'}
+                                </ThemedText>
+                                <ThemedText
+                                    type="small"
+                                    themeColor="textSecondary">
+                                    {inviting.target
+                                        ? 'They sign in as this member and keep everything already assigned to them.'
+                                        : 'They join the family as a new member.'}
+                                </ThemedText>
+
+                                <ThemedText
+                                    type="smallBold"
+                                    themeColor="textSecondary"
+                                    style={styles.groupLabel}>
+                                    Role
+                                </ThemedText>
+                                {MEMBER_ROLES.map((role) => (
+                                    <Pressable
+                                        key={role}
+                                        onPress={() => setInviteRole(role)}
+                                        disabled={pending}
+                                        accessibilityRole="button"
+                                        accessibilityState={{
+                                            selected: role === inviteRole,
+                                        }}
+                                        accessibilityLabel={`Invite as ${ROLE_LABELS[role]}`}
+                                        style={({ pressed }) => [
+                                            styles.option,
+                                            role === inviteRole && {
+                                                backgroundColor:
+                                                    theme.backgroundSelected,
+                                            },
+                                            pressed && { opacity: 0.6 },
+                                        ]}>
+                                        <View style={styles.optionText}>
+                                            <ThemedText type="default">
+                                                {ROLE_LABELS[role]}
+                                            </ThemedText>
+                                            <ThemedText
+                                                type="small"
+                                                themeColor="textSecondary">
+                                                {ROLE_HINTS[role]}
+                                            </ThemedText>
+                                        </View>
+                                        {role === inviteRole && (
+                                            <SymbolView
+                                                name={{
+                                                    ios: 'checkmark',
+                                                    web: 'check',
+                                                }}
+                                                tintColor={theme.text}
+                                                size={18}
+                                            />
+                                        )}
+                                    </Pressable>
+                                ))}
+
+                                {error && (
+                                    <ThemedText
+                                        type="small"
+                                        style={{ color: theme.destructive }}>
+                                        {error}
+                                    </ThemedText>
+                                )}
+
+                                <View style={styles.modalActions}>
+                                    <Pressable
+                                        onPress={close}
+                                        disabled={pending}
+                                        accessibilityRole="button">
+                                        <ThemedText themeColor="textSecondary">
+                                            Cancel
+                                        </ThemedText>
+                                    </Pressable>
+                                    <Pressable
+                                        onPress={createCode}
+                                        disabled={pending}
+                                        accessibilityRole="button">
+                                        <ThemedText themeColor="link">
+                                            Create a code
+                                        </ThemedText>
+                                    </Pressable>
+                                </View>
+                            </>
+                        )}
+
+                        {inviting && invitation !== null && (
+                            <>
+                                <ThemedText type="subtitle">
+                                    Their invite code
+                                </ThemedText>
+                                <ThemedText
+                                    selectable
+                                    style={[
+                                        styles.code,
+                                        { color: theme.text },
+                                    ]}>
+                                    {invitation.code}
+                                </ThemedText>
+                                <ThemedText
+                                    type="small"
+                                    themeColor="textSecondary">
+                                    Anyone holding this code can join your
+                                    family as {ROLE_LABELS[inviteRole]}. It
+                                    stops working on{' '}
+                                    {new Date(
+                                        invitation.expiresAt
+                                    ).toLocaleDateString()}
+                                    .
+                                </ThemedText>
+                                <ThemedText
+                                    type="small"
+                                    themeColor="textSecondary">
+                                    Nothing is emailed - pass it on yourself.
+                                </ThemedText>
+
+                                <View style={styles.modalActions}>
+                                    <Pressable
+                                        onPress={copyCode}
+                                        accessibilityRole="button"
+                                        accessibilityLabel="Copy the invite code">
+                                        <ThemedText themeColor="link">
+                                            {copied ? 'Copied' : 'Copy code'}
+                                        </ThemedText>
+                                    </Pressable>
                                     <Pressable
                                         onPress={close}
                                         accessibilityRole="button">
@@ -461,6 +686,14 @@ const styles = StyleSheet.create({
     optionText: {
         flex: 1,
         gap: Spacing.half,
+    },
+    code: {
+        fontSize: 30,
+        lineHeight: 38,
+        fontWeight: '600',
+        letterSpacing: 3,
+        textAlign: 'center',
+        paddingVertical: Spacing.two,
     },
     modalActions: {
         flexDirection: 'row',
