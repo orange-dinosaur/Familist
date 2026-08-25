@@ -26,10 +26,13 @@ import {
 import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useMembers } from '@/hooks/use-members';
+import { usePermissions } from '@/hooks/use-permissions';
 import { useTodos } from '@/hooks/use-todos';
 
 interface TodoRowProps {
     todo: TodoItem;
+    canManage: boolean;
+    canToggle: boolean;
     onToggle: () => void;
     onEdit: () => void;
     onDelete: () => void;
@@ -38,7 +41,16 @@ interface TodoRowProps {
 }
 
 const TodoRow = React.memo(
-    ({ todo, onToggle, onEdit, onDelete, onAssign, theme }: TodoRowProps) => {
+    ({
+        todo,
+        canManage,
+        canToggle,
+        onToggle,
+        onEdit,
+        onDelete,
+        onAssign,
+        theme,
+    }: TodoRowProps) => {
         const { members } = useMembers();
         const swipeableRef = useRef<Swipeable>(null);
 
@@ -130,7 +142,7 @@ const TodoRow = React.memo(
                 ref={swipeableRef}
                 friction={2}
                 rightThreshold={40}
-                renderRightActions={renderRightActions}
+                renderRightActions={canManage ? renderRightActions : undefined}
                 containerStyle={styles.swipeableContainer}>
                 <View
                     style={[
@@ -141,6 +153,7 @@ const TodoRow = React.memo(
                     ]}>
                     <Pressable
                         onPress={onToggle}
+                        disabled={!canToggle}
                         style={({ pressed }) => [
                             styles.todoMain,
                             pressed && { opacity: 0.6 },
@@ -155,7 +168,9 @@ const TodoRow = React.memo(
                                     : 'radio_button_unchecked',
                             }}
                             tintColor={
-                                todo.done ? theme.textSecondary : theme.text
+                                todo.done || !canToggle
+                                    ? theme.textSecondary
+                                    : theme.text
                             }
                             size={22}
                         />
@@ -179,42 +194,45 @@ const TodoRow = React.memo(
                         </ThemedText>
                     </Pressable>
 
-                    <Pressable
-                        onPress={onAssign}
-                        accessibilityLabel={
-                            assignee
-                                ? `Assigned to ${assignee.name}. Change assignee`
-                                : 'Assign task'
-                        }
-                        accessibilityRole="button"
-                        style={styles.assigneeBadgeContainer}>
-                        <View
-                            style={[
-                                styles.assigneeAvatar,
-                                {
-                                    backgroundColor: assignee
-                                        ? theme[assignee.color]
-                                        : theme.backgroundSelected,
-                                },
-                            ]}>
-                            {assignee ? (
-                                <ThemedText
-                                    themeColor="background"
-                                    style={styles.assigneeInitials}>
-                                    {assignee.initials}
-                                </ThemedText>
-                            ) : (
-                                <SymbolView
-                                    name={{
-                                        ios: 'person.crop.circle',
-                                        web: 'person_outline',
-                                    }}
-                                    tintColor={theme.textSecondary}
-                                    size={14}
-                                />
-                            )}
-                        </View>
-                    </Pressable>
+                    {(canManage || assignee) && (
+                        <Pressable
+                            onPress={onAssign}
+                            disabled={!canManage}
+                            accessibilityLabel={
+                                assignee
+                                    ? `Assigned to ${assignee.name}. Change assignee`
+                                    : 'Assign task'
+                            }
+                            accessibilityRole="button"
+                            style={styles.assigneeBadgeContainer}>
+                            <View
+                                style={[
+                                    styles.assigneeAvatar,
+                                    {
+                                        backgroundColor: assignee
+                                            ? theme[assignee.color]
+                                            : theme.backgroundSelected,
+                                    },
+                                ]}>
+                                {assignee ? (
+                                    <ThemedText
+                                        themeColor="background"
+                                        style={styles.assigneeInitials}>
+                                        {assignee.initials}
+                                    </ThemedText>
+                                ) : (
+                                    <SymbolView
+                                        name={{
+                                            ios: 'person.crop.circle',
+                                            web: 'person_outline',
+                                        }}
+                                        tintColor={theme.textSecondary}
+                                        size={14}
+                                    />
+                                )}
+                            </View>
+                        </Pressable>
+                    )}
                 </View>
             </Swipeable>
         );
@@ -235,6 +253,7 @@ export default function TodoScreen() {
         assignTodo,
     } = useTodos();
     const { members } = useMembers();
+    const { canManageContent, canToggle } = usePermissions();
     const [modalVisible, setModalVisible] = useState(false);
     const [assigningTodoId, setAssigningTodoId] = useState<string | null>(null);
     const [daysShowingCompleted, setDaysShowingCompleted] = useState<
@@ -433,23 +452,27 @@ export default function TodoScreen() {
                                             </View>
                                         )}
                                     </View>
-                                    <Pressable
-                                        onPress={() => openAddModalForDay(day)}
-                                        accessibilityLabel={`Add todo for ${formatLocalDateString(day)}`}
-                                        accessibilityRole="button"
-                                        style={({ pressed }) => [
-                                            styles.dayAddButton,
-                                            pressed && { opacity: 0.7 },
-                                        ]}>
-                                        <SymbolView
-                                            name={{
-                                                ios: 'plus.circle.fill',
-                                                web: 'add_circle',
-                                            }}
-                                            tintColor={theme.text}
-                                            size={22}
-                                        />
-                                    </Pressable>
+                                    {canManageContent && (
+                                        <Pressable
+                                            onPress={() =>
+                                                openAddModalForDay(day)
+                                            }
+                                            accessibilityLabel={`Add todo for ${formatLocalDateString(day)}`}
+                                            accessibilityRole="button"
+                                            style={({ pressed }) => [
+                                                styles.dayAddButton,
+                                                pressed && { opacity: 0.7 },
+                                            ]}>
+                                            <SymbolView
+                                                name={{
+                                                    ios: 'plus.circle.fill',
+                                                    web: 'add_circle',
+                                                }}
+                                                tintColor={theme.text}
+                                                size={22}
+                                            />
+                                        </Pressable>
+                                    )}
                                 </View>
 
                                 {/* Day Progress Bar */}
@@ -491,6 +514,10 @@ export default function TodoScreen() {
                                                 key={todo.id}
                                                 todo={todo}
                                                 theme={theme}
+                                                canManage={canManageContent}
+                                                canToggle={canToggle(
+                                                    todo.assigneeId
+                                                )}
                                                 onToggle={() =>
                                                     toggleTodo(todo.id)
                                                 }
@@ -554,33 +581,35 @@ export default function TodoScreen() {
                 </ScrollView>
 
                 {/* Add todo button */}
-                <View style={styles.addButtonContainer}>
-                    <Pressable
-                        onPress={openAddModal}
-                        accessibilityLabel="Add task"
-                        accessibilityRole="button"
-                        style={({ pressed }) => [
-                            styles.addButton,
-                            { backgroundColor: theme.text },
-                            pressed && { opacity: 0.8 },
-                        ]}>
-                        <SymbolView
-                            name={{
-                                ios: 'plus',
-                                web: 'add',
-                            }}
-                            tintColor={theme.background}
-                            size={20}
-                        />
-                        <ThemedText
-                            style={[
-                                styles.addButtonText,
-                                { color: theme.background },
+                {canManageContent && (
+                    <View style={styles.addButtonContainer}>
+                        <Pressable
+                            onPress={openAddModal}
+                            accessibilityLabel="Add task"
+                            accessibilityRole="button"
+                            style={({ pressed }) => [
+                                styles.addButton,
+                                { backgroundColor: theme.text },
+                                pressed && { opacity: 0.8 },
                             ]}>
-                            Add Task
-                        </ThemedText>
-                    </Pressable>
-                </View>
+                            <SymbolView
+                                name={{
+                                    ios: 'plus',
+                                    web: 'add',
+                                }}
+                                tintColor={theme.background}
+                                size={20}
+                            />
+                            <ThemedText
+                                style={[
+                                    styles.addButtonText,
+                                    { color: theme.background },
+                                ]}>
+                                Add Task
+                            </ThemedText>
+                        </Pressable>
+                    </View>
+                )}
             </SafeAreaView>
 
             {/* Modal dialog */}

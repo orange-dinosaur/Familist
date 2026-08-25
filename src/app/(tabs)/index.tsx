@@ -578,6 +578,11 @@ export default function HomeScreen() {
                                                         onPress={() =>
                                                             toggleTodo(item.id)
                                                         }
+                                                        disabled={
+                                                            !canToggle(
+                                                                item.assigneeId
+                                                            )
+                                                        }
                                                         style={
                                                             styles.expandedCheckItem
                                                         }>
@@ -591,7 +596,10 @@ export default function HomeScreen() {
                                                                     : 'radio_button_unchecked',
                                                             }}
                                                             tintColor={
-                                                                item.done
+                                                                item.done ||
+                                                                !canToggle(
+                                                                    item.assigneeId
+                                                                )
                                                                     ? theme.textSecondary
                                                                     : theme.text
                                                             }
@@ -673,13 +681,24 @@ export default function HomeScreen() {
                                                     onPress={() =>
                                                         toggleTodo(item.id)
                                                     }
+                                                    disabled={
+                                                        !canToggle(
+                                                            item.assigneeId
+                                                        )
+                                                    }
                                                     style={styles.checkItem}>
                                                     <SymbolView
                                                         name={{
                                                             ios: 'square',
                                                             web: 'check_box_outline_blank',
                                                         }}
-                                                        tintColor={theme.text}
+                                                        tintColor={
+                                                            canToggle(
+                                                                item.assigneeId
+                                                            )
+                                                                ? theme.text
+                                                                : theme.textSecondary
+                                                        }
                                                         size={16}
                                                     />
                                                     <View
