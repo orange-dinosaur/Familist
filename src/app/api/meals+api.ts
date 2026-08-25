@@ -17,9 +17,11 @@ import {
     dayError,
     emojiError,
     forbidden,
+    idError,
     MEAL_COLUMNS,
     nameError,
     readSince,
+    retriedCreate,
     timeError,
 } from '@/db/content';
 import { meal } from '@/db/schema';
@@ -65,6 +67,7 @@ export async function POST(request: Request): Promise<Response> {
     }
 
     let body: {
+        id?: unknown;
         name?: unknown;
         time?: unknown;
         emoji?: unknown;
@@ -76,7 +79,15 @@ export async function POST(request: Request): Promise<Response> {
         return badRequest('Invalid body');
     }
 
-    const { name, time, emoji, day } = body;
+    const { id, name, time, emoji, day } = body;
+
+    /** A client mints this when it creates a record it cannot yet send. */
+    if (id !== undefined) {
+        const invalidId = idError(id);
+        if (invalidId) return badRequest(invalidId);
+    }
+
+    const recordId = typeof id === 'string' ? id : createId();
 
     const invalid = nameError(name) ?? timeError(time) ?? dayError(day);
     if (invalid) return badRequest(invalid);
@@ -89,14 +100,23 @@ export async function POST(request: Request): Promise<Response> {
     const [created] = await db
         .insert(meal)
         .values({
-            id: createId(),
+            id: recordId,
             familyId: membership.familyId,
             name: (name as string).trim(),
             time: time as MealItem['time'],
             emoji: emoji === undefined ? '' : (emoji as string),
             day: day as string,
         })
+        .onConflictDoNothing()
         .returning(MEAL_COLUMNS);
 
-    return Response.json({ meal: created }, { status: 201 });
+    if (created) return Response.json({ meal: created }, { status: 201 });
+
+    return retriedCreate(
+        meal,
+        MEAL_COLUMNS,
+        'meal',
+        recordId,
+        membership.familyId
+    );
 }

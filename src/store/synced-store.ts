@@ -14,6 +14,7 @@ import {
     createRemoteClient,
     type RemoteCollection,
 } from '@/store/remote-client';
+import { createId } from '@/utils/id';
 
 /**
  * Both sides send `updatedAt` as the same ISO-8601 UTC string the server
@@ -99,8 +100,15 @@ export function createSyncedStore<T extends Entity>(
             return local.list();
         },
 
+        /**
+         * The id is minted here rather than by the server, so the record has
+         * one from the moment it exists - which is what will let a create be
+         * queued, retried and referred to by later changes before it has ever
+         * been sent.
+         */
         async create(input) {
-            const created = await remote.create(input);
+            const record = { ...input, id: createId() } as T;
+            const created = await remote.create(record);
             await local.replace([...(await local.list()), created]);
             return created;
         },

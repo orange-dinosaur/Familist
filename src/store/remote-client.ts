@@ -41,7 +41,12 @@ export interface RemoteClient<T extends Entity> {
      * everything touched since, tombstones included.
      */
     pull(since: string | null): Promise<T[]>;
-    create(input: Omit<T, 'id'>): Promise<T>;
+    /**
+     * The record complete with the id its caller chose. Sending the id is what
+     * makes the request safe to repeat: a second attempt at one the server
+     * already stored answers with that record rather than storing a duplicate.
+     */
+    create(record: T): Promise<T>;
     update(id: string, changes: Changes<T>): Promise<T>;
     remove(id: string): Promise<void>;
 }
@@ -81,8 +86,8 @@ export function createRemoteClient<T extends Entity>({
             return (body[many] as T[]) ?? [];
         },
 
-        async create(input) {
-            const body = await send(path, withBody('POST', input));
+        async create(record) {
+            const body = await send(path, withBody('POST', record));
             return body[one] as T;
         },
 

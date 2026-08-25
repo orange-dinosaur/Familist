@@ -7,6 +7,7 @@
  */
 
 import { and, eq, isNull } from 'drizzle-orm';
+import { type PgColumn } from 'drizzle-orm/pg-core';
 
 import { db } from '@/db';
 import { chore, familyMember, meal, todo } from '@/db/schema';
@@ -166,6 +167,21 @@ export async function assigneeInFamily(
 }
 
 /**
+ * Length and shape only. A record id is a primary key, not a secret: family
+ * scoping is what keeps one family out of another's rows, so a client that
+ * mints its own - which it must, to create a record before it can reach the
+ * server - only has to produce a plausible key.
+ */
+const ID_PATTERN = /^[a-z0-9-]{1,64}$/;
+
+export function idError(value: unknown): string | null {
+    if (typeof value !== 'string' || !ID_PATTERN.test(value)) {
+        return 'Invalid id';
+    }
+    return null;
+}
+
+/**
  * `?since=` turns a read into an incremental one: everything the family has
  * touched after that instant, tombstones included, so a puller learns about
  * deletions as well as edits. Absent, the read is the live collection.
@@ -194,6 +210,30 @@ export function readSince(request: Request): {
     }
 
     return { at, error: null };
+}
+
+/**
+ * A `POST` whose id was already taken. Almost always a client resending a
+ * create it never heard the answer to, so the record it asked for is handed
+ * back and the retry is a no-op rather than an error. An id that belongs to
+ * another family is not that, and is refused without saying whose it is.
+ */
+export async function retriedCreate(
+    table: typeof meal | typeof chore | typeof todo,
+    columns: Record<string, PgColumn>,
+    key: string,
+    id: string,
+    familyId: string
+): Promise<Response> {
+    const [existing] = await db
+        .select(columns)
+        .from(table)
+        .where(and(eq(table.id, id), eq(table.familyId, familyId)))
+        .limit(1);
+
+    if (!existing) return badRequest('That id is taken');
+
+    return Response.json({ [key]: existing });
 }
 
 export function badRequest(error: string): Response {

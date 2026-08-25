@@ -18,10 +18,12 @@ import {
     badRequest,
     dayError,
     forbidden,
+    idError,
     labelError,
     notFound,
     priorityError,
     readSince,
+    retriedCreate,
     TODO_COLUMNS,
 } from '@/db/content';
 import { todo } from '@/db/schema';
@@ -57,6 +59,7 @@ export async function POST(request: Request): Promise<Response> {
     }
 
     let body: {
+        id?: unknown;
         label?: unknown;
         day?: unknown;
         priority?: unknown;
@@ -68,7 +71,15 @@ export async function POST(request: Request): Promise<Response> {
         return badRequest('Invalid body');
     }
 
-    const { label, day, priority, assigneeId } = body;
+    const { id, label, day, priority, assigneeId } = body;
+
+    /** A client mints this when it creates a record it cannot yet send. */
+    if (id !== undefined) {
+        const invalidId = idError(id);
+        if (invalidId) return badRequest(invalidId);
+    }
+
+    const recordId = typeof id === 'string' ? id : createId();
 
     /** `priority` is `NOT NULL` with no default, so the route asks for it. */
     const invalid =
@@ -92,14 +103,23 @@ export async function POST(request: Request): Promise<Response> {
     const [created] = await db
         .insert(todo)
         .values({
-            id: createId(),
+            id: recordId,
             familyId: membership.familyId,
             label: (label as string).trim(),
             day: day as string,
             priority: priority as TodoItem['priority'],
             assigneeId: assignee,
         })
+        .onConflictDoNothing()
         .returning(TODO_COLUMNS);
 
-    return Response.json({ todo: created }, { status: 201 });
+    if (created) return Response.json({ todo: created }, { status: 201 });
+
+    return retriedCreate(
+        todo,
+        TODO_COLUMNS,
+        'todo',
+        recordId,
+        membership.familyId
+    );
 }

@@ -20,9 +20,11 @@ import {
     CHORE_COLUMNS,
     dayError,
     forbidden,
+    idError,
     labelError,
     notFound,
     readSince,
+    retriedCreate,
 } from '@/db/content';
 import { chore } from '@/db/schema';
 import { createId } from '@/utils/id';
@@ -56,14 +58,27 @@ export async function POST(request: Request): Promise<Response> {
         return forbidden('You can only tick off what is assigned to you');
     }
 
-    let body: { label?: unknown; day?: unknown; assigneeId?: unknown };
+    let body: {
+        id?: unknown;
+        label?: unknown;
+        day?: unknown;
+        assigneeId?: unknown;
+    };
     try {
         body = await request.json();
     } catch {
         return badRequest('Invalid body');
     }
 
-    const { label, day, assigneeId } = body;
+    const { id, label, day, assigneeId } = body;
+
+    /** A client mints this when it creates a record it cannot yet send. */
+    if (id !== undefined) {
+        const invalidId = idError(id);
+        if (invalidId) return badRequest(invalidId);
+    }
+
+    const recordId = typeof id === 'string' ? id : createId();
 
     const invalid = labelError(label) ?? dayError(day);
     if (invalid) return badRequest(invalid);
@@ -85,13 +100,22 @@ export async function POST(request: Request): Promise<Response> {
     const [created] = await db
         .insert(chore)
         .values({
-            id: createId(),
+            id: recordId,
             familyId: membership.familyId,
             label: (label as string).trim(),
             day: day as string,
             assigneeId: assignee,
         })
+        .onConflictDoNothing()
         .returning(CHORE_COLUMNS);
 
-    return Response.json({ chore: created }, { status: 201 });
+    if (created) return Response.json({ chore: created }, { status: 201 });
+
+    return retriedCreate(
+        chore,
+        CHORE_COLUMNS,
+        'chore',
+        recordId,
+        membership.familyId
+    );
 }
