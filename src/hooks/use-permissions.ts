@@ -11,9 +11,18 @@ import { useFamily } from '@/hooks/use-family';
  */
 export function usePermissions() {
     const { member } = useFamily();
+    const role = member?.role ?? null;
+    const canManageContent = role === 'owner' || role === 'editor';
 
     return {
         /** Creating, editing, deleting and assigning: owners and editors. */
-        canManageContent: member?.role === 'owner' || member?.role === 'editor',
+        canManageContent,
+
+        /**
+         * Ticking something off. A checker may only touch what is assigned to
+         * them, which is the one rule the routes fold into the `WHERE` clause.
+         */
+        canToggle: (assigneeId?: string) =>
+            role === 'checker' ? assigneeId === member?.id : canManageContent,
     };
 }

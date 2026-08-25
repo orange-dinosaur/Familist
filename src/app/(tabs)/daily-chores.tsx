@@ -25,10 +25,13 @@ import {
 import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
 import { PRESET_CHORES, useChores } from '@/hooks/use-chores';
 import { useMembers } from '@/hooks/use-members';
+import { usePermissions } from '@/hooks/use-permissions';
 import { useTheme } from '@/hooks/use-theme';
 
 interface ChoreRowProps {
     chore: ChoreItem;
+    canManage: boolean;
+    canToggle: boolean;
     onToggle: () => void;
     onDelete: () => void;
     onAssign: () => void;
@@ -36,7 +39,15 @@ interface ChoreRowProps {
 }
 
 const ChoreRow = React.memo(
-    ({ chore, onToggle, onDelete, onAssign, theme }: ChoreRowProps) => {
+    ({
+        chore,
+        canManage,
+        canToggle,
+        onToggle,
+        onDelete,
+        onAssign,
+        theme,
+    }: ChoreRowProps) => {
         const { members } = useMembers();
         const swipeableRef = useRef<Swipeable>(null);
 
@@ -89,7 +100,7 @@ const ChoreRow = React.memo(
                 ref={swipeableRef}
                 friction={2}
                 rightThreshold={40}
-                renderRightActions={renderRightActions}
+                renderRightActions={canManage ? renderRightActions : undefined}
                 containerStyle={styles.swipeableContainer}>
                 <View
                     style={[
@@ -100,6 +111,7 @@ const ChoreRow = React.memo(
                     ]}>
                     <Pressable
                         onPress={onToggle}
+                        disabled={!canToggle}
                         style={({ pressed }) => [
                             styles.choreMain,
                             pressed && { opacity: 0.6 },
@@ -114,7 +126,9 @@ const ChoreRow = React.memo(
                                     : 'radio_button_unchecked',
                             }}
                             tintColor={
-                                chore.done ? theme.textSecondary : theme.text
+                                chore.done || !canToggle
+                                    ? theme.textSecondary
+                                    : theme.text
                             }
                             size={22}
                         />
@@ -130,41 +144,47 @@ const ChoreRow = React.memo(
                     </Pressable>
 
                     {/* Assignee button */}
-                    <Pressable
-                        onPress={onAssign}
-                        style={styles.assigneeBadgeContainer}>
-                        {assignee ? (
-                            <View
-                                style={[
-                                    styles.assigneeAvatar,
-                                    { backgroundColor: theme[assignee.color] },
-                                ]}>
-                                <ThemedText
-                                    themeColor="background"
-                                    style={styles.assigneeInitials}>
-                                    {assignee.initials}
-                                </ThemedText>
-                            </View>
-                        ) : (
-                            <View
-                                style={[
-                                    styles.assigneeAvatar,
-                                    {
-                                        backgroundColor:
-                                            theme.backgroundSelected,
-                                    },
-                                ]}>
-                                <SymbolView
-                                    name={{
-                                        ios: 'person.crop.circle',
-                                        web: 'person_outline',
-                                    }}
-                                    tintColor={theme.textSecondary}
-                                    size={14}
-                                />
-                            </View>
-                        )}
-                    </Pressable>
+                    {(canManage || assignee) && (
+                        <Pressable
+                            onPress={onAssign}
+                            disabled={!canManage}
+                            style={styles.assigneeBadgeContainer}>
+                            {assignee ? (
+                                <View
+                                    style={[
+                                        styles.assigneeAvatar,
+                                        {
+                                            backgroundColor:
+                                                theme[assignee.color],
+                                        },
+                                    ]}>
+                                    <ThemedText
+                                        themeColor="background"
+                                        style={styles.assigneeInitials}>
+                                        {assignee.initials}
+                                    </ThemedText>
+                                </View>
+                            ) : (
+                                <View
+                                    style={[
+                                        styles.assigneeAvatar,
+                                        {
+                                            backgroundColor:
+                                                theme.backgroundSelected,
+                                        },
+                                    ]}>
+                                    <SymbolView
+                                        name={{
+                                            ios: 'person.crop.circle',
+                                            web: 'person_outline',
+                                        }}
+                                        tintColor={theme.textSecondary}
+                                        size={14}
+                                    />
+                                </View>
+                            )}
+                        </Pressable>
+                    )}
                 </View>
             </Swipeable>
         );
@@ -184,6 +204,7 @@ export default function DailyChoresScreen() {
         assignChore,
     } = useChores();
     const { members } = useMembers();
+    const { canManageContent, canToggle } = usePermissions();
     const [modalVisible, setModalVisible] = useState(false);
     const [assigningChoreId, setAssigningChoreId] = useState<string | null>(
         null
@@ -329,23 +350,27 @@ export default function DailyChoresScreen() {
                                             </View>
                                         )}
                                     </View>
-                                    <Pressable
-                                        onPress={() => openAddModalForDay(day)}
-                                        accessibilityLabel={`Add chores for ${formatLocalDateString(day)}`}
-                                        accessibilityRole="button"
-                                        style={({ pressed }) => [
-                                            styles.dayAddButton,
-                                            pressed && { opacity: 0.7 },
-                                        ]}>
-                                        <SymbolView
-                                            name={{
-                                                ios: 'plus.circle.fill',
-                                                web: 'add_circle',
-                                            }}
-                                            tintColor={theme.text}
-                                            size={22}
-                                        />
-                                    </Pressable>
+                                    {canManageContent && (
+                                        <Pressable
+                                            onPress={() =>
+                                                openAddModalForDay(day)
+                                            }
+                                            accessibilityLabel={`Add chores for ${formatLocalDateString(day)}`}
+                                            accessibilityRole="button"
+                                            style={({ pressed }) => [
+                                                styles.dayAddButton,
+                                                pressed && { opacity: 0.7 },
+                                            ]}>
+                                            <SymbolView
+                                                name={{
+                                                    ios: 'plus.circle.fill',
+                                                    web: 'add_circle',
+                                                }}
+                                                tintColor={theme.text}
+                                                size={22}
+                                            />
+                                        </Pressable>
+                                    )}
                                 </View>
 
                                 {/* Day Progress Bar */}
@@ -387,6 +412,10 @@ export default function DailyChoresScreen() {
                                                 key={chore.id}
                                                 chore={chore}
                                                 theme={theme}
+                                                canManage={canManageContent}
+                                                canToggle={canToggle(
+                                                    chore.assigneeId
+                                                )}
                                                 onToggle={() =>
                                                     toggleChore(chore.id)
                                                 }
@@ -408,33 +437,35 @@ export default function DailyChoresScreen() {
                 </ScrollView>
 
                 {/* Add chores button */}
-                <View style={styles.addButtonContainer}>
-                    <Pressable
-                        onPress={openAddModal}
-                        accessibilityLabel="Add chores"
-                        accessibilityRole="button"
-                        style={({ pressed }) => [
-                            styles.addButton,
-                            { backgroundColor: theme.text },
-                            pressed && { opacity: 0.8 },
-                        ]}>
-                        <SymbolView
-                            name={{
-                                ios: 'plus',
-                                web: 'add',
-                            }}
-                            tintColor={theme.background}
-                            size={20}
-                        />
-                        <ThemedText
-                            style={[
-                                styles.addButtonText,
-                                { color: theme.background },
+                {canManageContent && (
+                    <View style={styles.addButtonContainer}>
+                        <Pressable
+                            onPress={openAddModal}
+                            accessibilityLabel="Add chores"
+                            accessibilityRole="button"
+                            style={({ pressed }) => [
+                                styles.addButton,
+                                { backgroundColor: theme.text },
+                                pressed && { opacity: 0.8 },
                             ]}>
-                            Add Chores
-                        </ThemedText>
-                    </Pressable>
-                </View>
+                            <SymbolView
+                                name={{
+                                    ios: 'plus',
+                                    web: 'add',
+                                }}
+                                tintColor={theme.background}
+                                size={20}
+                            />
+                            <ThemedText
+                                style={[
+                                    styles.addButtonText,
+                                    { color: theme.background },
+                                ]}>
+                                Add Chores
+                            </ThemedText>
+                        </Pressable>
+                    </View>
+                )}
             </SafeAreaView>
 
             {/* Manage chores modal */}

@@ -11,6 +11,7 @@ import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
 import { useChores } from '@/hooks/use-chores';
 import { useMeals } from '@/hooks/use-meals';
 import { useMembers } from '@/hooks/use-members';
+import { usePermissions } from '@/hooks/use-permissions';
 import { useTheme } from '@/hooks/use-theme';
 import { useTodos } from '@/hooks/use-todos';
 
@@ -37,6 +38,7 @@ export default function HomeScreen() {
     const { meals, loading: mealsLoading } = useMeals();
     const { chores, loading: choresLoading, toggleChore } = useChores();
     const { todos, loading: todosLoading, toggleTodo } = useTodos();
+    const { canToggle } = usePermissions();
 
     const [mealsExpanded, setMealsExpanded] = useState(false);
     const [choresExpanded, setChoresExpanded] = useState(false);
@@ -316,6 +318,11 @@ export default function HomeScreen() {
                                                         onPress={() =>
                                                             toggleChore(item.id)
                                                         }
+                                                        disabled={
+                                                            !canToggle(
+                                                                item.assigneeId
+                                                            )
+                                                        }
                                                         style={
                                                             styles.expandedCheckItem
                                                         }>
@@ -329,7 +336,10 @@ export default function HomeScreen() {
                                                                     : 'radio_button_unchecked',
                                                             }}
                                                             tintColor={
-                                                                item.done
+                                                                item.done ||
+                                                                !canToggle(
+                                                                    item.assigneeId
+                                                                )
                                                                     ? theme.textSecondary
                                                                     : theme.text
                                                             }
@@ -397,6 +407,11 @@ export default function HomeScreen() {
                                                     onPress={() =>
                                                         toggleChore(item.id)
                                                     }
+                                                    disabled={
+                                                        !canToggle(
+                                                            item.assigneeId
+                                                        )
+                                                    }
                                                     style={styles.checkItem}>
                                                     <SymbolView
                                                         name={{
@@ -408,7 +423,10 @@ export default function HomeScreen() {
                                                                 : 'check_box_outline_blank',
                                                         }}
                                                         tintColor={
-                                                            item.done
+                                                            item.done ||
+                                                            !canToggle(
+                                                                item.assigneeId
+                                                            )
                                                                 ? theme.textSecondary
                                                                 : theme.text
                                                         }
