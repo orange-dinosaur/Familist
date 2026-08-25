@@ -3,12 +3,13 @@
  *
  * Screens read what is already on the device, so the app opens with data and
  * survives a refresh with no connection. Writes apply locally at once and are
- * queued; the queue is pushed when the server can be reached. A push the
- * server *refuses* - as opposed to one that never arrives - is undone locally
- * and reported, because retrying it would never succeed.
+ * queued; the queue is pushed when the server can be reached, and again
+ * whenever the connection or the foreground comes back. A push the server
+ * *refuses* - as opposed to one that never arrives - is undone locally and
+ * reported, because retrying it would never succeed.
  */
 
-import { forgetLegacy, readLegacy } from '@/store/adopt-local';
+import { adoptMembers, forgetLegacy, readLegacy } from '@/store/adopt-local';
 import type { Changes, Entity, FamilyStore } from '@/store/family-store';
 import { getItem, setItem } from '@/store/key-value';
 import { createLocalStore } from '@/store/local-store';
@@ -17,6 +18,7 @@ import {
     StoreError,
     type RemoteCollection,
 } from '@/store/remote-client';
+import { onReconnect } from '@/store/reconnect';
 import { createId } from '@/utils/id';
 
 const OUTBOX_VERSION = 1;
@@ -258,11 +260,27 @@ export function createSyncedStore<T extends Entity>(
      *
      * The old key is dropped only once they are in the outbox, so a failure in
      * between leaves them to be read again rather than losing them.
+     *
+     * The members those records were assigned to are brought over first, so an
+     * assignee can be rewritten to the row that now stands for the same person
+     * rather than thrown away.
      */
     const adopt = async () => {
         if (!legacy) return;
 
-        const records = await readLegacy<T>(legacy);
+        let assignees: Map<string, string>;
+        try {
+            assignees = await adoptMembers();
+        } catch {
+            /**
+             * Without the map an assignee would be dropped for good, since the
+             * old key goes as soon as its records are queued. Better to leave
+             * everything where it is and try again next time.
+             */
+            return;
+        }
+
+        const records = await readLegacy<T>(legacy, assignees);
         if (records.length > 0) {
             const current = await local.list();
             const held = new Set(current.map((item) => item.id));
@@ -345,8 +363,22 @@ export function createSyncedStore<T extends Entity>(
 
         subscribe(listener) {
             const unsubscribe = local.subscribe(listener);
+
+            /**
+             * A write made with no connection sits in the outbox, and nothing
+             * else would go looking for it until the next write or the next
+             * launch. `flush` is safe to call at any time: an empty queue
+             * returns at once, and a drain already running is joined rather
+             * than started again.
+             */
+            const stopWatching = onReconnect(() => void flush());
+
             void sync();
-            return unsubscribe;
+
+            return () => {
+                stopWatching();
+                unsubscribe();
+            };
         },
 
         onRefusal(listener) {

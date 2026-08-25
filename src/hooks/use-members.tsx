@@ -9,6 +9,7 @@ import React, {
 import { apiFetch } from '@/auth/client';
 import { type MemberColor } from '@/constants/theme';
 import { useFamily } from '@/hooks/use-family';
+import { adoptMembers } from '@/store/adopt-local';
 import { type Member, type MemberRole } from '@/utils/member';
 
 interface MembersContextValue {
@@ -52,7 +53,15 @@ export function MembersProvider({ children }: { children: React.ReactNode }) {
         let active = true;
         setLoading(true);
 
-        apiFetch('/api/members')
+        /**
+         * Members this device kept before step 20d are brought into the family
+         * first, so the list that arrives already includes them. The same
+         * promise is awaited by each collection's store, which needs the map
+         * from old ids to new before it can adopt its own records.
+         */
+        adoptMembers()
+            .catch(() => {})
+            .then(() => apiFetch('/api/members'))
             .then((res) => (res.ok ? res.json() : null))
             .then((body) => {
                 if (active) setMembers(body?.members ?? []);
