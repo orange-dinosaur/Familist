@@ -15,6 +15,7 @@
         "format": "prettier --write \"**/*.{js,mjs,ts,tsx,md,json,css}\""
     },
     "dependencies": {
+        "@better-auth/expo": "1.7.1",
         "@opentelemetry/api": "^1.9.1",
         "@react-native-async-storage/async-storage": "2.2.0",
         "@react-navigation/bottom-tabs": "^7.15.5",
@@ -30,7 +31,9 @@
         "expo-glass-effect": "~55.0.10",
         "expo-image": "~55.0.8",
         "expo-linking": "~55.0.11",
+        "expo-network": "~55.0.17",
         "expo-router": "~55.0.11",
+        "expo-secure-store": "~55.0.17",
         "expo-server": "~55.0.12",
         "expo-splash-screen": "~55.0.16",
         "expo-status-bar": "~55.0.5",

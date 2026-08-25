@@ -2,6 +2,7 @@
  * Better Auth server instance. Server-side only.
  */
 
+import { expo } from '@better-auth/expo';
 import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 
@@ -13,4 +14,6 @@ export const auth = betterAuth({
     emailAndPassword: {
         enabled: true,
     },
+    plugins: [expo()],
+    trustedOrigins: ['familist://'],
 });
