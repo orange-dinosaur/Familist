@@ -173,6 +173,13 @@ export async function assigneeInFamily(
  * The value has to be one the server itself sent - the largest `updated_at`
  * the caller has seen - rather than a client clock, which would drift and skip
  * records.
+ *
+ * The comparison is inclusive, so the caller is handed back the records it
+ * already has at exactly that instant. That is deliberate: `updated_at` is
+ * written from JS and has millisecond resolution, so several rows touched in
+ * one burst can share a timestamp, and an exclusive bound would lose every one
+ * of them but the one that set the mark. Re-sending them costs a record or two
+ * per read and reconciles to the same result.
  */
 export function readSince(request: Request): {
     at: Date | null;

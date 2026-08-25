@@ -9,6 +9,15 @@ import type { Entity, FamilyStore } from '@/store/family-store';
 import { getItem, setItem } from '@/store/key-value';
 import { createId } from '@/utils/id';
 
+export interface LocalStore<T extends Entity> extends FamilyStore<T> {
+    /**
+     * Put the whole collection, ids and all. This is how a layer above writes
+     * records it did not invent - the ones a server assigned - which the
+     * `create` above cannot do because it mints an id of its own.
+     */
+    replace(items: T[]): Promise<void>;
+}
+
 const VERSION = 1;
 
 interface Envelope<T> {
@@ -19,7 +28,7 @@ interface Envelope<T> {
 export function createLocalStore<T extends Entity>(
     key: string,
     seed: T[] = []
-): FamilyStore<T> {
+): LocalStore<T> {
     let items: T[] = [];
     let loaded: Promise<void> | null = null;
     const listeners = new Set<(items: T[]) => void>();
@@ -98,6 +107,13 @@ export function createLocalStore<T extends Entity>(
             const remaining = items.filter((item) => item.id !== id);
             if (remaining.length === items.length) return;
             items = remaining;
+            emit();
+            await persist();
+        },
+
+        async replace(next) {
+            await load();
+            items = [...next];
             emit();
             await persist();
         },

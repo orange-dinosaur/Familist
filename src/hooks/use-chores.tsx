@@ -4,7 +4,7 @@ import { type ChoreItem } from '@/constants/mock-data';
 import { useFamily } from '@/hooks/use-family';
 import { useStoreCollection } from '@/hooks/use-store-collection';
 import { writeFailure } from '@/store/remote-client';
-import { createRemoteStore } from '@/store/remote-store';
+import { createSyncedStore } from '@/store/synced-store';
 
 const CHORES = { path: '/api/chores', one: 'chore', many: 'chores' };
 
@@ -45,7 +45,13 @@ export function ChoresProvider({ children }: { children: React.ReactNode }) {
     const familyId = family?.id ?? null;
 
     const store = useMemo(
-        () => (familyId ? createRemoteStore<ChoreItem>(CHORES) : null),
+        () =>
+            familyId
+                ? createSyncedStore<ChoreItem>(
+                      `familist.chores.${familyId}`,
+                      CHORES
+                  )
+                : null,
         [familyId]
     );
 

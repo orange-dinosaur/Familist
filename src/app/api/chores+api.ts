@@ -10,7 +10,7 @@
  * `chores/[id]`.
  */
 
-import { and, asc, eq, gt, isNull } from 'drizzle-orm';
+import { and, asc, eq, gte, isNull } from 'drizzle-orm';
 
 import { getMembership, unauthorized } from '@/auth/session';
 import { db } from '@/db';
@@ -40,7 +40,7 @@ export async function GET(request: Request): Promise<Response> {
         .where(
             and(
                 eq(chore.familyId, membership.familyId),
-                since ? gt(chore.updatedAt, since) : isNull(chore.deletedAt)
+                since ? gte(chore.updatedAt, since) : isNull(chore.deletedAt)
             )
         )
         .orderBy(asc(chore.day), asc(chore.createdAt), asc(chore.id));

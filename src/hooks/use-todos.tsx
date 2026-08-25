@@ -4,7 +4,7 @@ import { type TodoItem } from '@/constants/mock-data';
 import { useFamily } from '@/hooks/use-family';
 import { useStoreCollection } from '@/hooks/use-store-collection';
 import { writeFailure } from '@/store/remote-client';
-import { createRemoteStore } from '@/store/remote-store';
+import { createSyncedStore } from '@/store/synced-store';
 
 const TODOS = { path: '/api/todos', one: 'todo', many: 'todos' };
 
@@ -42,7 +42,13 @@ export function TodosProvider({ children }: { children: React.ReactNode }) {
     const familyId = family?.id ?? null;
 
     const store = useMemo(
-        () => (familyId ? createRemoteStore<TodoItem>(TODOS) : null),
+        () =>
+            familyId
+                ? createSyncedStore<TodoItem>(
+                      `familist.todos.${familyId}`,
+                      TODOS
+                  )
+                : null,
         [familyId]
     );
 

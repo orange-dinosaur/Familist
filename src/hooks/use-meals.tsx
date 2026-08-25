@@ -4,7 +4,7 @@ import { type MealItem } from '@/constants/mock-data';
 import { useFamily } from '@/hooks/use-family';
 import { useStoreCollection } from '@/hooks/use-store-collection';
 import { writeFailure } from '@/store/remote-client';
-import { createRemoteStore } from '@/store/remote-store';
+import { createSyncedStore } from '@/store/synced-store';
 
 const MEALS = { path: '/api/meals', one: 'meal', many: 'meals' };
 
@@ -23,11 +23,18 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
     const familyId = family?.id ?? null;
 
     /**
-     * One store per family, so signing out or joining somewhere else starts
-     * from an empty cache rather than showing the previous family's records.
+     * One store per family, with the family id in the storage key. The cache
+     * outlives the session now, so keying it by anything less would show one
+     * family's records to the next.
      */
     const store = useMemo(
-        () => (familyId ? createRemoteStore<MealItem>(MEALS) : null),
+        () =>
+            familyId
+                ? createSyncedStore<MealItem>(
+                      `familist.meals.${familyId}`,
+                      MEALS
+                  )
+                : null,
         [familyId]
     );
 

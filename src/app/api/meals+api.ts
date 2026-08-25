@@ -7,7 +7,7 @@
  * apply to and a checker only ever reads.
  */
 
-import { and, asc, eq, gt, isNull } from 'drizzle-orm';
+import { and, asc, eq, gte, isNull } from 'drizzle-orm';
 
 import { getMembership, unauthorized } from '@/auth/session';
 import { type MealItem } from '@/constants/mock-data';
@@ -43,7 +43,7 @@ export async function GET(request: Request): Promise<Response> {
         .where(
             and(
                 eq(meal.familyId, membership.familyId),
-                since ? gt(meal.updatedAt, since) : isNull(meal.deletedAt)
+                since ? gte(meal.updatedAt, since) : isNull(meal.deletedAt)
             )
         )
         .orderBy(
