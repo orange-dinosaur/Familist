@@ -1,3 +1,4 @@
+import { BlurView } from 'expo-blur';
 import { SymbolView } from 'expo-symbols';
 import { useFocusEffect } from 'expo-router';
 import React, { useState, useRef } from 'react';
@@ -27,6 +28,7 @@ import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
 import { PRESET_CHORES, useChores } from '@/hooks/use-chores';
 import { useMembers } from '@/hooks/use-members';
 import { usePermissions } from '@/hooks/use-permissions';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useTheme } from '@/hooks/use-theme';
 
 interface ChoreRowProps {
@@ -196,6 +198,7 @@ ChoreRow.displayName = 'ChoreRow';
 
 export default function DailyChoresScreen() {
     const theme = useTheme();
+    const scheme = useColorScheme();
     const {
         chores,
         loading,
@@ -681,10 +684,14 @@ export default function DailyChoresScreen() {
             {/* Assignee Selection Modal */}
             <Modal
                 visible={assigningChoreId !== null}
-                animationType="fade"
+                animationType="none"
                 transparent={true}
                 onRequestClose={() => setAssigningChoreId(null)}>
-                <View style={styles.modalOverlay}>
+                <BlurView
+                    intensity={40}
+                    tint={scheme === 'dark' ? 'dark' : 'light'}
+                    experimentalBlurMethod="dimezisBlurView"
+                    style={styles.modalOverlay}>
                     <Pressable
                         style={StyleSheet.absoluteFill}
                         onPress={() => setAssigningChoreId(null)}
@@ -799,7 +806,7 @@ export default function DailyChoresScreen() {
                             </ThemedText>
                         </Pressable>
                     </View>
-                </View>
+                </BlurView>
             </Modal>
         </ThemedView>
     );
@@ -1066,7 +1073,7 @@ const styles = StyleSheet.create({
     // Assignee Selection Modal
     modalOverlay: {
         flex: 1,
-        backgroundColor: 'rgba(0, 0, 0, 0.4)',
+        backgroundColor: 'rgba(0, 0, 0, 0.15)',
         justifyContent: 'flex-end',
         alignItems: 'center',
         paddingHorizontal: Spacing.four,

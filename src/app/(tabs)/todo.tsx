@@ -1,3 +1,4 @@
+import { BlurView } from 'expo-blur';
 import { SymbolView } from 'expo-symbols';
 import React, { useState, useRef } from 'react';
 import {
@@ -22,6 +23,7 @@ import {
 } from '@/constants/dates';
 import { type TodoItem } from '@/constants/types';
 import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useTheme } from '@/hooks/use-theme';
 import { useMembers } from '@/hooks/use-members';
 import { usePermissions } from '@/hooks/use-permissions';
@@ -271,6 +273,7 @@ TodoRow.displayName = 'TodoRow';
 
 export default function TodoScreen() {
     const theme = useTheme();
+    const scheme = useColorScheme();
     const {
         todos,
         loading,
@@ -853,10 +856,14 @@ export default function TodoScreen() {
             {/* Assignee Selection Modal */}
             <Modal
                 visible={assigningTodoId !== null}
-                animationType="fade"
+                animationType="none"
                 transparent={true}
                 onRequestClose={() => setAssigningTodoId(null)}>
-                <View style={styles.modalOverlay}>
+                <BlurView
+                    intensity={40}
+                    tint={scheme === 'dark' ? 'dark' : 'light'}
+                    experimentalBlurMethod="dimezisBlurView"
+                    style={styles.modalOverlay}>
                     <Pressable
                         style={StyleSheet.absoluteFill}
                         onPress={() => setAssigningTodoId(null)}
@@ -968,7 +975,7 @@ export default function TodoScreen() {
                             </ThemedText>
                         </Pressable>
                     </View>
-                </View>
+                </BlurView>
             </Modal>
         </ThemedView>
     );
@@ -1260,7 +1267,7 @@ const styles = StyleSheet.create({
     },
     modalOverlay: {
         flex: 1,
-        backgroundColor: 'rgba(0, 0, 0, 0.4)',
+        backgroundColor: 'rgba(0, 0, 0, 0.15)',
         justifyContent: 'flex-end',
         alignItems: 'center',
         paddingHorizontal: Spacing.four,

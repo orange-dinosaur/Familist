@@ -1,3 +1,4 @@
+import { BlurView } from 'expo-blur';
 import { SymbolView } from 'expo-symbols';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
@@ -7,6 +8,7 @@ import { ThemedText } from '@/components/themed-text';
 import { authClient } from '@/auth/client';
 import { MaxContentWidth, Spacing } from '@/constants/theme';
 import { useFamily } from '@/hooks/use-family';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useMembers } from '@/hooks/use-members';
 import { useTheme } from '@/hooks/use-theme';
 import { clearLocalData } from '@/store/clear-local';
@@ -45,6 +47,7 @@ const CONFIRM: Record<Confirm, { title: string; body: string; act: string }> = {
  */
 export function FamilyBar() {
     const theme = useTheme();
+    const scheme = useColorScheme();
     const router = useRouter();
     const {
         family,
@@ -195,9 +198,13 @@ export function FamilyBar() {
             <Modal
                 visible={familyOpen}
                 transparent
-                animationType="fade"
+                animationType="none"
                 onRequestClose={() => setFamilyOpen(false)}>
-                <View style={styles.overlay}>
+                <BlurView
+                    intensity={40}
+                    tint={scheme === 'dark' ? 'dark' : 'light'}
+                    experimentalBlurMethod="dimezisBlurView"
+                    style={styles.overlay}>
                     <Pressable
                         style={StyleSheet.absoluteFill}
                         onPress={() => setFamilyOpen(false)}
@@ -537,15 +544,19 @@ export function FamilyBar() {
                             </ThemedText>
                         )}
                     </View>
-                </View>
+                </BlurView>
             </Modal>
 
             <Modal
                 visible={accountOpen}
                 transparent
-                animationType="fade"
+                animationType="none"
                 onRequestClose={() => setAccountOpen(false)}>
-                <View style={styles.overlay}>
+                <BlurView
+                    intensity={40}
+                    tint={scheme === 'dark' ? 'dark' : 'light'}
+                    experimentalBlurMethod="dimezisBlurView"
+                    style={styles.overlay}>
                     <Pressable
                         style={StyleSheet.absoluteFill}
                         onPress={() => setAccountOpen(false)}
@@ -590,7 +601,7 @@ export function FamilyBar() {
                             <ThemedText type="default">Sign out</ThemedText>
                         </Pressable>
                     </View>
-                </View>
+                </BlurView>
             </Modal>
         </>
     );
@@ -650,7 +661,7 @@ const styles = StyleSheet.create({
     },
     overlay: {
         flex: 1,
-        backgroundColor: 'rgba(0, 0, 0, 0.4)',
+        backgroundColor: 'rgba(0, 0, 0, 0.15)',
         justifyContent: 'flex-end',
         alignItems: 'center',
         paddingHorizontal: Spacing.four,

@@ -1,4 +1,5 @@
 import { router } from 'expo-router';
+import { BlurView } from 'expo-blur';
 import { SymbolView } from 'expo-symbols';
 import React, { useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
@@ -10,6 +11,7 @@ import { MaxContentWidth, Spacing } from '@/constants/theme';
 import { useFamily } from '@/hooks/use-family';
 import { type Invitation, useInvitations } from '@/hooks/use-invitations';
 import { useMembers } from '@/hooks/use-members';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useTheme } from '@/hooks/use-theme';
 import { copyToClipboard } from '@/utils/clipboard';
 import { MEMBER_ROLES, type Member, type MemberRole } from '@/utils/member';
@@ -63,6 +65,7 @@ type Inviting = { target: Member | null };
 
 export default function MembersScreen() {
     const theme = useTheme();
+    const scheme = useColorScheme();
     const { member: membership } = useFamily();
     const {
         members,
@@ -266,9 +269,13 @@ export default function MembersScreen() {
             <Modal
                 visible={open !== null || inviting !== null}
                 transparent
-                animationType="fade"
+                animationType="none"
                 onRequestClose={close}>
-                <View style={styles.modalOverlay}>
+                <BlurView
+                    intensity={40}
+                    tint={scheme === 'dark' ? 'dark' : 'light'}
+                    experimentalBlurMethod="dimezisBlurView"
+                    style={styles.modalOverlay}>
                     <Pressable
                         style={StyleSheet.absoluteFill}
                         onPress={close}
@@ -600,7 +607,7 @@ export default function MembersScreen() {
                             </>
                         )}
                     </View>
-                </View>
+                </BlurView>
             </Modal>
         </ThemedView>
     );
@@ -662,7 +669,7 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: 'rgba(0,0,0,0.4)',
+        backgroundColor: 'rgba(0, 0, 0, 0.15)',
         padding: Spacing.four,
     },
     modalContent: {
