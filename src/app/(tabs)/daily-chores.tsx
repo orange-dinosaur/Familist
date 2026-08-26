@@ -4,7 +4,6 @@ import React, { useState, useRef } from 'react';
 import {
     Animated,
     Modal,
-    Platform,
     Pressable,
     ScrollView,
     StyleSheet,
@@ -943,8 +942,8 @@ const styles = StyleSheet.create({
     // Add button
     addButtonContainer: {
         paddingHorizontal: Spacing.four,
-        paddingBottom: Platform.select({ ios: 0, default: Spacing.three }),
-        marginBottom: Platform.select({ ios: Spacing.four, default: 0 }),
+        /** Outside the scroll view, so it clears the floating tab bar itself. */
+        paddingBottom: BottomTabInset + Spacing.three,
     },
     addButton: {
         flexDirection: 'row',
