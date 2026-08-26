@@ -103,6 +103,31 @@ export const verification = pgTable(
     (table) => [index('verification_identifier_idx').on(table.identifier)]
 );
 
+/**
+ * A person's profile picture, kept beside `user` rather than in it so that
+ * reading a user never drags the bytes along.
+ *
+ * `id` is the whole of the addressing: it is unguessable, it is what the URL
+ * carries, and replacing a picture mints a new one - which expires every
+ * cached copy of the old URL without a version parameter, and stops the
+ * previous picture being readable by anyone who kept the link.
+ */
+export const userAvatar = pgTable('user_avatar', {
+    id: text('id').primaryKey(),
+    userId: text('user_id')
+        .notNull()
+        .unique()
+        .references(() => user.id, { onDelete: 'cascade' }),
+    /** Base64, so that no part of this needs a binary column type. */
+    data: text('data').notNull(),
+    contentType: text('content_type').notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at')
+        .defaultNow()
+        .$onUpdate(() => new Date())
+        .notNull(),
+});
+
 // ─── Family ─────────────────────────────────────────────────────────────
 
 export const memberRole = pgEnum('member_role', ['owner', 'editor', 'checker']);

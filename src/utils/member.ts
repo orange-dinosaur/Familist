@@ -17,6 +17,8 @@ export interface Member {
     initials: string;
     color: MemberColor;
     role: MemberRole | null;
+    /** The URL of their profile picture, which a placeholder never has. */
+    image?: string | null;
 }
 
 export const MEMBER_COLORS: MemberColor[] = [

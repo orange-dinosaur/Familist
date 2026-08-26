@@ -14,7 +14,7 @@ import { and, asc, eq, isNull } from 'drizzle-orm';
 import { getMembership, unauthorized } from '@/auth/session';
 import { type MemberColor } from '@/constants/theme';
 import { db } from '@/db';
-import { familyMember } from '@/db/schema';
+import { familyMember, user } from '@/db/schema';
 import { createId } from '@/utils/id';
 import {
     initialsOf,
@@ -26,6 +26,11 @@ export async function GET(request: Request): Promise<Response> {
     const membership = await getMembership(request);
     if (!membership) return unauthorized();
 
+    /**
+     * The picture belongs to the person, not to the membership, so it comes
+     * from `user` - which is also why a placeholder never has one. The join is
+     * left: a placeholder has no user row to match.
+     */
     const members = await db
         .select({
             id: familyMember.id,
@@ -33,8 +38,10 @@ export async function GET(request: Request): Promise<Response> {
             initials: familyMember.initials,
             color: familyMember.color,
             role: familyMember.role,
+            image: user.image,
         })
         .from(familyMember)
+        .leftJoin(user, eq(user.id, familyMember.userId))
         .where(
             and(
                 eq(familyMember.familyId, membership.familyId),

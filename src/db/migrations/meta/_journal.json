@@ -50,6 +50,13 @@
       "when": 1787773714419,
       "tag": "0006_puzzling_captain_midlands",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1787777966528,
+      "tag": "0007_faithful_malcolm_colcord",
+      "breakpoints": true
     }
   ]
 }
