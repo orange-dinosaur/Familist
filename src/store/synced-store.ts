@@ -4,9 +4,10 @@
  * Screens read what is already on the device, so the app opens with data and
  * survives a refresh with no connection. Writes apply locally at once and are
  * queued; the queue is pushed when the server can be reached, and again
- * whenever the connection or the foreground comes back. A push the server
- * *refuses* - as opposed to one that never arrives - is undone locally and
- * reported, because retrying it would never succeed.
+ * whenever the connection or the foreground comes back, which is also when the
+ * family's own changes are read back down. A push the server *refuses* - as
+ * opposed to one that never arrives - is undone locally and reported, because
+ * retrying it would never succeed.
  */
 
 import { adoptMembers, forgetLegacy, readLegacy } from '@/store/adopt-local';
@@ -252,6 +253,31 @@ export function createSyncedStore<T extends Entity>(
         if (latest) await setItem(mark, latest);
     };
 
+    let catching: Promise<void> | null = null;
+
+    /**
+     * The queue first, then what the rest of the family has done. Each has to
+     * precede the next: a full pull replaces the collection outright, so
+     * pulling with work still queued would throw it away, and a queue that will
+     * not drain means the server is unreachable, so there is nothing to pull
+     * either.
+     *
+     * One at a time, as `flush` is. Two of these at once would read the same
+     * mark and merge the same records, which is harmless but wasted.
+     */
+    const catchUp = () => {
+        if (catching) return catching;
+
+        catching = (async () => {
+            await flush();
+            if ((await readQueue()).length === 0) await pull();
+        })().finally(() => {
+            catching = null;
+        });
+
+        return catching;
+    };
+
     /**
      * Records an earlier version of the app left behind, taken into this
      * family as though they had just been made here. Their own ids are kept,
@@ -298,19 +324,13 @@ export function createSyncedStore<T extends Entity>(
     let pulled: Promise<void> | null = null;
 
     /**
-     * Adoption first, then the queue, then the pull. Each has to precede the
-     * next: adopted records are only in the outbox until it drains, and a full
-     * pull replaces the collection outright, so pulling before either would
-     * throw them away. A queue that would not drain means the server is
-     * unreachable, so there is nothing to pull either.
+     * Adoption first, and only then the catching up: adopted records are only
+     * in the outbox until it drains, so a pull before it would throw them away.
      */
     const sync = () => {
         if (!pulled) {
             pulled = adopt()
-                .then(flush)
-                .then(async () => {
-                    if ((await readQueue()).length === 0) await pull();
-                })
+                .then(catchUp)
                 .catch(() => {
                     pulled = null;
                 });
@@ -367,11 +387,18 @@ export function createSyncedStore<T extends Entity>(
             /**
              * A write made with no connection sits in the outbox, and nothing
              * else would go looking for it until the next write or the next
-             * launch. `flush` is safe to call at any time: an empty queue
-             * returns at once, and a drain already running is joined rather
-             * than started again.
+             * launch. Waking is also the moment to read: the store pulls once
+             * when it is first subscribed to and would otherwise show what the
+             * family had done up to that moment for as long as it lived.
+             *
+             * Through `sync` rather than straight to `catchUp`, because a wake
+             * landing while adoption is still running would pull alongside it.
              */
-            const stopWatching = onReconnect(() => void flush());
+            const stopWatching = onReconnect(() => {
+                void sync()
+                    .then(catchUp)
+                    .catch(() => {});
+            });
 
             void sync();
 
