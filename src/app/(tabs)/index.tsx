@@ -16,6 +16,7 @@ import { useMembers } from '@/hooks/use-members';
 import { usePermissions } from '@/hooks/use-permissions';
 import { useTheme } from '@/hooks/use-theme';
 import { useTodos } from '@/hooks/use-todos';
+import { byUrgency } from '@/utils/todo';
 
 function getFormattedDate(): string {
     const now = new Date();
@@ -60,7 +61,11 @@ export default function HomeScreen() {
     const todayMeals = meals.filter((m) => m.day === todayStr);
     /** Inactive chores are rows for days they are not planned for. */
     const todayChores = chores.filter((c) => c.active && c.day === todayStr);
-    const todayTodos = todos.filter((t) => t.day === todayStr);
+    /**
+     * To-dos are not kept by day, so the card previews the list itself: the
+     * open ones in the order the to-do screen puts them, overdue first.
+     */
+    const openTodos = todos.filter((t) => !t.done).sort(byUrgency);
 
     const hasMeals = todayMeals.length > 0;
 
@@ -85,14 +90,13 @@ export default function HomeScreen() {
         .map((m) => `${timeLabel[m.time]}: ${m.name}`);
     const remainingMeals = todayMeals.length - mealPreviewItems.length;
     const remainingChores = todayChores.length - 3;
-    const activeTodos = todayTodos.filter((t) => !t.done);
 
     const hiddenMealsCount = !mealsExpanded ? Math.max(0, remainingMeals) : 0;
     const hiddenChoresCount = !choresExpanded
         ? Math.max(0, remainingChores)
         : 0;
     const hiddenTodosCount = !todosExpanded
-        ? Math.max(0, todayTodos.length - Math.min(activeTodos.length, 2))
+        ? Math.max(0, openTodos.length - 2)
         : 0;
 
     return (
@@ -567,9 +571,9 @@ export default function HomeScreen() {
                             </View>
                             <View style={styles.cardPreview}>
                                 {todosExpanded ? (
-                                    todayTodos.length > 0 ? (
+                                    openTodos.length > 0 ? (
                                         <View style={styles.expandedList}>
-                                            {todayTodos.map((item) => {
+                                            {openTodos.map((item) => {
                                                 const assignee = members.find(
                                                     (u) =>
                                                         u.id === item.assigneeId
@@ -671,9 +675,9 @@ export default function HomeScreen() {
                                                 : 'No tasks remaining'}
                                         </ThemedText>
                                     )
-                                ) : activeTodos.length > 0 ? (
+                                ) : openTodos.length > 0 ? (
                                     <>
-                                        {activeTodos.slice(0, 2).map((item) => {
+                                        {openTodos.slice(0, 2).map((item) => {
                                             const assignee = members.find(
                                                 (u) => u.id === item.assigneeId
                                             );

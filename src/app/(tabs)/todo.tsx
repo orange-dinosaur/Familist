@@ -27,29 +27,13 @@ import { useTheme } from '@/hooks/use-theme';
 import { useMembers } from '@/hooks/use-members';
 import { usePermissions } from '@/hooks/use-permissions';
 import { useTodos } from '@/hooks/use-todos';
+import { byUrgency } from '@/utils/todo';
 
 const priorityColors = {
     low: 'priorityLow',
     medium: 'priorityMedium',
     high: 'priorityHigh',
 } as const;
-
-const priorityRank = { high: 2, medium: 1, low: 0 } as const;
-
-/**
- * Dated to-dos first and soonest first, so what is overdue rises to the top;
- * the undated ones after them, since a to-do with no date is not waiting on
- * anything. Priority separates the ones that fall on the same day, and the
- * sort being stable leaves the rest in the order the family made them.
- */
-function byUrgency(a: TodoItem, b: TodoItem): number {
-    if (a.day !== b.day) {
-        if (!a.day) return 1;
-        if (!b.day) return -1;
-        return a.day < b.day ? -1 : 1;
-    }
-    return priorityRank[b.priority] - priorityRank[a.priority];
-}
 
 interface TodoRowProps {
     todo: TodoItem;
