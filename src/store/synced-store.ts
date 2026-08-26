@@ -5,13 +5,15 @@
  * survives a refresh with no connection. Writes apply locally at once and are
  * queued; the queue is pushed when the server can be reached, and again
  * whenever the connection or the foreground comes back, which is also when the
- * family's own changes are read back down. A push the server *refuses* - as
- * opposed to one that never arrives - is undone locally and reported, because
- * retrying it would never succeed.
+ * family's own changes are read back down - as they are on a timer for as long
+ * as the app is in front of someone. A push the server *refuses* - as opposed
+ * to one that never arrives - is undone locally and reported, because retrying
+ * it would never succeed.
  */
 
 import { adoptMembers, forgetLegacy, readLegacy } from '@/store/adopt-local';
 import type { Changes, Entity, FamilyStore } from '@/store/family-store';
+import { onHeartbeat } from '@/store/heartbeat';
 import { getItem, setItem } from '@/store/key-value';
 import { createLocalStore } from '@/store/local-store';
 import {
@@ -394,15 +396,25 @@ export function createSyncedStore<T extends Entity>(
              * Through `sync` rather than straight to `catchUp`, because a wake
              * landing while adoption is still running would pull alongside it.
              */
-            const stopWatching = onReconnect(() => {
+            const resume = () => {
                 void sync()
                     .then(catchUp)
                     .catch(() => {});
-            });
+            };
+
+            const stopWatching = onReconnect(resume);
+
+            /**
+             * The same thing on a timer, for the device that never went away.
+             * A tick arriving while the last one is still in flight joins it,
+             * so a slow connection is asked once rather than repeatedly.
+             */
+            const stopTicking = onHeartbeat(resume);
 
             void sync();
 
             return () => {
+                stopTicking();
                 stopWatching();
                 unsubscribe();
             };
