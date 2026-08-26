@@ -8,6 +8,7 @@ import { MemberAvatar } from '@/components/member-avatar';
 import { ThemedText } from '@/components/themed-text';
 import { authClient } from '@/auth/client';
 import { MaxContentWidth, Spacing } from '@/constants/theme';
+import { useAvatar } from '@/hooks/use-avatar';
 import { useFamily } from '@/hooks/use-family';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useMembers } from '@/hooks/use-members';
@@ -67,7 +68,7 @@ export function FamilyBar() {
         leaveFamily,
         deleteFamily,
     } = useFamily();
-    const { members } = useMembers();
+    const { members, setMyImage } = useMembers();
     const { data: session } = authClient.useSession();
     const [accountOpen, setAccountOpen] = useState(false);
     const [familyOpen, setFamilyOpen] = useState(false);
@@ -80,6 +81,13 @@ export function FamilyBar() {
     const isOwner = member?.role === 'owner';
     /** The bar shows the signed-in person, who is one of the family's members. */
     const me = members.find((one) => one.id === member?.id) ?? null;
+
+    const {
+        choose,
+        remove: removePicture,
+        busy: avatarBusy,
+        error: avatarError,
+    } = useAvatar(setMyImage);
     const others = families.filter((option) => option.id !== family?.id);
 
     /**
@@ -592,6 +600,44 @@ export function FamilyBar() {
                             )}
                         </View>
 
+                        {/* Only somebody with a member row has a picture to change. */}
+                        {me && (
+                            <View style={styles.picture}>
+                                <MemberAvatar member={me} size={72} />
+                                <View style={styles.pictureActions}>
+                                    <Pressable
+                                        onPress={choose}
+                                        disabled={avatarBusy}
+                                        accessibilityLabel="Change profile picture"
+                                        accessibilityRole="button">
+                                        <ThemedText themeColor="link">
+                                            {me.image
+                                                ? 'Change picture'
+                                                : 'Add a picture'}
+                                        </ThemedText>
+                                    </Pressable>
+                                    {me.image && (
+                                        <Pressable
+                                            onPress={removePicture}
+                                            disabled={avatarBusy}
+                                            accessibilityLabel="Remove profile picture"
+                                            accessibilityRole="button">
+                                            <ThemedText themeColor="textSecondary">
+                                                Remove
+                                            </ThemedText>
+                                        </Pressable>
+                                    )}
+                                </View>
+                                {avatarError && (
+                                    <ThemedText
+                                        type="small"
+                                        style={{ color: theme.destructive }}>
+                                        {avatarError}
+                                    </ThemedText>
+                                )}
+                            </View>
+                        )}
+
                         <Pressable
                             onPress={signOut}
                             accessibilityLabel="Sign out"
@@ -664,6 +710,15 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         borderRadius: 14,
         paddingVertical: Spacing.three,
+    },
+    picture: {
+        alignItems: 'center',
+        gap: Spacing.two,
+        paddingBottom: Spacing.one,
+    },
+    pictureActions: {
+        flexDirection: 'row',
+        gap: Spacing.four,
     },
     overlay: {
         flex: 1,

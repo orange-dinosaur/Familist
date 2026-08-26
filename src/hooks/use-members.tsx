@@ -25,6 +25,11 @@ interface MembersContextValue {
     setRole: (id: string, role: MemberRole) => Promise<string | null>;
     revokeAccess: (id: string) => Promise<string | null>;
     removeFromFamily: (id: string) => Promise<string | null>;
+    /**
+     * The signed-in person's own picture. It belongs to them rather than to
+     * the family, so it is set through its own route and only reflected here.
+     */
+    setMyImage: (image: string | null) => void;
 }
 
 const MembersContext = createContext<MembersContextValue | null>(null);
@@ -35,7 +40,7 @@ const asJson = {
 };
 
 export function MembersProvider({ children }: { children: React.ReactNode }) {
-    const { family, loading: familyLoading } = useFamily();
+    const { family, member: membership, loading: familyLoading } = useFamily();
     const [members, setMembers] = useState<Member[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -173,6 +178,19 @@ export function MembersProvider({ children }: { children: React.ReactNode }) {
         return null;
     }, []);
 
+    const membershipId = membership?.id ?? null;
+
+    const setMyImage = useCallback(
+        (image: string | null) => {
+            setMembers((current) =>
+                current.map((one) =>
+                    one.id === membershipId ? { ...one, image } : one
+                )
+            );
+        },
+        [membershipId]
+    );
+
     return (
         <MembersContext.Provider
             value={{
@@ -184,6 +202,7 @@ export function MembersProvider({ children }: { children: React.ReactNode }) {
                 setRole,
                 revokeAccess,
                 removeFromFamily,
+                setMyImage,
             }}>
             {children}
         </MembersContext.Provider>
