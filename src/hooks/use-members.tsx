@@ -26,6 +26,12 @@ interface MembersContextValue {
     revokeAccess: (id: string) => Promise<string | null>;
     removeFromFamily: (id: string) => Promise<string | null>;
     /**
+     * Read the family's members again. For changes made through a route that
+     * does not answer with the row it changed - handing a family over is the
+     * one - which would otherwise leave the screen showing the old answer.
+     */
+    refresh: () => Promise<void>;
+    /**
      * The signed-in person's own picture. It belongs to them rather than to
      * the family, so it is set through its own route and only reflected here.
      */
@@ -45,6 +51,16 @@ export function MembersProvider({ children }: { children: React.ReactNode }) {
     const [loading, setLoading] = useState(true);
 
     const familyId = family?.id ?? null;
+
+    const refresh = useCallback(async () => {
+        if (!familyId) return;
+
+        const res = await apiFetch('/api/members');
+        if (!res.ok) return;
+
+        const body = await res.json().catch(() => null);
+        if (body?.members) setMembers(body.members);
+    }, [familyId]);
 
     useEffect(() => {
         if (familyLoading) return;
@@ -203,6 +219,7 @@ export function MembersProvider({ children }: { children: React.ReactNode }) {
                 revokeAccess,
                 removeFromFamily,
                 setMyImage,
+                refresh,
             }}>
             {children}
         </MembersContext.Provider>

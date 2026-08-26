@@ -27,10 +27,15 @@ import { family, familyMember, user } from '@/db/schema';
  * families that stopped it. A sentinel rather than a message, so the catch
  * cannot mistake a database failure for a refusal.
  */
-class HasOwnedFamilies extends Error {
-    readonly families: string[];
+interface Owned {
+    id: string;
+    name: string;
+}
 
-    constructor(families: string[]) {
+class HasOwnedFamilies extends Error {
+    readonly families: Owned[];
+
+    constructor(families: Owned[]) {
         super('Owned families remain');
         this.families = families;
     }
@@ -57,7 +62,7 @@ export async function DELETE(request: Request): Promise<Response> {
                     )
                 );
 
-            const stuck: string[] = [];
+            const stuck: Owned[] = [];
 
             for (const { memberId, familyId, familyName } of memberships) {
                 /** The same family-wide lock leaving takes, for the same invariant. */
@@ -88,7 +93,7 @@ export async function DELETE(request: Request): Promise<Response> {
                         continue;
                     }
 
-                    stuck.push(familyName);
+                    stuck.push({ id: familyId, name: familyName });
                     continue;
                 }
 
@@ -111,10 +116,16 @@ export async function DELETE(request: Request): Promise<Response> {
         });
     } catch (failure) {
         if (failure instanceof HasOwnedFamilies) {
-            const names = failure.families.join(', ');
+            const names = failure.families.map((one) => one.name).join(', ');
+            /**
+             * The families travel as data as well as prose: the sheet offers
+             * to hand each one over rather than leaving the reader to go and
+             * find them.
+             */
             return Response.json(
                 {
                     error: `Make someone else an owner of ${names} before deleting your account`,
+                    families: failure.families,
                 },
                 { status: 409 }
             );

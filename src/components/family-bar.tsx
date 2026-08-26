@@ -3,6 +3,10 @@ import { SymbolView } from 'expo-symbols';
 import React, { useState } from 'react';
 import { Modal, Pressable, StyleSheet, TextInput, View } from 'react-native';
 
+import {
+    AccountHandover,
+    type OwnedFamily,
+} from '@/components/account-handover';
 import { FamilyMembers } from '@/components/family-members';
 import { MemberAvatar } from '@/components/member-avatar';
 import { ThemedText } from '@/components/themed-text';
@@ -68,7 +72,7 @@ export function FamilyBar() {
         leaveFamily,
         deleteFamily,
     } = useFamily();
-    const { members, setMyImage } = useMembers();
+    const { members, setMyImage, refresh: refreshMembers } = useMembers();
     const { data: session } = authClient.useSession();
     const [accountOpen, setAccountOpen] = useState(false);
     const [familyOpen, setFamilyOpen] = useState(false);
@@ -79,6 +83,8 @@ export function FamilyBar() {
     const [busy, setBusy] = useState(false);
     /** The account sheet's own confirmation, which the family sheet's modes cannot hold. */
     const [deleting, setDeleting] = useState(false);
+    /** Named by a refused deletion: the families still waiting for an owner. */
+    const [owned, setOwned] = useState<OwnedFamily[]>([]);
 
     const isOwner = member?.role === 'owner';
     /** The bar shows the signed-in person, who is one of the family's members. */
@@ -187,12 +193,24 @@ export function FamilyBar() {
         setBusy(false);
 
         if (!res.ok) {
+            /** Named families mean it can be put right without leaving here. */
+            if (Array.isArray(body?.families) && body.families.length > 0) {
+                setOwned(body.families);
+                setError(null);
+                return;
+            }
             setError(body?.error ?? 'Could not delete your account.');
             return;
         }
 
         setDeleting(false);
         await signOut();
+    };
+
+    const closeDeleting = () => {
+        setDeleting(false);
+        setOwned([]);
+        setError(null);
     };
 
     return (
@@ -721,7 +739,7 @@ export function FamilyBar() {
                 visible={deleting}
                 transparent
                 animationType="none"
-                onRequestClose={() => setDeleting(false)}>
+                onRequestClose={closeDeleting}>
                 <BlurView
                     intensity={40}
                     tint={scheme === 'dark' ? 'dark' : 'light'}
@@ -729,7 +747,7 @@ export function FamilyBar() {
                     style={styles.overlay}>
                     <Pressable
                         style={StyleSheet.absoluteFill}
-                        onPress={() => setDeleting(false)}
+                        onPress={closeDeleting}
                         accessibilityLabel="Close"
                         accessibilityRole="button"
                     />
@@ -738,60 +756,86 @@ export function FamilyBar() {
                             styles.sheet,
                             { backgroundColor: theme.background },
                         ]}>
-                        <View style={styles.identity}>
-                            <ThemedText type="subtitle">
-                                Delete your account?
-                            </ThemedText>
-                            <ThemedText type="small" themeColor="textSecondary">
-                                You are signed out and cannot sign back in. A
-                                family nobody else has an account in goes with
-                                you, and everything in it. Where somebody else
-                                does, the family stays and anything assigned to
-                                you loses its assignee.
-                            </ThemedText>
-                        </View>
+                        {owned.length > 0 ? (
+                            <AccountHandover
+                                families={owned}
+                                onHandedOver={(family) => {
+                                    setOwned((rest) =>
+                                        rest.filter(
+                                            (one) => one.id !== family.id
+                                        )
+                                    );
+                                    /** The new owner's row is on screen behind this. */
+                                    void refreshMembers();
+                                }}
+                                onCancel={closeDeleting}
+                            />
+                        ) : (
+                            <>
+                                <View style={styles.identity}>
+                                    <ThemedText type="subtitle">
+                                        Delete your account?
+                                    </ThemedText>
+                                    <ThemedText
+                                        type="small"
+                                        themeColor="textSecondary">
+                                        You are signed out and cannot sign back
+                                        in. A family nobody else has an account
+                                        in goes with you, and everything in it.
+                                        Where somebody else does, the family
+                                        stays and anything assigned to you loses
+                                        its assignee.
+                                    </ThemedText>
+                                </View>
 
-                        {error && (
-                            <ThemedText
-                                type="small"
-                                style={{ color: theme.destructive }}>
-                                {error}
-                            </ThemedText>
+                                {error && (
+                                    <ThemedText
+                                        type="small"
+                                        style={{ color: theme.destructive }}>
+                                        {error}
+                                    </ThemedText>
+                                )}
+
+                                <View style={styles.actions}>
+                                    <Pressable
+                                        onPress={closeDeleting}
+                                        disabled={busy}
+                                        accessibilityLabel="Cancel"
+                                        accessibilityRole="button"
+                                        style={({ pressed }) => [
+                                            styles.action,
+                                            {
+                                                backgroundColor:
+                                                    theme.backgroundElement,
+                                            },
+                                            pressed && { opacity: 0.8 },
+                                        ]}>
+                                        <ThemedText type="default">
+                                            Cancel
+                                        </ThemedText>
+                                    </Pressable>
+                                    <Pressable
+                                        onPress={deleteAccount}
+                                        disabled={busy}
+                                        accessibilityLabel="Delete my account"
+                                        accessibilityRole="button"
+                                        style={({ pressed }) => [
+                                            styles.action,
+                                            {
+                                                backgroundColor:
+                                                    theme.destructive,
+                                            },
+                                            pressed && { opacity: 0.8 },
+                                        ]}>
+                                        <ThemedText
+                                            type="default"
+                                            style={styles.destructiveLabel}>
+                                            Delete
+                                        </ThemedText>
+                                    </Pressable>
+                                </View>
+                            </>
                         )}
-
-                        <View style={styles.actions}>
-                            <Pressable
-                                onPress={() => setDeleting(false)}
-                                disabled={busy}
-                                accessibilityLabel="Cancel"
-                                accessibilityRole="button"
-                                style={({ pressed }) => [
-                                    styles.action,
-                                    {
-                                        backgroundColor:
-                                            theme.backgroundElement,
-                                    },
-                                    pressed && { opacity: 0.8 },
-                                ]}>
-                                <ThemedText type="default">Cancel</ThemedText>
-                            </Pressable>
-                            <Pressable
-                                onPress={deleteAccount}
-                                disabled={busy}
-                                accessibilityLabel="Delete my account"
-                                accessibilityRole="button"
-                                style={({ pressed }) => [
-                                    styles.action,
-                                    { backgroundColor: theme.destructive },
-                                    pressed && { opacity: 0.8 },
-                                ]}>
-                                <ThemedText
-                                    type="default"
-                                    style={styles.destructiveLabel}>
-                                    Delete
-                                </ThemedText>
-                            </Pressable>
-                        </View>
                     </View>
                 </BlurView>
             </Modal>
