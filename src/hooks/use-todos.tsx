@@ -18,7 +18,7 @@ interface TodosContextValue {
     addTodo: (
         label: string,
         priority: TodoItem['priority'],
-        day: string,
+        day: string | null,
         assigneeId?: string
     ) => Promise<boolean>;
     toggleTodo: (id: string) => Promise<boolean>;
@@ -27,7 +27,7 @@ interface TodosContextValue {
         id: string,
         label: string,
         priority: TodoItem['priority'],
-        day: string,
+        day: string | null,
         assigneeId?: string
     ) => Promise<boolean>;
     assignTodo: (
@@ -61,7 +61,7 @@ export function TodosProvider({ children }: { children: React.ReactNode }) {
         (
             label: string,
             priority: TodoItem['priority'],
-            day: string,
+            day: string | null,
             assigneeId?: string
         ) =>
             write('Could not add that task.', (store) =>
@@ -92,7 +92,7 @@ export function TodosProvider({ children }: { children: React.ReactNode }) {
             id: string,
             label: string,
             priority: TodoItem['priority'],
-            day: string,
+            day: string | null,
             assigneeId?: string
         ) =>
             write('Could not save that task.', (store) =>

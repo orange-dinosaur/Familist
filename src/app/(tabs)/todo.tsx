@@ -1,5 +1,4 @@
 import { SymbolView } from 'expo-symbols';
-import { useFocusEffect } from 'expo-router';
 import React, { useState, useRef } from 'react';
 import {
     Animated,
@@ -19,10 +18,8 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import {
     getDateRange,
-    formatLocalDateString,
     formatShortDateString,
     getRelativeDateString,
-    todayLabel,
 } from '@/constants/dates';
 import { type TodoItem } from '@/constants/types';
 import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
@@ -31,8 +28,32 @@ import { useMembers } from '@/hooks/use-members';
 import { usePermissions } from '@/hooks/use-permissions';
 import { useTodos } from '@/hooks/use-todos';
 
+const priorityColors = {
+    low: 'priorityLow',
+    medium: 'priorityMedium',
+    high: 'priorityHigh',
+} as const;
+
+const priorityRank = { high: 2, medium: 1, low: 0 } as const;
+
+/**
+ * Dated to-dos first and soonest first, so what is overdue rises to the top;
+ * the undated ones after them, since a to-do with no date is not waiting on
+ * anything. Priority separates the ones that fall on the same day, and the
+ * sort being stable leaves the rest in the order the family made them.
+ */
+function byUrgency(a: TodoItem, b: TodoItem): number {
+    if (a.day !== b.day) {
+        if (!a.day) return 1;
+        if (!b.day) return -1;
+        return a.day < b.day ? -1 : 1;
+    }
+    return priorityRank[b.priority] - priorityRank[a.priority];
+}
+
 interface TodoRowProps {
     todo: TodoItem;
+    overdue: boolean;
     canManage: boolean;
     canToggle: boolean;
     onToggle: () => void;
@@ -45,6 +66,7 @@ interface TodoRowProps {
 const TodoRow = React.memo(
     ({
         todo,
+        overdue,
         canManage,
         canToggle,
         onToggle,
@@ -70,7 +92,6 @@ const TodoRow = React.memo(
                     <Animated.View
                         style={[
                             styles.actionButton,
-                            styles.editButton,
                             {
                                 transform: [{ translateX: trans }],
                                 backgroundColor: theme.backgroundSelected,
@@ -133,11 +154,6 @@ const TodoRow = React.memo(
         };
 
         const assignee = members.find((u) => u.id === todo.assigneeId);
-        const priorityColors = {
-            low: 'priorityLow',
-            medium: 'priorityMedium',
-            high: 'priorityHigh',
-        } as const;
 
         return (
             <Swipeable
@@ -149,10 +165,20 @@ const TodoRow = React.memo(
                 <View
                     style={[
                         styles.todoRow,
-                        {
-                            backgroundColor: theme.backgroundElement,
-                        },
+                        { backgroundColor: theme.backgroundElement },
                     ]}>
+                    {/* The priority, now that no day grouping competes with it. */}
+                    <View
+                        style={[
+                            styles.priorityBar,
+                            {
+                                backgroundColor: todo.done
+                                    ? theme.backgroundSelected
+                                    : theme[priorityColors[todo.priority]],
+                            },
+                        ]}
+                    />
+
                     <Pressable
                         onPress={onToggle}
                         disabled={!canToggle}
@@ -176,24 +202,41 @@ const TodoRow = React.memo(
                             }
                             size={22}
                         />
-                        <View
-                            style={[
-                                styles.priorityDot,
-                                {
-                                    backgroundColor:
-                                        theme[priorityColors[todo.priority]],
-                                },
-                            ]}
-                        />
-                        <ThemedText
-                            type="default"
-                            themeColor={todo.done ? 'textSecondary' : 'text'}
-                            style={[
-                                styles.todoLabel,
-                                todo.done && styles.strikethrough,
-                            ]}>
-                            {todo.label}
-                        </ThemedText>
+                        <View style={styles.todoTextColumn}>
+                            <ThemedText
+                                type="default"
+                                themeColor={
+                                    todo.done ? 'textSecondary' : 'text'
+                                }
+                                style={todo.done && styles.strikethrough}>
+                                {todo.label}
+                            </ThemedText>
+                            {todo.day && (
+                                <View style={styles.dueRow}>
+                                    <SymbolView
+                                        name={{
+                                            ios: 'calendar',
+                                            web: 'calendar_today',
+                                        }}
+                                        tintColor={
+                                            overdue
+                                                ? theme.destructive
+                                                : theme.textSecondary
+                                        }
+                                        size={12}
+                                    />
+                                    <ThemedText
+                                        type="small"
+                                        style={{
+                                            color: overdue
+                                                ? theme.destructive
+                                                : theme.textSecondary,
+                                        }}>
+                                        {formatShortDateString(todo.day)}
+                                    </ThemedText>
+                                </View>
+                            )}
+                        </View>
                     </Pressable>
 
                     {(canManage || assignee) && (
@@ -258,23 +301,10 @@ export default function TodoScreen() {
     } = useTodos();
     const { members } = useMembers();
     const { canManageContent, canToggle } = usePermissions();
+
     const [modalVisible, setModalVisible] = useState(false);
     const [assigningTodoId, setAssigningTodoId] = useState<string | null>(null);
-    const [daysShowingCompleted, setDaysShowingCompleted] = useState<
-        Set<string>
-    >(new Set());
-
-    const toggleCompletedFor = (day: string) => {
-        setDaysShowingCompleted((prev) => {
-            const next = new Set(prev);
-            if (next.has(day)) {
-                next.delete(day);
-            } else {
-                next.add(day);
-            }
-            return next;
-        });
-    };
+    const [showingCompleted, setShowingCompleted] = useState(false);
     const [editingTodo, setEditingTodo] = useState<TodoItem | null>(null);
 
     const [todoText, setTodoText] = useState('');
@@ -283,45 +313,24 @@ export default function TodoScreen() {
     const [todoAssigneeId, setTodoAssigneeId] = useState<string | undefined>(
         undefined
     );
-    const [isDayPreselected, setIsDayPreselected] = useState(false);
+    const [todoDay, setTodoDay] = useState<string | null>(null);
 
-    const scrollViewRef = useRef<ScrollView>(null);
-    const todayYOffsetRef = useRef<number | null>(null);
     const todayStr = getRelativeDateString(0);
-    const [todoDay, setTodoDay] = useState<string>(todayStr);
-
     const dates = getDateRange();
-    const completedTodos = todos.filter((t) => t.done);
 
-    useFocusEffect(
-        React.useCallback(() => {
-            if (todayYOffsetRef.current !== null) {
-                scrollViewRef.current?.scrollTo({
-                    y: todayYOffsetRef.current - Spacing.four,
-                    animated: false,
-                });
-            }
-        }, [])
-    );
+    const outstanding = todos.filter((t) => !t.done).sort(byUrgency);
+    const completed = todos.filter((t) => t.done);
+    const progress =
+        todos.length > 0
+            ? Math.round((completed.length / todos.length) * 100)
+            : 0;
 
     const openAddModal = () => {
         setEditingTodo(null);
         setTodoText('');
         setTodoPriority('medium');
-        setTodoDay(todayStr);
+        setTodoDay(null);
         setTodoAssigneeId(undefined);
-        setIsDayPreselected(false);
-        clearError();
-        setModalVisible(true);
-    };
-
-    const openAddModalForDay = (day: string) => {
-        setEditingTodo(null);
-        setTodoText('');
-        setTodoPriority('medium');
-        setTodoDay(day);
-        setTodoAssigneeId(undefined);
-        setIsDayPreselected(true);
         clearError();
         setModalVisible(true);
     };
@@ -330,9 +339,8 @@ export default function TodoScreen() {
         setEditingTodo(todo);
         setTodoText(todo.label);
         setTodoPriority(todo.priority);
-        setTodoDay(todo.day ?? todayStr);
+        setTodoDay(todo.day);
         setTodoAssigneeId(todo.assigneeId ?? undefined);
-        setIsDayPreselected(true);
         clearError();
         setModalVisible(true);
     };
@@ -363,6 +371,21 @@ export default function TodoScreen() {
         setModalVisible(false);
     };
 
+    const renderRow = (todo: TodoItem) => (
+        <TodoRow
+            key={todo.id}
+            todo={todo}
+            theme={theme}
+            overdue={!todo.done && !!todo.day && todo.day < todayStr}
+            canManage={canManageContent}
+            canToggle={canToggle(todo.assigneeId)}
+            onToggle={() => toggleTodo(todo.id)}
+            onEdit={() => openEditModal(todo)}
+            onDelete={() => deleteTodo(todo.id)}
+            onAssign={() => setAssigningTodoId(todo.id)}
+        />
+    );
+
     return (
         <ThemedView style={styles.container}>
             <SafeAreaView style={styles.safeArea}>
@@ -376,9 +399,25 @@ export default function TodoScreen() {
                     <ThemedText
                         themeColor="textSecondary"
                         style={styles.subtitle}>
-                        {completedTodos.length} of {todos.length} completed in
-                        total
+                        {completed.length} of {todos.length} completed in total
                     </ThemedText>
+                    {todos.length > 0 && (
+                        <View
+                            style={[
+                                styles.progressTrack,
+                                { backgroundColor: theme.backgroundSelected },
+                            ]}>
+                            <View
+                                style={[
+                                    styles.progressFill,
+                                    {
+                                        width: `${progress}%`,
+                                        backgroundColor: theme.text,
+                                    },
+                                ]}
+                            />
+                        </View>
+                    )}
                     {error && (
                         <ThemedText
                             type="small"
@@ -389,216 +428,67 @@ export default function TodoScreen() {
                 </View>
 
                 <ScrollView
-                    ref={scrollViewRef}
                     style={styles.scrollView}
                     contentContainerStyle={styles.scrollContent}
                     showsVerticalScrollIndicator={false}>
-                    {/* Todos grouped by day */}
-                    {dates.map((day) => {
-                        const dayTodos = todos.filter((t) => t.day === day);
-                        const dayOutstanding = dayTodos.filter((t) => !t.done);
-                        const dayCompleted = dayTodos.filter((t) => t.done);
-                        const showingCompleted = daysShowingCompleted.has(day);
-                        const visibleTodos = showingCompleted
-                            ? [...dayOutstanding, ...dayCompleted]
-                            : dayOutstanding;
-                        const dayDoneCount = dayCompleted.length;
-                        const dayProgress =
-                            dayTodos.length > 0
-                                ? Math.round(
-                                      (dayDoneCount / dayTodos.length) * 100
-                                  )
-                                : 0;
-                        const isToday = day === todayStr;
+                    {outstanding.length === 0 ? (
+                        <ThemedText
+                            themeColor="textSecondary"
+                            style={styles.emptyText}>
+                            {loading
+                                ? ''
+                                : todos.length === 0
+                                  ? 'Nothing to do yet.'
+                                  : 'Everything is done.'}
+                        </ThemedText>
+                    ) : (
+                        <View style={styles.todoList}>
+                            {outstanding.map(renderRow)}
+                        </View>
+                    )}
 
-                        return (
-                            <View
-                                key={day}
-                                onLayout={(event) => {
-                                    if (isToday) {
-                                        const y = event.nativeEvent.layout.y;
-                                        todayYOffsetRef.current = y;
-                                        setTimeout(() => {
-                                            scrollViewRef.current?.scrollTo({
-                                                y: y - Spacing.four,
-                                                animated: false,
-                                            });
-                                        }, 100);
-                                    }
+                    {/* Done, out of the way but not out of reach. */}
+                    {completed.length > 0 && (
+                        <>
+                            <Pressable
+                                onPress={() =>
+                                    setShowingCompleted((shown) => !shown)
+                                }
+                                accessibilityRole="button"
+                                accessibilityState={{
+                                    expanded: showingCompleted,
                                 }}
-                                style={[
-                                    styles.dayCard,
-                                    {
-                                        backgroundColor:
-                                            theme.backgroundElement,
-                                    },
-                                    isToday && styles.todayCard,
-                                    isToday && { borderColor: theme.text },
+                                style={({ pressed }) => [
+                                    styles.showCompletedRow,
+                                    pressed && { opacity: 0.6 },
                                 ]}>
-                                {/* Day Card Header */}
-                                <View style={styles.dayCardHeader}>
-                                    <View style={styles.dayCardTitleRow}>
-                                        <ThemedText
-                                            type="subtitle"
-                                            style={styles.dayCardTitle}>
-                                            {formatLocalDateString(day)}
-                                        </ThemedText>
-                                        {dayTodos.length > 0 && (
-                                            <ThemedText
-                                                themeColor="textSecondary"
-                                                type="small"
-                                                style={styles.dayProgressText}>
-                                                • {dayDoneCount}/
-                                                {dayTodos.length} done
-                                            </ThemedText>
-                                        )}
-                                        {isToday && (
-                                            <View
-                                                style={[
-                                                    styles.todayBadge,
-                                                    {
-                                                        backgroundColor:
-                                                            theme.text,
-                                                    },
-                                                ]}>
-                                                <ThemedText
-                                                    style={[
-                                                        styles.todayBadgeText,
-                                                        {
-                                                            color: theme.background,
-                                                        },
-                                                    ]}>
-                                                    {todayLabel}
-                                                </ThemedText>
-                                            </View>
-                                        )}
-                                    </View>
-                                    {canManageContent && (
-                                        <Pressable
-                                            onPress={() =>
-                                                openAddModalForDay(day)
-                                            }
-                                            accessibilityLabel={`Add todo for ${formatLocalDateString(day)}`}
-                                            accessibilityRole="button"
-                                            style={({ pressed }) => [
-                                                styles.dayAddButton,
-                                                pressed && { opacity: 0.7 },
-                                            ]}>
-                                            <SymbolView
-                                                name={{
-                                                    ios: 'plus.circle.fill',
-                                                    web: 'add_circle',
-                                                }}
-                                                tintColor={theme.text}
-                                                size={22}
-                                            />
-                                        </Pressable>
-                                    )}
+                                <SymbolView
+                                    name={{
+                                        ios: showingCompleted
+                                            ? 'chevron.down'
+                                            : 'chevron.right',
+                                        web: showingCompleted
+                                            ? 'expand_less'
+                                            : 'expand_more',
+                                    }}
+                                    tintColor={theme.textSecondary}
+                                    size={14}
+                                />
+                                <ThemedText
+                                    themeColor="textSecondary"
+                                    type="small">
+                                    {showingCompleted ? 'Hide' : 'Show'}{' '}
+                                    {completed.length} completed
+                                </ThemedText>
+                            </Pressable>
+
+                            {showingCompleted && (
+                                <View style={styles.todoList}>
+                                    {completed.map(renderRow)}
                                 </View>
-
-                                {/* Day Progress Bar */}
-                                {dayTodos.length > 0 && (
-                                    <View
-                                        style={[
-                                            styles.dayProgressTrack,
-                                            {
-                                                backgroundColor:
-                                                    theme.backgroundSelected,
-                                            },
-                                        ]}>
-                                        <View
-                                            style={[
-                                                styles.dayProgressFill,
-                                                {
-                                                    width: `${dayProgress}%`,
-                                                    backgroundColor: theme.text,
-                                                },
-                                            ]}
-                                        />
-                                    </View>
-                                )}
-
-                                {/* Day Todo List */}
-                                {dayTodos.length === 0 ? (
-                                    <ThemedText
-                                        themeColor="textSecondary"
-                                        type="small"
-                                        style={styles.noTodosText}>
-                                        {loading
-                                            ? ''
-                                            : 'No tasks planned for this day.'}
-                                    </ThemedText>
-                                ) : (
-                                    <View style={styles.dayTodosList}>
-                                        {visibleTodos.map((todo) => (
-                                            <TodoRow
-                                                key={todo.id}
-                                                todo={todo}
-                                                theme={theme}
-                                                canManage={canManageContent}
-                                                canToggle={canToggle(
-                                                    todo.assigneeId
-                                                )}
-                                                onToggle={() =>
-                                                    toggleTodo(todo.id)
-                                                }
-                                                onEdit={() =>
-                                                    openEditModal(todo)
-                                                }
-                                                onDelete={() =>
-                                                    deleteTodo(todo.id)
-                                                }
-                                                onAssign={() =>
-                                                    setAssigningTodoId(todo.id)
-                                                }
-                                            />
-                                        ))}
-
-                                        {dayCompleted.length > 0 && (
-                                            <Pressable
-                                                onPress={() =>
-                                                    toggleCompletedFor(day)
-                                                }
-                                                accessibilityRole="button"
-                                                accessibilityState={{
-                                                    expanded: showingCompleted,
-                                                }}
-                                                style={({ pressed }) => [
-                                                    styles.showCompletedRow,
-                                                    pressed && {
-                                                        opacity: 0.6,
-                                                    },
-                                                ]}>
-                                                <SymbolView
-                                                    name={{
-                                                        ios: showingCompleted
-                                                            ? 'chevron.down'
-                                                            : 'chevron.right',
-                                                        web: showingCompleted
-                                                            ? 'expand_less'
-                                                            : 'expand_more',
-                                                    }}
-                                                    tintColor={
-                                                        theme.textSecondary
-                                                    }
-                                                    size={14}
-                                                />
-                                                <ThemedText
-                                                    themeColor="textSecondary"
-                                                    type="small">
-                                                    {showingCompleted
-                                                        ? 'Hide'
-                                                        : 'Show'}{' '}
-                                                    {dayCompleted.length}{' '}
-                                                    completed
-                                                </ThemedText>
-                                            </Pressable>
-                                        )}
-                                    </View>
-                                )}
-                            </View>
-                        );
-                    })}
+                            )}
+                        </>
+                    )}
                 </ScrollView>
 
                 {/* Add todo button */}
@@ -671,62 +561,6 @@ export default function TodoScreen() {
                             contentContainerStyle={styles.modalScrollContent}
                             showsVerticalScrollIndicator={false}
                             keyboardShouldPersistTaps="handled">
-                            {/* Step 1: Choose Day */}
-                            {!isDayPreselected && (
-                                <>
-                                    <ThemedText
-                                        type="default"
-                                        style={styles.modalLabel}>
-                                        Choose day
-                                    </ThemedText>
-                                    <ScrollView
-                                        horizontal
-                                        showsHorizontalScrollIndicator={false}
-                                        style={styles.dayPillsScrollView}
-                                        contentContainerStyle={
-                                            styles.dayPillsContainer
-                                        }>
-                                        {dates.map((day) => {
-                                            const isSelected = todoDay === day;
-                                            return (
-                                                <Pressable
-                                                    key={day}
-                                                    onPress={() =>
-                                                        setTodoDay(day)
-                                                    }
-                                                    style={[
-                                                        styles.dayPill,
-                                                        {
-                                                            backgroundColor:
-                                                                isSelected
-                                                                    ? theme.text
-                                                                    : theme.backgroundElement,
-                                                            borderColor:
-                                                                isSelected
-                                                                    ? theme.text
-                                                                    : 'transparent',
-                                                        },
-                                                    ]}>
-                                                    <ThemedText
-                                                        style={[
-                                                            styles.dayPillText,
-                                                            {
-                                                                color: isSelected
-                                                                    ? theme.background
-                                                                    : theme.text,
-                                                            },
-                                                        ]}>
-                                                        {formatShortDateString(
-                                                            day
-                                                        )}
-                                                    </ThemedText>
-                                                </Pressable>
-                                            );
-                                        })}
-                                    </ScrollView>
-                                </>
-                            )}
-
                             {/* Label Input */}
                             <ThemedText
                                 type="default"
@@ -820,6 +654,55 @@ export default function TodoScreen() {
                                     }
                                 )}
                             </View>
+
+                            {/* Due date, which a task need not have. */}
+                            <ThemedText
+                                type="default"
+                                style={styles.modalLabel}>
+                                Due date
+                            </ThemedText>
+                            <ScrollView
+                                horizontal
+                                showsHorizontalScrollIndicator={false}
+                                style={styles.dayPillsScrollView}
+                                contentContainerStyle={
+                                    styles.dayPillsContainer
+                                }>
+                                {[null, ...dates].map((day) => {
+                                    const isSelected = todoDay === day;
+                                    return (
+                                        <Pressable
+                                            key={day ?? 'none'}
+                                            onPress={() => setTodoDay(day)}
+                                            accessibilityRole="button"
+                                            accessibilityState={{
+                                                selected: isSelected,
+                                            }}
+                                            style={[
+                                                styles.dayPill,
+                                                {
+                                                    backgroundColor: isSelected
+                                                        ? theme.text
+                                                        : theme.backgroundElement,
+                                                },
+                                            ]}>
+                                            <ThemedText
+                                                style={[
+                                                    styles.dayPillText,
+                                                    {
+                                                        color: isSelected
+                                                            ? theme.background
+                                                            : theme.text,
+                                                    },
+                                                ]}>
+                                                {day
+                                                    ? formatShortDateString(day)
+                                                    : 'No date'}
+                                            </ThemedText>
+                                        </Pressable>
+                                    );
+                                })}
+                            </ScrollView>
 
                             {/* Assignee Selection */}
                             <ThemedText
@@ -1074,7 +957,6 @@ const styles = StyleSheet.create({
     scrollContent: {
         paddingHorizontal: Spacing.four,
         paddingBottom: BottomTabInset + Spacing.six,
-        gap: Spacing.three,
     },
     header: {
         paddingTop: Spacing.two,
@@ -1090,61 +972,35 @@ const styles = StyleSheet.create({
     subtitle: {
         marginTop: -Spacing.one,
     },
-
-    // Day card styles
-    dayCard: {
-        borderRadius: 16,
-        padding: Spacing.three,
-        gap: Spacing.two,
+    progressTrack: {
+        height: 6,
+        borderRadius: 3,
+        overflow: 'hidden',
+        marginTop: Spacing.one,
     },
-    todayCard: {
-        borderWidth: 1.5,
+    progressFill: {
+        height: '100%',
+        borderRadius: 3,
     },
-    dayCardHeader: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingBottom: Spacing.half,
-        gap: Spacing.two,
-    },
-    dayCardTitleRow: {
-        flex: 1,
-        flexDirection: 'row',
-        alignItems: 'center',
-        flexWrap: 'wrap',
-        gap: Spacing.two,
-    },
-    dayCardTitle: {
-        fontWeight: '700',
-    },
-    dayProgressText: {
-        fontWeight: '500',
-    },
-    todayBadge: {
-        borderRadius: 6,
-        paddingHorizontal: Spacing.one + Spacing.half,
-        paddingVertical: Spacing.half / 2,
-    },
-    todayBadgeText: {
-        fontSize: 10,
-        fontWeight: '700',
-        textTransform: 'uppercase',
-    },
-    dayAddButton: {
-        padding: Spacing.half,
-    },
-    noTodosText: {
+    emptyText: {
         fontStyle: 'italic',
-        paddingVertical: Spacing.half,
+        paddingVertical: Spacing.two,
     },
 
+    // The list
+    todoList: {
+        gap: Spacing.one,
+    },
     swipeableContainer: {
         borderRadius: 14,
         overflow: 'hidden',
     },
     todoRow: {
         flexDirection: 'row',
-        alignItems: 'center',
+        alignItems: 'stretch',
+    },
+    priorityBar: {
+        width: 4,
     },
     todoMain: {
         flex: 1,
@@ -1154,61 +1010,28 @@ const styles = StyleSheet.create({
         paddingVertical: Spacing.two + Spacing.one,
         paddingHorizontal: Spacing.three,
     },
+    todoTextColumn: {
+        flex: 1,
+        gap: Spacing.half,
+    },
+    dueRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: Spacing.half,
+    },
+    strikethrough: {
+        textDecorationLine: 'line-through',
+    },
     assigneeBadgeContainer: {
-        paddingVertical: Spacing.two + Spacing.one,
+        justifyContent: 'center',
         paddingLeft: Spacing.one,
         paddingRight: Spacing.three,
-    },
-    dayProgressTrack: {
-        height: 6,
-        borderRadius: 3,
-        overflow: 'hidden',
-        marginVertical: Spacing.half,
-    },
-    dayProgressFill: {
-        height: '100%',
-        borderRadius: 3,
-    },
-    dayTodosList: {
-        gap: Spacing.one,
     },
     showCompletedRow: {
         flexDirection: 'row',
         alignItems: 'center',
         gap: Spacing.one,
-        paddingVertical: Spacing.two,
-    },
-    assigneeModalContent: {
-        width: '100%',
-        maxWidth: 400,
-        borderRadius: 24,
-        padding: Spacing.four,
-        gap: Spacing.three,
-    },
-    assigneeModalTitle: {
-        fontWeight: '700',
-        textAlign: 'center',
-    },
-    assigneeCloseButton: {
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: Spacing.three,
-        borderRadius: 14,
-        marginTop: Spacing.one,
-    },
-    modalOverlay: {
-        flex: 1,
-        backgroundColor: 'rgba(0, 0, 0, 0.4)',
-        justifyContent: 'flex-end',
-        alignItems: 'center',
-        paddingHorizontal: Spacing.four,
-        paddingBottom: Spacing.six,
-    },
-    todoLabel: {
-        flex: 1,
-    },
-    strikethrough: {
-        textDecorationLine: 'line-through',
+        paddingVertical: Spacing.three,
     },
 
     // Priority Dot
@@ -1300,9 +1123,9 @@ const styles = StyleSheet.create({
         fontWeight: '600',
     },
 
-    // Day pills selector in modal
+    // Due date pills in modal
     dayPillsScrollView: {
-        marginBottom: Spacing.two,
+        marginTop: -Spacing.one,
     },
     dayPillsContainer: {
         gap: Spacing.one + Spacing.half,
@@ -1368,6 +1191,32 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: '500',
     },
+    assigneeModalContent: {
+        width: '100%',
+        maxWidth: 400,
+        borderRadius: 24,
+        padding: Spacing.four,
+        gap: Spacing.three,
+    },
+    assigneeModalTitle: {
+        fontWeight: '700',
+        textAlign: 'center',
+    },
+    assigneeCloseButton: {
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: Spacing.three,
+        borderRadius: 14,
+        marginTop: Spacing.one,
+    },
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0, 0, 0, 0.4)',
+        justifyContent: 'flex-end',
+        alignItems: 'center',
+        paddingHorizontal: Spacing.four,
+        paddingBottom: Spacing.six,
+    },
 
     // Modal footer
     modalFooter: {
@@ -1395,9 +1244,6 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-    },
-    editButton: {
-        // color handled in style prop
     },
     actionPressable: {
         width: '100%',
