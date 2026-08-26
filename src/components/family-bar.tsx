@@ -67,6 +67,8 @@ export function FamilyBar() {
     const [mode, setMode] = useState<Mode>('family');
     const [draft, setDraft] = useState('');
     const [error, setError] = useState<string | null>(null);
+    /** The input submits and so does the button; one call is enough. */
+    const [busy, setBusy] = useState(false);
 
     const isOwner = member?.role === 'owner';
     const others = families.filter((option) => option.id !== family?.id);
@@ -98,8 +100,11 @@ export function FamilyBar() {
      * there is no family left to show.
      */
     const confirm = async () => {
+        if (busy) return;
+        setBusy(true);
         const message =
             mode === 'delete' ? await deleteFamily() : await leaveFamily();
+        setBusy(false);
 
         if (message) {
             setError(message);
@@ -110,12 +115,15 @@ export function FamilyBar() {
 
     /** Each face of the sheet runs one call and goes back if it worked. */
     const submit = async () => {
+        if (busy) return;
+        setBusy(true);
         const message =
             mode === 'rename'
                 ? await renameFamily(draft)
                 : mode === 'create'
                   ? await createFamily(draft)
                   : await joinFamily(draft);
+        setBusy(false);
 
         if (message) {
             setError(message);
@@ -125,7 +133,10 @@ export function FamilyBar() {
     };
 
     const switchTo = async (familyId: string) => {
+        if (busy) return;
+        setBusy(true);
         const message = await switchFamily(familyId);
+        setBusy(false);
         if (message) {
             setError(message);
             return;
@@ -312,7 +323,7 @@ export function FamilyBar() {
                                     </Pressable>
                                     <Pressable
                                         onPress={submit}
-                                        disabled={!draft.trim()}
+                                        disabled={!draft.trim() || busy}
                                         accessibilityLabel="Confirm"
                                         accessibilityRole="button"
                                         style={({ pressed }) => [

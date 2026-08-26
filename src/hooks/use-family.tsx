@@ -91,48 +91,61 @@ export function FamilyProvider({ children }: { children: React.ReactNode }) {
         };
     }, [userId, isPending]);
 
-    const createFamily = useCallback(async (name: string) => {
-        const res = await apiFetch('/api/family', {
-            method: 'POST',
-            headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({ name }),
-        });
-        const body = await res.json().catch(() => null);
-
-        if (!res.ok) {
-            return body?.error ?? 'Could not create the family.';
-        }
-
-        setFamily(body.family);
-        setMember(body.member);
-        /** Appended, matching the server's order: oldest membership first. */
-        setFamilies((current) => [
-            ...current,
-            { ...body.family, role: body.member.role },
-        ]);
-        return null;
+    /**
+     * Appended, matching the server's order: oldest membership first. An id
+     * already held is the same family arriving twice rather than a new one -
+     * the server refuses a second membership in the same family - so it
+     * replaces what is there instead of joining it.
+     */
+    const remember = useCallback((option: FamilyOption) => {
+        setFamilies((current) =>
+            current.some((held) => held.id === option.id)
+                ? current.map((held) => (held.id === option.id ? option : held))
+                : [...current, option]
+        );
     }, []);
 
-    const joinFamily = useCallback(async (code: string) => {
-        const res = await apiFetch('/api/invitations/accept', {
-            method: 'POST',
-            headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({ code }),
-        });
-        const body = await res.json().catch(() => null);
+    const createFamily = useCallback(
+        async (name: string) => {
+            const res = await apiFetch('/api/family', {
+                method: 'POST',
+                headers: { 'content-type': 'application/json' },
+                body: JSON.stringify({ name }),
+            });
+            const body = await res.json().catch(() => null);
 
-        if (!res.ok) {
-            return body?.error ?? 'Could not join the family.';
-        }
+            if (!res.ok) {
+                return body?.error ?? 'Could not create the family.';
+            }
 
-        setFamily(body.family);
-        setMember(body.member);
-        setFamilies((current) => [
-            ...current,
-            { ...body.family, role: body.member.role },
-        ]);
-        return null;
-    }, []);
+            setFamily(body.family);
+            setMember(body.member);
+            remember({ ...body.family, role: body.member.role });
+            return null;
+        },
+        [remember]
+    );
+
+    const joinFamily = useCallback(
+        async (code: string) => {
+            const res = await apiFetch('/api/invitations/accept', {
+                method: 'POST',
+                headers: { 'content-type': 'application/json' },
+                body: JSON.stringify({ code }),
+            });
+            const body = await res.json().catch(() => null);
+
+            if (!res.ok) {
+                return body?.error ?? 'Could not join the family.';
+            }
+
+            setFamily(body.family);
+            setMember(body.member);
+            remember({ ...body.family, role: body.member.role });
+            return null;
+        },
+        [remember]
+    );
 
     const renameFamily = useCallback(async (name: string) => {
         const res = await apiFetch('/api/family', {
