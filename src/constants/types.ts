@@ -35,5 +35,6 @@ export interface TodoItem {
     priority: 'low' | 'medium' | 'high';
     /** Null is how the server says nobody, and how it is told so. */
     assigneeId?: string | null;
-    day: string;
+    /** A due date, which a to-do need not have. Meals and chores must. */
+    day: string | null;
 }

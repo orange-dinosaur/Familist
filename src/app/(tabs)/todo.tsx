@@ -330,7 +330,7 @@ export default function TodoScreen() {
         setEditingTodo(todo);
         setTodoText(todo.label);
         setTodoPriority(todo.priority);
-        setTodoDay(todo.day);
+        setTodoDay(todo.day ?? todayStr);
         setTodoAssigneeId(todo.assigneeId ?? undefined);
         setIsDayPreselected(true);
         clearError();

@@ -16,7 +16,7 @@ import { db } from '@/db';
 import {
     assigneeInFamily,
     badRequest,
-    dayError,
+    dueDayError,
     forbidden,
     idError,
     labelError,
@@ -83,7 +83,7 @@ export async function POST(request: Request): Promise<Response> {
 
     /** `priority` is `NOT NULL` with no default, so the route asks for it. */
     const invalid =
-        labelError(label) ?? dayError(day) ?? priorityError(priority);
+        labelError(label) ?? dueDayError(day) ?? priorityError(priority);
     if (invalid) return badRequest(invalid);
 
     if (
@@ -106,7 +106,7 @@ export async function POST(request: Request): Promise<Response> {
             id: recordId,
             familyId: membership.familyId,
             label: (label as string).trim(),
-            day: day as string,
+            day: typeof day === 'string' ? day : null,
             priority: priority as TodoItem['priority'],
             assigneeId: assignee,
         })

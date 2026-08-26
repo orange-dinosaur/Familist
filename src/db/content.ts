@@ -110,6 +110,16 @@ export function dayError(value: unknown): string | null {
     return null;
 }
 
+/**
+ * A to-do's day is a due date it may not have, so nothing at all passes. The
+ * two are separate validators rather than a flag because the collections that
+ * are keyed by day must keep refusing a record without one.
+ */
+export function dueDayError(value: unknown): string | null {
+    if (value === undefined || value === null) return null;
+    return dayError(value);
+}
+
 export function timeError(value: unknown): string | null {
     if (value === undefined || value === null) return 'A time is required';
     if (

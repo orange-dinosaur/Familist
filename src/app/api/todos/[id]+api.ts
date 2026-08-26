@@ -15,7 +15,7 @@ import { db } from '@/db';
 import {
     assigneeInFamily,
     badRequest,
-    dayError,
+    dueDayError,
     forbidden,
     labelError,
     notFound,
@@ -50,7 +50,7 @@ export async function PATCH(
     const changes: {
         label?: string;
         done?: boolean;
-        day?: string;
+        day?: string | null;
         priority?: TodoItem['priority'];
         assigneeId?: string | null;
     } = {};
@@ -66,10 +66,11 @@ export async function PATCH(
         changes.done = body.done;
     }
 
+    /** A `day` sent as null is a due date being taken off. */
     if ('day' in body) {
-        const invalid = dayError(body.day);
+        const invalid = dueDayError(body.day);
         if (invalid) return badRequest(invalid);
-        changes.day = body.day as string;
+        changes.day = typeof body.day === 'string' ? body.day : null;
     }
 
     if ('priority' in body) {

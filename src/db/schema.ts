@@ -289,7 +289,8 @@ export const todo = pgTable(
         done: boolean('done').notNull().default(false),
         priority: todoPriority('priority').notNull(),
         assigneeId: text('assignee_id'),
-        day: date('day').notNull(),
+        /** A due date, which a to-do need not have. */
+        day: date('day'),
         createdAt: timestamp('created_at').defaultNow().notNull(),
         updatedAt: timestamp('updated_at')
             .defaultNow()
