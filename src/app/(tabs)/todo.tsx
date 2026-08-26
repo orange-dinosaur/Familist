@@ -27,7 +27,7 @@ import { useTheme } from '@/hooks/use-theme';
 import { useMembers } from '@/hooks/use-members';
 import { usePermissions } from '@/hooks/use-permissions';
 import { useTodos } from '@/hooks/use-todos';
-import { byUrgency } from '@/utils/todo';
+import { sortTodos, TODO_SORTS, type TodoSort } from '@/utils/todo';
 
 const priorityColors = {
     low: 'priorityLow',
@@ -289,6 +289,7 @@ export default function TodoScreen() {
     const [modalVisible, setModalVisible] = useState(false);
     const [assigningTodoId, setAssigningTodoId] = useState<string | null>(null);
     const [showingCompleted, setShowingCompleted] = useState(false);
+    const [sort, setSort] = useState<TodoSort>('urgency');
     const [editingTodo, setEditingTodo] = useState<TodoItem | null>(null);
 
     const [todoText, setTodoText] = useState('');
@@ -302,7 +303,12 @@ export default function TodoScreen() {
     const todayStr = getRelativeDateString(0);
     const dates = getDateRange();
 
-    const outstanding = todos.filter((t) => !t.done).sort(byUrgency);
+    const outstanding = sortTodos(
+        todos.filter((t) => !t.done),
+        sort,
+        members.map((member) => member.id)
+    );
+    /** Finished work keeps the order it arrived in, whatever the sort. */
     const completed = todos.filter((t) => t.done);
     const progress =
         todos.length > 0
@@ -410,6 +416,50 @@ export default function TodoScreen() {
                         </ThemedText>
                     )}
                 </View>
+
+                {/* Only worth offering once there is a list to arrange. */}
+                {outstanding.length > 1 && (
+                    <ScrollView
+                        horizontal
+                        showsHorizontalScrollIndicator={false}
+                        style={styles.sortScrollView}
+                        contentContainerStyle={styles.sortContainer}>
+                        {TODO_SORTS.map(({ key, label }) => {
+                            const isSelected = sort === key;
+                            return (
+                                <Pressable
+                                    key={key}
+                                    onPress={() => setSort(key)}
+                                    accessibilityLabel={`Sort by ${label.toLowerCase()}`}
+                                    accessibilityRole="button"
+                                    accessibilityState={{
+                                        selected: isSelected,
+                                    }}
+                                    style={[
+                                        styles.sortPill,
+                                        {
+                                            backgroundColor: isSelected
+                                                ? theme.text
+                                                : theme.backgroundElement,
+                                        },
+                                    ]}>
+                                    <ThemedText
+                                        type="small"
+                                        style={[
+                                            styles.sortPillText,
+                                            {
+                                                color: isSelected
+                                                    ? theme.background
+                                                    : theme.textSecondary,
+                                            },
+                                        ]}>
+                                        {label}
+                                    </ThemedText>
+                                </Pressable>
+                            );
+                        })}
+                    </ScrollView>
+                )}
 
                 <ScrollView
                     style={styles.scrollView}
@@ -965,6 +1015,22 @@ const styles = StyleSheet.create({
     progressFill: {
         height: '100%',
         borderRadius: 3,
+    },
+    sortScrollView: {
+        flexGrow: 0,
+        marginBottom: Spacing.two,
+    },
+    sortContainer: {
+        paddingHorizontal: Spacing.four,
+        gap: Spacing.one + Spacing.half,
+    },
+    sortPill: {
+        paddingHorizontal: Spacing.three,
+        paddingVertical: Spacing.one + Spacing.half,
+        borderRadius: 16,
+    },
+    sortPillText: {
+        fontWeight: '600',
     },
     emptyText: {
         fontStyle: 'italic',

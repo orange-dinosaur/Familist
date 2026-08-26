@@ -45,7 +45,12 @@ export async function GET(request: Request): Promise<Response> {
                 since ? gte(todo.updatedAt, since) : isNull(todo.deletedAt)
             )
         )
-        .orderBy(asc(todo.day), asc(todo.createdAt), asc(todo.id));
+        /**
+         * By when they were made, not by day: a to-do's day is a due date it
+         * may not have, and the screen sorts them for itself. This is the
+         * order it falls back on, and the one a stable re-sort preserves.
+         */
+        .orderBy(asc(todo.createdAt), asc(todo.id));
 
     return Response.json({ todos });
 }

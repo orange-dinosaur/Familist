@@ -21,3 +21,51 @@ export function byUrgency(a: TodoItem, b: TodoItem): number {
     }
     return priorityRank[b.priority] - priorityRank[a.priority];
 }
+
+export type TodoSort = 'urgency' | 'priority' | 'assignee' | 'added';
+
+export const TODO_SORTS: { key: TodoSort; label: string }[] = [
+    { key: 'urgency', label: 'Urgency' },
+    { key: 'priority', label: 'Priority' },
+    { key: 'assignee', label: 'Assignee' },
+    { key: 'added', label: 'Added' },
+];
+
+/**
+ * Every order falls back on urgency for what it cannot separate, so a sort is
+ * a way of gathering the list rather than a different list each time.
+ *
+ * `added` is the collection as it arrives, which the route hands back in the
+ * order the family made them. Nothing else here needs a copy of `createdAt` on
+ * the device, which is why none is kept.
+ */
+export function sortTodos(
+    todos: TodoItem[],
+    sort: TodoSort,
+    memberOrder: string[]
+): TodoItem[] {
+    if (sort === 'added') return todos;
+
+    const list = [...todos];
+
+    if (sort === 'priority') {
+        return list.sort(
+            (a, b) =>
+                priorityRank[b.priority] - priorityRank[a.priority] ||
+                byUrgency(a, b)
+        );
+    }
+
+    if (sort === 'assignee') {
+        /** Whoever a to-do is nobody's goes last, after every member. */
+        const place = (todo: TodoItem) => {
+            const at = todo.assigneeId
+                ? memberOrder.indexOf(todo.assigneeId)
+                : -1;
+            return at === -1 ? memberOrder.length : at;
+        };
+        return list.sort((a, b) => place(a) - place(b) || byUrgency(a, b));
+    }
+
+    return list.sort(byUrgency);
+}
