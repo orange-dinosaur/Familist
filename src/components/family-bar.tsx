@@ -1,9 +1,9 @@
 import { BlurView } from 'expo-blur';
 import { SymbolView } from 'expo-symbols';
-import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { Modal, Pressable, StyleSheet, TextInput, View } from 'react-native';
 
+import { FamilyMembers } from '@/components/family-members';
 import { ThemedText } from '@/components/themed-text';
 import { authClient } from '@/auth/client';
 import { MaxContentWidth, Spacing } from '@/constants/theme';
@@ -13,7 +13,14 @@ import { useMembers } from '@/hooks/use-members';
 import { useTheme } from '@/hooks/use-theme';
 import { clearLocalData } from '@/store/clear-local';
 
-type Mode = 'family' | 'rename' | 'create' | 'join' | 'leave' | 'delete';
+type Mode =
+    | 'family'
+    | 'members'
+    | 'rename'
+    | 'create'
+    | 'join'
+    | 'leave'
+    | 'delete';
 
 type Prompt = 'rename' | 'create' | 'join';
 type Confirm = 'leave' | 'delete';
@@ -48,7 +55,6 @@ const CONFIRM: Record<Confirm, { title: string; body: string; act: string }> = {
 export function FamilyBar() {
     const theme = useTheme();
     const scheme = useColorScheme();
-    const router = useRouter();
     const {
         family,
         member,
@@ -144,11 +150,6 @@ export function FamilyBar() {
         setFamilyOpen(false);
     };
 
-    const goToMembers = () => {
-        setFamilyOpen(false);
-        router.navigate('/members');
-    };
-
     /**
      * The device keeps the family's records so they can be read offline, so
      * signing out has to take them with it. The session goes first: what is
@@ -227,7 +228,9 @@ export function FamilyBar() {
                             styles.sheet,
                             { backgroundColor: theme.background },
                         ]}>
-                        {mode === 'leave' || mode === 'delete' ? (
+                        {mode === 'members' ? (
+                            <FamilyMembers onBack={() => start('family')} />
+                        ) : mode === 'leave' || mode === 'delete' ? (
                             <>
                                 <View style={styles.identity}>
                                     <ThemedText type="subtitle">
@@ -363,7 +366,7 @@ export function FamilyBar() {
                                 </View>
 
                                 <Pressable
-                                    onPress={goToMembers}
+                                    onPress={() => start('members')}
                                     accessibilityLabel="Family members"
                                     accessibilityRole="button"
                                     style={({ pressed }) => [

@@ -24,7 +24,6 @@ const APP_SCREENS = [
     '/daily-chores',
     '/explore',
     '/welcome',
-    '/members',
 ];
 
 /**
