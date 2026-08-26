@@ -1,3 +1,4 @@
+import { Image } from 'expo-image';
 import { SymbolView } from 'expo-symbols';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
@@ -15,6 +16,7 @@ import { useChores } from '@/hooks/use-chores';
 import { useMeals } from '@/hooks/use-meals';
 import { useMembers } from '@/hooks/use-members';
 import { usePermissions } from '@/hooks/use-permissions';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useTheme } from '@/hooks/use-theme';
 import { useTodos } from '@/hooks/use-todos';
 import { byUrgency } from '@/utils/todo';
@@ -37,6 +39,7 @@ const priorityColors = {
 
 export default function HomeScreen() {
     const theme = useTheme();
+    const scheme = useColorScheme();
     const router = useRouter();
     const { members } = useMembers();
     const { meals, loading: mealsLoading } = useMeals();
@@ -107,7 +110,22 @@ export default function HomeScreen() {
 
                 {/* Header */}
                 <View style={styles.header}>
-                    <ThemedText type="title">FamiList</ThemedText>
+                    {/*
+                     * The kit's two horizontal lockups are the same mark in
+                     * inks for opposite grounds: the green one is drawn in
+                     * cream and reads on the dark background, the light one
+                     * in green and brown and reads on the cream.
+                     */}
+                    <Image
+                        source={
+                            scheme === 'dark'
+                                ? require('@/assets/images/familist-lockup-verde.svg')
+                                : require('@/assets/images/familist-lockup-chiaro.svg')
+                        }
+                        style={styles.lockup}
+                        contentFit="contain"
+                        accessibilityLabel="FamiList"
+                    />
 
                     {/* Date and day of the week */}
                     <ThemedText
@@ -787,8 +805,14 @@ const styles = StyleSheet.create({
         gap: Spacing.one,
         marginBottom: Spacing.two,
     },
+    /** The lockup's viewBox is 533.72x117.6, so the height follows the width. */
+    lockup: {
+        width: 200,
+        height: 200 / 4.533,
+        alignSelf: 'flex-start',
+    },
     dateText: {
-        marginTop: -Spacing.two,
+        marginTop: 0,
     },
     /* ── Section cards ── */
     card: {
