@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { FamilyBar } from '@/components/family-bar';
 import { ThemedText } from '@/components/themed-text';
+import { MemberAvatar } from '@/components/member-avatar';
 import { ThemedView } from '@/components/themed-view';
 
 import { getRelativeDateString } from '@/constants/dates';
@@ -366,27 +367,12 @@ export default function HomeScreen() {
                                                             {item.label}
                                                         </ThemedText>
                                                         {assignee && (
-                                                            <View
-                                                                style={[
-                                                                    styles.assigneeAvatar,
-                                                                    {
-                                                                        backgroundColor:
-                                                                            theme[
-                                                                                assignee
-                                                                                    .color
-                                                                            ],
-                                                                    },
-                                                                ]}>
-                                                                <ThemedText
-                                                                    themeColor="background"
-                                                                    style={
-                                                                        styles.assigneeInitials
-                                                                    }>
-                                                                    {
-                                                                        assignee.initials
-                                                                    }
-                                                                </ThemedText>
-                                                            </View>
+                                                            <MemberAvatar
+                                                                member={
+                                                                    assignee
+                                                                }
+                                                                size={26}
+                                                            />
                                                         )}
                                                     </Pressable>
                                                 );
@@ -454,33 +440,10 @@ export default function HomeScreen() {
                                                         {item.label}
                                                     </ThemedText>
                                                     {assignee && (
-                                                        <View
-                                                            style={[
-                                                                styles.assigneeAvatar,
-                                                                {
-                                                                    backgroundColor:
-                                                                        theme[
-                                                                            assignee
-                                                                                .color
-                                                                        ],
-                                                                    width: 22,
-                                                                    height: 22,
-                                                                    borderRadius: 11,
-                                                                },
-                                                            ]}>
-                                                            <ThemedText
-                                                                themeColor="background"
-                                                                style={[
-                                                                    styles.assigneeInitials,
-                                                                    {
-                                                                        fontSize: 10,
-                                                                    },
-                                                                ]}>
-                                                                {
-                                                                    assignee.initials
-                                                                }
-                                                            </ThemedText>
-                                                        </View>
+                                                        <MemberAvatar
+                                                            member={assignee}
+                                                            size={22}
+                                                        />
                                                     )}
                                                 </Pressable>
                                             );
@@ -640,27 +603,12 @@ export default function HomeScreen() {
                                                             {item.label}
                                                         </ThemedText>
                                                         {assignee && (
-                                                            <View
-                                                                style={[
-                                                                    styles.assigneeAvatar,
-                                                                    {
-                                                                        backgroundColor:
-                                                                            theme[
-                                                                                assignee
-                                                                                    .color
-                                                                            ],
-                                                                    },
-                                                                ]}>
-                                                                <ThemedText
-                                                                    themeColor="background"
-                                                                    style={
-                                                                        styles.assigneeInitials
-                                                                    }>
-                                                                    {
-                                                                        assignee.initials
-                                                                    }
-                                                                </ThemedText>
-                                                            </View>
+                                                            <MemberAvatar
+                                                                member={
+                                                                    assignee
+                                                                }
+                                                                size={26}
+                                                            />
                                                         )}
                                                     </Pressable>
                                                 );
@@ -730,33 +678,10 @@ export default function HomeScreen() {
                                                         {item.label}
                                                     </ThemedText>
                                                     {assignee && (
-                                                        <View
-                                                            style={[
-                                                                styles.assigneeAvatar,
-                                                                {
-                                                                    backgroundColor:
-                                                                        theme[
-                                                                            assignee
-                                                                                .color
-                                                                        ],
-                                                                    width: 22,
-                                                                    height: 22,
-                                                                    borderRadius: 11,
-                                                                },
-                                                            ]}>
-                                                            <ThemedText
-                                                                themeColor="background"
-                                                                style={[
-                                                                    styles.assigneeInitials,
-                                                                    {
-                                                                        fontSize: 10,
-                                                                    },
-                                                                ]}>
-                                                                {
-                                                                    assignee.initials
-                                                                }
-                                                            </ThemedText>
-                                                        </View>
+                                                        <MemberAvatar
+                                                            member={assignee}
+                                                            size={22}
+                                                        />
                                                     )}
                                                 </Pressable>
                                             );
@@ -944,17 +869,6 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     // Assignee styling
-    assigneeAvatar: {
-        width: 26,
-        height: 26,
-        borderRadius: 13,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    assigneeInitials: {
-        fontSize: 11,
-        fontWeight: '700',
-    },
     subtleHiddenClue: {
         flexDirection: 'row',
         alignItems: 'center',

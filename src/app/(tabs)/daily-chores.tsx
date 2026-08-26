@@ -15,6 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { FamilyBar } from '@/components/family-bar';
 import { ThemedText } from '@/components/themed-text';
+import { MemberAvatar } from '@/components/member-avatar';
 import { ThemedView } from '@/components/themed-view';
 import {
     getDateRange,
@@ -152,40 +153,7 @@ const ChoreRow = React.memo(
                             onPress={onAssign}
                             disabled={!canManage}
                             style={styles.assigneeBadgeContainer}>
-                            {assignee ? (
-                                <View
-                                    style={[
-                                        styles.assigneeAvatar,
-                                        {
-                                            backgroundColor:
-                                                theme[assignee.color],
-                                        },
-                                    ]}>
-                                    <ThemedText
-                                        themeColor="background"
-                                        style={styles.assigneeInitials}>
-                                        {assignee.initials}
-                                    </ThemedText>
-                                </View>
-                            ) : (
-                                <View
-                                    style={[
-                                        styles.assigneeAvatar,
-                                        {
-                                            backgroundColor:
-                                                theme.backgroundSelected,
-                                        },
-                                    ]}>
-                                    <SymbolView
-                                        name={{
-                                            ios: 'person.crop.circle',
-                                            web: 'person_outline',
-                                        }}
-                                        tintColor={theme.textSecondary}
-                                        size={14}
-                                    />
-                                </View>
-                            )}
+                            <MemberAvatar member={assignee ?? null} size={28} />
                         </Pressable>
                     )}
                 </View>
@@ -731,22 +699,7 @@ export default function DailyChoresScreen() {
                                                 theme.backgroundSelected,
                                         },
                                     ]}>
-                                    <View
-                                        style={[
-                                            styles.assigneeAvatarLarge,
-                                            {
-                                                backgroundColor:
-                                                    theme[user.color],
-                                            },
-                                        ]}>
-                                        <ThemedText
-                                            themeColor="background"
-                                            style={
-                                                styles.assigneeInitialsLarge
-                                            }>
-                                            {user.initials}
-                                        </ThemedText>
-                                    </View>
+                                    <MemberAvatar member={user} size={40} />
                                     <ThemedText style={styles.assigneeName}>
                                         {user.name}
                                     </ThemedText>
@@ -770,23 +723,7 @@ export default function DailyChoresScreen() {
                                             theme.backgroundSelected,
                                     },
                                 ]}>
-                                <View
-                                    style={[
-                                        styles.assigneeAvatarLarge,
-                                        {
-                                            backgroundColor:
-                                                theme.backgroundSelected,
-                                        },
-                                    ]}>
-                                    <SymbolView
-                                        name={{
-                                            ios: 'person.crop.circle',
-                                            web: 'person_outline',
-                                        }}
-                                        tintColor={theme.textSecondary}
-                                        size={22}
-                                    />
-                                </View>
+                                <MemberAvatar member={null} size={40} />
                                 <ThemedText
                                     themeColor="textSecondary"
                                     style={styles.assigneeName}>
@@ -933,17 +870,6 @@ const styles = StyleSheet.create({
         paddingVertical: Spacing.two + Spacing.one,
         paddingLeft: Spacing.one,
         paddingRight: Spacing.three,
-    },
-    assigneeAvatar: {
-        width: 28,
-        height: 28,
-        borderRadius: 14,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    assigneeInitials: {
-        fontSize: 12,
-        fontWeight: '700',
     },
 
     // Add button
@@ -1100,17 +1026,6 @@ const styles = StyleSheet.create({
         paddingVertical: Spacing.three,
         paddingHorizontal: Spacing.two,
         borderRadius: 14,
-    },
-    assigneeAvatarLarge: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    assigneeInitialsLarge: {
-        fontSize: 16,
-        fontWeight: '700',
     },
     assigneeName: {
         fontSize: 16,

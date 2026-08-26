@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { Modal, Pressable, StyleSheet, TextInput, View } from 'react-native';
 
 import { FamilyMembers } from '@/components/family-members';
+import { MemberAvatar } from '@/components/member-avatar';
 import { ThemedText } from '@/components/themed-text';
 import { authClient } from '@/auth/client';
 import { MaxContentWidth, Spacing } from '@/constants/theme';
@@ -77,6 +78,8 @@ export function FamilyBar() {
     const [busy, setBusy] = useState(false);
 
     const isOwner = member?.role === 'owner';
+    /** The bar shows the signed-in person, who is one of the family's members. */
+    const me = members.find((one) => one.id === member?.id) ?? null;
     const others = families.filter((option) => option.id !== family?.id);
 
     /**
@@ -194,15 +197,11 @@ export function FamilyBar() {
                     onPress={() => setAccountOpen(true)}
                     accessibilityLabel="Account"
                     accessibilityRole="button"
-                    style={({ pressed }) => [
-                        styles.avatar,
-                        { backgroundColor: theme.backgroundSelected },
-                        pressed && { opacity: 0.7 },
-                    ]}>
-                    <SymbolView
-                        name={{ ios: 'person.fill', web: 'person' }}
-                        tintColor={theme.textSecondary}
-                        size={18}
+                    style={({ pressed }) => [pressed && { opacity: 0.7 }]}>
+                    <MemberAvatar
+                        member={me}
+                        size={34}
+                        icon={{ ios: 'person.fill', web: 'person' }}
                     />
                 </Pressable>
             </View>
@@ -665,13 +664,6 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         borderRadius: 14,
         paddingVertical: Spacing.three,
-    },
-    avatar: {
-        width: 34,
-        height: 34,
-        borderRadius: 17,
-        alignItems: 'center',
-        justifyContent: 'center',
     },
     overlay: {
         flex: 1,

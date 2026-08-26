@@ -11,6 +11,7 @@ import { SymbolView } from 'expo-symbols';
 import React, { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
+import { MemberAvatar } from '@/components/member-avatar';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
 import { useFamily } from '@/hooks/use-family';
@@ -448,17 +449,7 @@ export function FamilyMembers({ onBack }: { onBack: () => void }) {
                             { backgroundColor: theme.backgroundElement },
                             pressed && { opacity: 0.6 },
                         ]}>
-                        <View
-                            style={[
-                                styles.avatar,
-                                { backgroundColor: theme[member.color] },
-                            ]}>
-                            <ThemedText
-                                themeColor="background"
-                                style={styles.initials}>
-                                {member.initials}
-                            </ThemedText>
-                        </View>
+                        <MemberAvatar member={member} size={36} />
                         <View style={styles.memberText}>
                             <ThemedText type="default">
                                 {member.name}
@@ -528,17 +519,6 @@ const styles = StyleSheet.create({
         gap: Spacing.three,
         borderRadius: 12,
         padding: Spacing.three,
-    },
-    avatar: {
-        width: 36,
-        height: 36,
-        borderRadius: 18,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    initials: {
-        fontSize: 14,
-        fontWeight: '600',
     },
     memberText: {
         flex: 1,

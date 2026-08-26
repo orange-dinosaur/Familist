@@ -18,6 +18,11 @@ export const authClient = createAuthClient();
  * Calls an API route as the signed-in user. The routes are same-origin, so the
  * browser attaches the session cookie itself.
  */
+/** Same-origin, so a path is already a URL the browser can use. */
+export function apiUrl(path: string): string {
+    return path;
+}
+
 export function apiFetch(path: string, init?: RequestInit): Promise<Response> {
     return fetch(path, init);
 }

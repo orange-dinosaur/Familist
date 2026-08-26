@@ -15,6 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { FamilyBar } from '@/components/family-bar';
 import { ThemedText } from '@/components/themed-text';
+import { MemberAvatar } from '@/components/member-avatar';
 import { ThemedView } from '@/components/themed-view';
 import {
     getDateRange,
@@ -235,32 +236,7 @@ const TodoRow = React.memo(
                             }
                             accessibilityRole="button"
                             style={styles.assigneeBadgeContainer}>
-                            <View
-                                style={[
-                                    styles.assigneeAvatar,
-                                    {
-                                        backgroundColor: assignee
-                                            ? theme[assignee.color]
-                                            : theme.backgroundSelected,
-                                    },
-                                ]}>
-                                {assignee ? (
-                                    <ThemedText
-                                        themeColor="background"
-                                        style={styles.assigneeInitials}>
-                                        {assignee.initials}
-                                    </ThemedText>
-                                ) : (
-                                    <SymbolView
-                                        name={{
-                                            ios: 'person.crop.circle',
-                                            web: 'person_outline',
-                                        }}
-                                        tintColor={theme.textSecondary}
-                                        size={14}
-                                    />
-                                )}
-                            </View>
+                            <MemberAvatar member={assignee ?? null} size={28} />
                         </Pressable>
                     )}
                 </View>
@@ -775,22 +751,10 @@ export default function TodoScreen() {
                                                         : 'transparent',
                                                 },
                                             ]}>
-                                            <View
-                                                style={[
-                                                    styles.editAssigneeAvatar,
-                                                    {
-                                                        backgroundColor:
-                                                            theme[user.color],
-                                                    },
-                                                ]}>
-                                                <ThemedText
-                                                    themeColor="background"
-                                                    style={
-                                                        styles.editAssigneeInitials
-                                                    }>
-                                                    {user.initials}
-                                                </ThemedText>
-                                            </View>
+                                            <MemberAvatar
+                                                member={user}
+                                                size={32}
+                                            />
                                             <ThemedText
                                                 style={styles.editAssigneeName}>
                                                 {user.name}
@@ -903,22 +867,7 @@ export default function TodoScreen() {
                                                 theme.backgroundSelected,
                                         },
                                     ]}>
-                                    <View
-                                        style={[
-                                            styles.assigneeAvatarLarge,
-                                            {
-                                                backgroundColor:
-                                                    theme[member.color],
-                                            },
-                                        ]}>
-                                        <ThemedText
-                                            themeColor="background"
-                                            style={
-                                                styles.assigneeInitialsLarge
-                                            }>
-                                            {member.initials}
-                                        </ThemedText>
-                                    </View>
+                                    <MemberAvatar member={member} size={40} />
                                     <ThemedText style={styles.assigneeName}>
                                         {member.name}
                                     </ThemedText>
@@ -939,23 +888,7 @@ export default function TodoScreen() {
                                             theme.backgroundSelected,
                                     },
                                 ]}>
-                                <View
-                                    style={[
-                                        styles.assigneeAvatarLarge,
-                                        {
-                                            backgroundColor:
-                                                theme.backgroundSelected,
-                                        },
-                                    ]}>
-                                    <SymbolView
-                                        name={{
-                                            ios: 'person.crop.circle',
-                                            web: 'person_outline',
-                                        }}
-                                        tintColor={theme.textSecondary}
-                                        size={22}
-                                    />
-                                </View>
+                                <MemberAvatar member={null} size={40} />
                                 <ThemedText
                                     themeColor="textSecondary"
                                     style={styles.assigneeName}>
@@ -1098,17 +1031,6 @@ const styles = StyleSheet.create({
     },
 
     // Assignee styling
-    assigneeAvatar: {
-        width: 28,
-        height: 28,
-        borderRadius: 14,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    assigneeInitials: {
-        fontSize: 12,
-        fontWeight: '700',
-    },
 
     // Add button
     addButtonContainer: {
@@ -1217,31 +1139,9 @@ const styles = StyleSheet.create({
         borderRadius: 12,
         borderWidth: 2,
     },
-    editAssigneeAvatar: {
-        width: 32,
-        height: 32,
-        borderRadius: 16,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    editAssigneeInitials: {
-        fontSize: 14,
-        fontWeight: '700',
-    },
     editAssigneeName: {
         fontSize: 16,
         fontWeight: '500',
-    },
-    assigneeAvatarLarge: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    assigneeInitialsLarge: {
-        fontSize: 16,
-        fontWeight: '700',
     },
     assigneeName: {
         fontSize: 16,
