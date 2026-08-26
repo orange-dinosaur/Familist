@@ -6,7 +6,7 @@ import { Modal, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { FamilyMembers } from '@/components/family-members';
 import { MemberAvatar } from '@/components/member-avatar';
 import { ThemedText } from '@/components/themed-text';
-import { authClient } from '@/auth/client';
+import { apiFetch, authClient } from '@/auth/client';
 import { MaxContentWidth, Spacing } from '@/constants/theme';
 import { useAvatar } from '@/hooks/use-avatar';
 import { useFamily } from '@/hooks/use-family';
@@ -77,6 +77,8 @@ export function FamilyBar() {
     const [error, setError] = useState<string | null>(null);
     /** The input submits and so does the button; one call is enough. */
     const [busy, setBusy] = useState(false);
+    /** The account sheet's own confirmation, which the family sheet's modes cannot hold. */
+    const [deleting, setDeleting] = useState(false);
 
     const isOwner = member?.role === 'owner';
     /** The bar shows the signed-in person, who is one of the family's members. */
@@ -170,6 +172,27 @@ export function FamilyBar() {
         setAccountOpen(false);
         await authClient.signOut();
         await clearLocalData();
+    };
+
+    /**
+     * The session outlives the row it belonged to, so signing out afterwards is
+     * what actually returns the app to its signed-out state - and the device
+     * is still holding the family's lists until they are cleared.
+     */
+    const deleteAccount = async () => {
+        if (busy) return;
+        setBusy(true);
+        const res = await apiFetch('/api/account', { method: 'DELETE' });
+        const body = await res.json().catch(() => null);
+        setBusy(false);
+
+        if (!res.ok) {
+            setError(body?.error ?? 'Could not delete your account.');
+            return;
+        }
+
+        setDeleting(false);
+        await signOut();
     };
 
     return (
@@ -659,6 +682,116 @@ export function FamilyBar() {
                             />
                             <ThemedText type="default">Sign out</ThemedText>
                         </Pressable>
+
+                        <Pressable
+                            onPress={() => {
+                                setError(null);
+                                setDeleting(true);
+                            }}
+                            accessibilityLabel="Delete account"
+                            accessibilityRole="button"
+                            style={({ pressed }) => [
+                                styles.row,
+                                { backgroundColor: theme.backgroundElement },
+                                pressed && {
+                                    backgroundColor: theme.backgroundSelected,
+                                },
+                            ]}>
+                            <SymbolView
+                                name={{ ios: 'trash', web: 'delete' }}
+                                tintColor={theme.destructive}
+                                size={22}
+                            />
+                            <ThemedText
+                                type="default"
+                                style={{ color: theme.destructive }}>
+                                Delete account
+                            </ThemedText>
+                        </Pressable>
+                    </View>
+                </BlurView>
+            </Modal>
+
+            {/*
+             * Its own modal rather than a face of the account sheet: this is
+             * the one thing in the app that cannot be undone, and it should
+             * not be one stray tap away from the row that opens it.
+             */}
+            <Modal
+                visible={deleting}
+                transparent
+                animationType="none"
+                onRequestClose={() => setDeleting(false)}>
+                <BlurView
+                    intensity={40}
+                    tint={scheme === 'dark' ? 'dark' : 'light'}
+                    experimentalBlurMethod="dimezisBlurView"
+                    style={styles.overlay}>
+                    <Pressable
+                        style={StyleSheet.absoluteFill}
+                        onPress={() => setDeleting(false)}
+                        accessibilityLabel="Close"
+                        accessibilityRole="button"
+                    />
+                    <View
+                        style={[
+                            styles.sheet,
+                            { backgroundColor: theme.background },
+                        ]}>
+                        <View style={styles.identity}>
+                            <ThemedText type="subtitle">
+                                Delete your account?
+                            </ThemedText>
+                            <ThemedText type="small" themeColor="textSecondary">
+                                You are signed out and cannot sign back in. A
+                                family nobody else has an account in goes with
+                                you, and everything in it. Where somebody else
+                                does, the family stays and anything assigned to
+                                you loses its assignee.
+                            </ThemedText>
+                        </View>
+
+                        {error && (
+                            <ThemedText
+                                type="small"
+                                style={{ color: theme.destructive }}>
+                                {error}
+                            </ThemedText>
+                        )}
+
+                        <View style={styles.actions}>
+                            <Pressable
+                                onPress={() => setDeleting(false)}
+                                disabled={busy}
+                                accessibilityLabel="Cancel"
+                                accessibilityRole="button"
+                                style={({ pressed }) => [
+                                    styles.action,
+                                    {
+                                        backgroundColor:
+                                            theme.backgroundElement,
+                                    },
+                                    pressed && { opacity: 0.8 },
+                                ]}>
+                                <ThemedText type="default">Cancel</ThemedText>
+                            </Pressable>
+                            <Pressable
+                                onPress={deleteAccount}
+                                disabled={busy}
+                                accessibilityLabel="Delete my account"
+                                accessibilityRole="button"
+                                style={({ pressed }) => [
+                                    styles.action,
+                                    { backgroundColor: theme.destructive },
+                                    pressed && { opacity: 0.8 },
+                                ]}>
+                                <ThemedText
+                                    type="default"
+                                    style={styles.destructiveLabel}>
+                                    Delete
+                                </ThemedText>
+                            </Pressable>
+                        </View>
                     </View>
                 </BlurView>
             </Modal>

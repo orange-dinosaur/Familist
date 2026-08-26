@@ -147,28 +147,36 @@ export function FamilyProvider({ children }: { children: React.ReactNode }) {
         [remember]
     );
 
-    const renameFamily = useCallback(async (name: string) => {
-        const res = await apiFetch('/api/family', {
-            method: 'PATCH',
-            headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({ name }),
-        });
-        const body = await res.json().catch(() => null);
+    /**
+     * Each of these names the family it means. The server resolves the family
+     * from the session either way; the id only has to agree, and refuses when
+     * another device has switched family since this screen was drawn.
+     */
+    const renameFamily = useCallback(
+        async (name: string) => {
+            const res = await apiFetch('/api/family', {
+                method: 'PATCH',
+                headers: { 'content-type': 'application/json' },
+                body: JSON.stringify({ name, familyId: family?.id }),
+            });
+            const body = await res.json().catch(() => null);
 
-        if (!res.ok) {
-            return body?.error ?? 'Could not rename the family.';
-        }
+            if (!res.ok) {
+                return body?.error ?? 'Could not rename the family.';
+            }
 
-        setFamily(body.family);
-        setFamilies((current) =>
-            current.map((option) =>
-                option.id === body.family.id
-                    ? { ...option, name: body.family.name }
-                    : option
-            )
-        );
-        return null;
-    }, []);
+            setFamily(body.family);
+            setFamilies((current) =>
+                current.map((option) =>
+                    option.id === body.family.id
+                        ? { ...option, name: body.family.name }
+                        : option
+                )
+            );
+            return null;
+        },
+        [family?.id]
+    );
 
     /**
      * The server holds which family the caller is acting in, so this only has
@@ -200,7 +208,10 @@ export function FamilyProvider({ children }: { children: React.ReactNode }) {
     const departure = useCallback(
         async (path: string, method: string, fallback: string) => {
             const leaving = family?.id;
-            const res = await apiFetch(path, { method });
+            const res = await apiFetch(
+                `${path}?familyId=${encodeURIComponent(leaving ?? '')}`,
+                { method }
+            );
             const body = await res.json().catch(() => null);
 
             if (!res.ok) return body?.error ?? fallback;

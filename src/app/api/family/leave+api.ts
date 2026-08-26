@@ -15,6 +15,7 @@ import { and, asc, eq, isNull, ne, sql } from 'drizzle-orm';
 import {
     getMembership,
     setActiveMembership,
+    switchedAway,
     unauthorized,
 } from '@/auth/session';
 import { db } from '@/db';
@@ -63,9 +64,17 @@ async function landing(userId: string, leftFamilyId: string) {
     };
 }
 
+/** The family the caller believes they are in, to be agreed rather than used. */
+function intended(request: Request): string | null {
+    return new URL(request.url).searchParams.get('familyId');
+}
+
 export async function POST(request: Request): Promise<Response> {
     const membership = await getMembership(request);
     if (!membership) return unauthorized();
+
+    const mismatch = switchedAway(intended(request), membership);
+    if (mismatch) return mismatch;
 
     const left = await db.transaction(async (tx) => {
         /** The same family-wide lock as `set-role`, for the same invariant. */
@@ -122,6 +131,9 @@ export async function POST(request: Request): Promise<Response> {
 export async function DELETE(request: Request): Promise<Response> {
     const membership = await getMembership(request);
     if (!membership) return unauthorized();
+
+    const mismatch = switchedAway(intended(request), membership);
+    if (mismatch) return mismatch;
 
     if (membership.role !== 'owner') {
         return Response.json(

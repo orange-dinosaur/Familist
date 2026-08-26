@@ -12,6 +12,7 @@ import {
     getMembership,
     getSessionUser,
     setActiveMembership,
+    switchedAway,
     unauthorized,
 } from '@/auth/session';
 import { db } from '@/db';
@@ -143,11 +144,15 @@ export async function PATCH(request: Request): Promise<Response> {
     }
 
     let name: unknown;
+    let familyId: unknown;
     try {
-        ({ name } = await request.json());
+        ({ name, familyId } = await request.json());
     } catch {
         return Response.json({ error: 'Invalid body' }, { status: 400 });
     }
+
+    const mismatch = switchedAway(familyId, membership);
+    if (mismatch) return mismatch;
 
     const invalid = nameError(name);
     if (invalid) return Response.json({ error: invalid }, { status: 400 });

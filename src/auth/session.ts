@@ -27,6 +27,34 @@ export interface Membership {
     role: MemberRole;
 }
 
+/**
+ * Whether the client is acting on the family it thinks it is.
+ *
+ * The routes that change or destroy a family resolve it from the session
+ * rather than from the request, so that an id in a body can never name
+ * somebody else's family. That leaves one gap: `active_membership` is server
+ * state shared by every device signed in as this person, so switching family
+ * on one leaves the others showing a family the server has moved on from. A
+ * sheet still naming the old family would then rename - or delete - the new
+ * one.
+ *
+ * So the client sends the id it means and this refuses when they differ. The
+ * id is a statement of intent that has to agree, never the thing that selects
+ * the row, which is why it is compared and then discarded.
+ */
+export function switchedAway(
+    intended: unknown,
+    membership: Membership
+): Response | null {
+    if (typeof intended !== 'string' || intended !== membership.familyId) {
+        return Response.json(
+            { error: 'You have since switched family. Try again.' },
+            { status: 409 }
+        );
+    }
+    return null;
+}
+
 export async function getSessionUser(
     request: Request
 ): Promise<{ id: string; name: string; email: string } | null> {
