@@ -8,6 +8,7 @@ import { FamilyBar } from '@/components/family-bar';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 
+import { getRelativeDateString } from '@/constants/mock-data';
 import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
 import { useChores } from '@/hooks/use-chores';
 import { useMeals } from '@/hooks/use-meals';
@@ -18,7 +19,7 @@ import { useTodos } from '@/hooks/use-todos';
 
 function getFormattedDate(): string {
     const now = new Date();
-    return now.toLocaleDateString('en-IT', {
+    return now.toLocaleDateString(undefined, {
         weekday: 'long',
         year: 'numeric',
         month: 'long',
@@ -55,11 +56,7 @@ export default function HomeScreen() {
     const [choresExpanded, setChoresExpanded] = useState(false);
     const [todosExpanded, setTodosExpanded] = useState(false);
 
-    const getTodayDayName = (): string => {
-        return new Date().toISOString().split('T')[0];
-    };
-
-    const todayStr = getTodayDayName();
+    const todayStr = getRelativeDateString(0);
     const todayMeals = meals.filter((m) => m.day === todayStr);
     /** Inactive chores are rows for days they are not planned for. */
     const todayChores = chores.filter((c) => c.active && c.day === todayStr);

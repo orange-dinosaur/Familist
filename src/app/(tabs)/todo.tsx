@@ -23,6 +23,7 @@ import {
     formatLocalDateString,
     formatShortDateString,
     getRelativeDateString,
+    todayLabel,
 } from '@/constants/mock-data';
 import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
@@ -467,7 +468,7 @@ export default function TodoScreen() {
                                                             color: theme.background,
                                                         },
                                                     ]}>
-                                                    Today
+                                                    {todayLabel}
                                                 </ThemedText>
                                             </View>
                                         )}

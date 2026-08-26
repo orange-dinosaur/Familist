@@ -21,6 +21,7 @@ import {
     formatLocalDateString,
     formatShortDateString,
     getRelativeDateString,
+    todayLabel,
 } from '@/constants/mock-data';
 import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
 import { useMeals } from '@/hooks/use-meals';
@@ -239,7 +240,7 @@ export default function DailyMealScreen() {
                                                             color: theme.background,
                                                         },
                                                     ]}>
-                                                    Today
+                                                    {todayLabel}
                                                 </ThemedText>
                                             </View>
                                         )}

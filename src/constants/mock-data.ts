@@ -14,22 +14,39 @@ export interface PlatformSymbol {
     web: AndroidSymbol;
 }
 
+/** The day key is the calendar day on the device's clock, never UTC's. */
 export function getRelativeDateString(offset: number): string {
     const d = new Date();
     d.setDate(d.getDate() + offset);
-    return d.toISOString().split('T')[0]; // YYYY-MM-DD
+    const month = `${d.getMonth() + 1}`.padStart(2, '0');
+    const day = `${d.getDate()}`.padStart(2, '0');
+    return `${d.getFullYear()}-${month}-${day}`; // YYYY-MM-DD
 }
 
 export function formatLocalDateString(dateStr: string): string {
     const [year, month, day] = dateStr.split('-').map(Number);
     const date = new Date(year, month - 1, day);
-    const weekday = date.toLocaleDateString('en-US', { weekday: 'short' });
-    const monthDay = date.toLocaleDateString('en-US', {
+    const weekday = date.toLocaleDateString(undefined, { weekday: 'short' });
+    const monthDay = date.toLocaleDateString(undefined, {
         month: 'short',
         day: 'numeric',
     });
     return `${weekday}, ${monthDay}`;
 }
+
+/**
+ * "Today" as the device's language says it. Hermes does not always ship
+ * `RelativeTimeFormat`, so English stands in where it is missing.
+ */
+function relativeToday(): string {
+    if (typeof Intl.RelativeTimeFormat === 'undefined') return 'Today';
+    const label = new Intl.RelativeTimeFormat(undefined, {
+        numeric: 'auto',
+    }).format(0, 'day');
+    return label.charAt(0).toLocaleUpperCase() + label.slice(1);
+}
+
+export const todayLabel = relativeToday();
 
 export function formatShortDateString(dateStr: string): string {
     const [year, month, day] = dateStr.split('-').map(Number);
@@ -40,10 +57,10 @@ export function formatShortDateString(dateStr: string): string {
         date.getMonth() === today.getMonth() &&
         date.getDate() === today.getDate()
     ) {
-        return 'Today';
+        return todayLabel;
     }
-    const weekday = date.toLocaleDateString('en-US', { weekday: 'short' });
-    const monthDay = date.toLocaleDateString('en-US', {
+    const weekday = date.toLocaleDateString(undefined, { weekday: 'short' });
+    const monthDay = date.toLocaleDateString(undefined, {
         month: 'short',
         day: 'numeric',
     });

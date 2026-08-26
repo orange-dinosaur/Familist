@@ -22,6 +22,7 @@ import {
     formatLocalDateString,
     formatShortDateString,
     getRelativeDateString,
+    todayLabel,
 } from '@/constants/mock-data';
 import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
 import { PRESET_CHORES, useChores } from '@/hooks/use-chores';
@@ -369,7 +370,7 @@ export default function DailyChoresScreen() {
                                                             color: theme.background,
                                                         },
                                                     ]}>
-                                                    Today
+                                                    {todayLabel}
                                                 </ThemedText>
                                             </View>
                                         )}
