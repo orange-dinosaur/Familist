@@ -8,7 +8,7 @@ import { FamilyBar } from '@/components/family-bar';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 
-import { getRelativeDateString } from '@/constants/mock-data';
+import { getRelativeDateString } from '@/constants/dates';
 import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
 import { useChores } from '@/hooks/use-chores';
 import { useMeals } from '@/hooks/use-meals';

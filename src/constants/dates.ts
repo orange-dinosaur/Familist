@@ -1,18 +1,7 @@
 /**
- * The record types the screens share, and the date helpers they all use.
- *
- * The name is a leftover: this began as the template's fixtures and is now
- * only types and helpers, everything else having moved to the database.
+ * The calendar-day helpers the day-keyed screens share. A day is a
+ * `YYYY-MM-DD` string on the device's clock, matching the `date` columns.
  */
-
-import { AndroidSymbol, SFSymbol } from 'expo-symbols';
-
-// ─── Types ──────────────────────────────────────────────────────────────
-
-export interface PlatformSymbol {
-    ios: SFSymbol;
-    web: AndroidSymbol;
-}
 
 /** The day key is the calendar day on the device's clock, never UTC's. */
 export function getRelativeDateString(offset: number): string {
@@ -73,33 +62,4 @@ export function getDateRange(): string[] {
         range.push(getRelativeDateString(i));
     }
     return range;
-}
-
-export interface MealItem {
-    id: string;
-    name: string;
-    time: 'breakfast' | 'lunch' | 'snack' | 'dinner';
-    emoji: string;
-    day: string;
-}
-
-export interface ChoreItem {
-    id: string;
-    label: string;
-    done: boolean;
-    /** False for a chore that is not planned for its day but keeps its state. */
-    active: boolean;
-    /** Null is how the server says nobody, and how it is told so. */
-    assigneeId?: string | null;
-    day: string;
-}
-
-export interface TodoItem {
-    id: string;
-    label: string;
-    done: boolean;
-    priority: 'low' | 'medium' | 'high';
-    /** Null is how the server says nobody, and how it is told so. */
-    assigneeId?: string | null;
-    day: string;
 }

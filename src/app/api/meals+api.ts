@@ -10,7 +10,7 @@
 import { and, asc, eq, gte, isNull } from 'drizzle-orm';
 
 import { getMembership, unauthorized } from '@/auth/session';
-import { type MealItem } from '@/constants/mock-data';
+import { type MealItem } from '@/constants/types';
 import { db } from '@/db';
 import {
     badRequest,

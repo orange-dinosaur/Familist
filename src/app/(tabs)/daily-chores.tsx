@@ -17,13 +17,13 @@ import { FamilyBar } from '@/components/family-bar';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import {
-    type ChoreItem,
     getDateRange,
     formatLocalDateString,
     formatShortDateString,
     getRelativeDateString,
     todayLabel,
-} from '@/constants/mock-data';
+} from '@/constants/dates';
+import { type ChoreItem } from '@/constants/types';
 import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
 import { PRESET_CHORES, useChores } from '@/hooks/use-chores';
 import { useMembers } from '@/hooks/use-members';

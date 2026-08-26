@@ -10,7 +10,7 @@
 import { and, eq, isNull } from 'drizzle-orm';
 
 import { getMembership, unauthorized } from '@/auth/session';
-import { type TodoItem } from '@/constants/mock-data';
+import { type TodoItem } from '@/constants/types';
 import { db } from '@/db';
 import {
     assigneeInFamily,

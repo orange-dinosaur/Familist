@@ -11,7 +11,7 @@ import { type PgColumn } from 'drizzle-orm/pg-core';
 
 import { db } from '@/db';
 import { chore, familyMember, meal, todo } from '@/db/schema';
-import { type MealItem, type TodoItem } from '@/constants/mock-data';
+import { type MealItem, type TodoItem } from '@/constants/types';
 
 export const MAX_LABEL_LENGTH = 200;
 

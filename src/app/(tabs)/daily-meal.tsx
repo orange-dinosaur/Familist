@@ -16,13 +16,13 @@ import { FamilyBar } from '@/components/family-bar';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import {
-    type MealItem,
     getDateRange,
     formatLocalDateString,
     formatShortDateString,
     getRelativeDateString,
     todayLabel,
-} from '@/constants/mock-data';
+} from '@/constants/dates';
+import { type MealItem } from '@/constants/types';
 import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
 import { useMeals } from '@/hooks/use-meals';
 import { usePermissions } from '@/hooks/use-permissions';

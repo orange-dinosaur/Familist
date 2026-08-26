@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useCallback, useMemo } from 'react';
 
-import { type MealItem } from '@/constants/mock-data';
+import { type MealItem } from '@/constants/types';
 import { useFamily } from '@/hooks/use-family';
 import { useStoreCollection } from '@/hooks/use-store-collection';
 import { useStoreWrites } from '@/hooks/use-store-writes';

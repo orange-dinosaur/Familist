@@ -18,13 +18,13 @@ import { FamilyBar } from '@/components/family-bar';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import {
-    type TodoItem,
     getDateRange,
     formatLocalDateString,
     formatShortDateString,
     getRelativeDateString,
     todayLabel,
-} from '@/constants/mock-data';
+} from '@/constants/dates';
+import { type TodoItem } from '@/constants/types';
 import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useMembers } from '@/hooks/use-members';
