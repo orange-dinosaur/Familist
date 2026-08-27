@@ -14,6 +14,7 @@ import {
 import Swipeable from 'react-native-gesture-handler/Swipeable';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { DatePickerModal } from '@/components/date-picker-modal';
 import { FamilyBar } from '@/components/family-bar';
 import { ThemedText } from '@/components/themed-text';
 import { MemberAvatar } from '@/components/member-avatar';
@@ -197,6 +198,7 @@ export default function DailyChoresScreen() {
         null
     );
     const [isDayPreselected, setIsDayPreselected] = useState(false);
+    const [datePickerVisible, setDatePickerVisible] = useState(false);
     const [newChoreName, setNewChoreName] = useState('');
     const [editing, setEditing] = useState(false);
     const [renamingId, setRenamingId] = useState<string | null>(null);
@@ -312,6 +314,7 @@ export default function DailyChoresScreen() {
 
     const closeModal = () => {
         clearError();
+        setDatePickerVisible(false);
         setNewChoreName('');
         setEditing(false);
         setRenamingId(null);
@@ -610,52 +613,36 @@ export default function DailyChoresScreen() {
                                         style={styles.modalLabel}>
                                         Choose day
                                     </ThemedText>
-                                    <ScrollView
-                                        horizontal
-                                        showsHorizontalScrollIndicator={false}
-                                        style={styles.dayPillsScrollView}
-                                        contentContainerStyle={
-                                            styles.dayPillsContainer
-                                        }>
-                                        {dates.map((day) => {
-                                            const isSelected =
-                                                selectedDay === day;
-                                            return (
-                                                <Pressable
-                                                    key={day}
-                                                    onPress={() =>
-                                                        setSelectedDay(day)
-                                                    }
-                                                    style={[
-                                                        styles.dayPill,
-                                                        {
-                                                            backgroundColor:
-                                                                isSelected
-                                                                    ? theme.text
-                                                                    : theme.backgroundElement,
-                                                            borderColor:
-                                                                isSelected
-                                                                    ? theme.text
-                                                                    : 'transparent',
-                                                        },
-                                                    ]}>
-                                                    <ThemedText
-                                                        style={[
-                                                            styles.dayPillText,
-                                                            {
-                                                                color: isSelected
-                                                                    ? theme.background
-                                                                    : theme.text,
-                                                            },
-                                                        ]}>
-                                                        {formatShortDateString(
-                                                            day
-                                                        )}
-                                                    </ThemedText>
-                                                </Pressable>
-                                            );
-                                        })}
-                                    </ScrollView>
+                                    <View style={styles.dayPillsContainer}>
+                                        <Pressable
+                                            onPress={() =>
+                                                setDatePickerVisible(true)
+                                            }
+                                            accessibilityLabel="Pick a day"
+                                            accessibilityRole="button"
+                                            style={[
+                                                styles.dayPill,
+                                                { backgroundColor: theme.text },
+                                            ]}>
+                                            <SymbolView
+                                                name={{
+                                                    ios: 'calendar',
+                                                    web: 'calendar_month',
+                                                }}
+                                                tintColor={theme.background}
+                                                size={18}
+                                            />
+                                            <ThemedText
+                                                style={[
+                                                    styles.dayPillText,
+                                                    { color: theme.background },
+                                                ]}>
+                                                {formatShortDateString(
+                                                    selectedDay
+                                                )}
+                                            </ThemedText>
+                                        </Pressable>
+                                    </View>
                                 </>
                             )}
 
@@ -980,6 +967,16 @@ export default function DailyChoresScreen() {
                                 </ThemedText>
                             </Pressable>
                         </View>
+
+                        <DatePickerModal
+                            visible={datePickerVisible}
+                            value={selectedDay}
+                            onSelect={(day) => {
+                                setSelectedDay(day);
+                                setDatePickerVisible(false);
+                            }}
+                            onClose={() => setDatePickerVisible(false)}
+                        />
                     </SafeAreaView>
                 </View>
             </Modal>
@@ -1337,17 +1334,20 @@ const styles = StyleSheet.create({
         gap: Spacing.four,
     },
 
-    // Day pills selector in modal
-    dayPillsScrollView: {
-        marginBottom: Spacing.two,
-    },
+    // Day selector in modal
     dayPillsContainer: {
-        gap: Spacing.one + Spacing.half,
-        paddingVertical: Spacing.half,
+        flexDirection: 'row',
+        gap: Spacing.two,
+        marginTop: Spacing.two,
     },
     dayPill: {
-        paddingHorizontal: Spacing.three + Spacing.half,
-        paddingVertical: Spacing.two,
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: Spacing.two,
+        paddingHorizontal: Spacing.three,
+        paddingVertical: Spacing.two + Spacing.half,
         borderRadius: 20,
     },
     dayPillText: {
