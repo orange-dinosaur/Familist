@@ -316,8 +316,7 @@ export const chore = pgTable(
         familyId: text('family_id')
             .notNull()
             .references(() => family.id, { onDelete: 'cascade' }),
-        label: text('label').notNull(),
-        definitionId: text('definition_id'),
+        definitionId: text('definition_id').notNull(),
         done: boolean('done').notNull().default(false),
         /** Off for a day the chore is not planned for, keeping its assignee. */
         active: boolean('active').notNull().default(true),

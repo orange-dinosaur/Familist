@@ -12,6 +12,7 @@ import { type PgColumn } from 'drizzle-orm/pg-core';
 import { db } from '@/db';
 import { chore, choreDefinition, familyMember, meal, todo } from '@/db/schema';
 import { type MealItem, type TodoItem } from '@/constants/types';
+import { createId } from '@/utils/id';
 
 export const MAX_LABEL_LENGTH = 200;
 
@@ -60,7 +61,6 @@ export const CHORE_DEFINITION_COLUMNS = {
 
 export const CHORE_COLUMNS = {
     id: chore.id,
-    label: chore.label,
     definitionId: chore.definitionId,
     done: chore.done,
     active: chore.active,
@@ -186,16 +186,16 @@ export async function assigneeInFamily(
 }
 
 /**
- * The name of one of the family's saved chores, or null if the family has no
- * such chore. A day entry is planned from a definition, so this answers both
- * whether it may be and what the entry is called.
+ * Whether a day may be planned from this chore, which is the same question as
+ * whether the family has it. Like `assigneeInFamily`, the composite foreign
+ * key would refuse it anyway; this turns that into an answer.
  */
-export async function choreDefinitionName(
+export async function choreDefinitionInFamily(
     familyId: string,
     definitionId: string
-): Promise<string | null> {
+): Promise<boolean> {
     const [definition] = await db
-        .select({ name: choreDefinition.name })
+        .select({ id: choreDefinition.id })
         .from(choreDefinition)
         .where(
             and(
@@ -206,7 +206,45 @@ export async function choreDefinitionName(
         )
         .limit(1);
 
-    return definition?.name ?? null;
+    return definition !== undefined;
+}
+
+/**
+ * The family's chore of this name, added if they have none. It is how a day
+ * entry that names its chore rather than pointing at one still gets planned:
+ * a device carrying entries from before the family kept its own chores brings
+ * a name and nothing else.
+ */
+export async function choreDefinitionNamed(
+    familyId: string,
+    name: string,
+    memberId: string
+): Promise<string> {
+    const [existing] = await db
+        .select({ id: choreDefinition.id })
+        .from(choreDefinition)
+        .where(
+            and(
+                eq(choreDefinition.familyId, familyId),
+                eq(choreDefinition.name, name),
+                isNull(choreDefinition.deletedAt)
+            )
+        )
+        .limit(1);
+
+    if (existing) return existing.id;
+
+    const [created] = await db
+        .insert(choreDefinition)
+        .values({
+            id: createId(),
+            familyId,
+            name,
+            createdBy: memberId,
+        })
+        .returning({ id: choreDefinition.id });
+
+    return created.id;
 }
 
 /**

@@ -18,7 +18,8 @@ import {
     assigneeInFamily,
     badRequest,
     CHORE_COLUMNS,
-    choreDefinitionName,
+    choreDefinitionInFamily,
+    choreDefinitionNamed,
     dayError,
     forbidden,
     idError,
@@ -86,24 +87,33 @@ export async function POST(request: Request): Promise<Response> {
         return badRequest('Invalid chore');
     }
 
-    const definition = typeof definitionId === 'string' ? definitionId : null;
+    const invalid =
+        (definitionId === undefined ? labelError(label) : null) ??
+        dayError(day);
+    if (invalid) return badRequest(invalid);
 
     /**
-     * An entry planned from one of the family's chores is called whatever that
-     * chore is called, so the label is read from it rather than taken from the
-     * body. A body that carries a label instead is the older shape, kept until
-     * the column goes.
+     * A day is planned from one of the family's chores and is called whatever
+     * that chore is called. A body that names a chore instead of pointing at
+     * one comes from a device carrying entries from before the family kept its
+     * own chores: the name is matched to a chore, or becomes one.
      */
-    const name = definition
-        ? await choreDefinitionName(membership.familyId, definition)
-        : null;
-
-    if (definition && name === null) {
-        return notFound('That chore is not in your family');
+    if (typeof definitionId === 'string') {
+        const known = await choreDefinitionInFamily(
+            membership.familyId,
+            definitionId
+        );
+        if (!known) return notFound('That chore is not in your family');
     }
 
-    const invalid = (name === null ? labelError(label) : null) ?? dayError(day);
-    if (invalid) return badRequest(invalid);
+    const definition =
+        typeof definitionId === 'string'
+            ? definitionId
+            : await choreDefinitionNamed(
+                  membership.familyId,
+                  (label as string).trim(),
+                  membership.memberId
+              );
 
     if (
         assigneeId !== undefined &&
@@ -124,7 +134,6 @@ export async function POST(request: Request): Promise<Response> {
         .values({
             id: recordId,
             familyId: membership.familyId,
-            label: name ?? (label as string).trim(),
             definitionId: definition,
             day: day as string,
             assigneeId: assignee,

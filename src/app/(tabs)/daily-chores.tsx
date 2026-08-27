@@ -229,13 +229,12 @@ export default function DailyChoresScreen() {
 
     /**
      * A day entry is called whatever the chore it was planned from is called,
-     * so a rename reaches every day at once. The entry's own label is what an
-     * entry planned before the family chores existed still carries, and is all
-     * there is to show until the first pull of them arrives.
+     * so a rename reaches every day at once - and an entry has nothing of its
+     * own to show until that chore has been read from the device.
      */
     const choreNames = new Map(definitions.map((one) => [one.id, one.name]));
     const nameOf = (chore: ChoreItem) =>
-        choreNames.get(chore.definitionId ?? '') ?? chore.label ?? '';
+        choreNames.get(chore.definitionId) ?? '';
 
     useFocusEffect(
         React.useCallback(() => {

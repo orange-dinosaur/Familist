@@ -12,6 +12,7 @@ import { ThemedView } from '@/components/themed-view';
 
 import { getRelativeDateString } from '@/constants/dates';
 import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
+import { useChoreDefinitions } from '@/hooks/use-chore-definitions';
 import { useChores } from '@/hooks/use-chores';
 import { useMeals } from '@/hooks/use-meals';
 import { useMembers } from '@/hooks/use-members';
@@ -45,10 +46,11 @@ export default function HomeScreen() {
     const { meals, loading: mealsLoading } = useMeals();
     const {
         chores,
-        loading: choresLoading,
+        loading: rowsLoading,
         error: choresError,
         toggleChore,
     } = useChores();
+    const { definitions, loading: namesLoading } = useChoreDefinitions();
     const {
         todos,
         loading: todosLoading,
@@ -65,6 +67,12 @@ export default function HomeScreen() {
     const todayMeals = meals.filter((m) => m.day === todayStr);
     /** Inactive chores are rows for days they are not planned for. */
     const todayChores = chores.filter((c) => c.active && c.day === todayStr);
+    /**
+     * A chore is named by the family's chore it was planned from, so the card
+     * has both collections to wait for rather than one.
+     */
+    const choreNames = new Map(definitions.map((one) => [one.id, one.name]));
+    const choresLoading = rowsLoading || namesLoading;
     /**
      * To-dos are not kept by day, so the card previews the list itself: the
      * open ones in the order the to-do screen puts them, overdue first.
@@ -382,7 +390,9 @@ export default function HomeScreen() {
                                                                 item.done &&
                                                                     styles.strikethrough,
                                                             ]}>
-                                                            {item.label}
+                                                            {choreNames.get(
+                                                                item.definitionId
+                                                            ) ?? ''}
                                                         </ThemedText>
                                                         {assignee && (
                                                             <MemberAvatar
@@ -455,7 +465,9 @@ export default function HomeScreen() {
                                                             item.done &&
                                                                 styles.strikethrough,
                                                         ]}>
-                                                        {item.label}
+                                                        {choreNames.get(
+                                                            item.definitionId
+                                                        ) ?? ''}
                                                     </ThemedText>
                                                     {assignee && (
                                                         <MemberAvatar

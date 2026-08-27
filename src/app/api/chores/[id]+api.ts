@@ -18,7 +18,6 @@ import {
     CHORE_COLUMNS,
     dayError,
     forbidden,
-    labelError,
     notFound,
 } from '@/db/content';
 import { chore } from '@/db/schema';
@@ -47,18 +46,11 @@ export async function PATCH(
     }
 
     const changes: {
-        label?: string;
         done?: boolean;
         active?: boolean;
         day?: string;
         assigneeId?: string | null;
     } = {};
-
-    if ('label' in body) {
-        const invalid = labelError(body.label);
-        if (invalid) return badRequest(invalid);
-        changes.label = (body.label as string).trim();
-    }
 
     if ('done' in body) {
         if (typeof body.done !== 'boolean') return badRequest('Invalid done');
