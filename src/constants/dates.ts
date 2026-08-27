@@ -4,12 +4,16 @@
  */
 
 /** The day key is the calendar day on the device's clock, never UTC's. */
+export function formatDateString(date: Date): string {
+    const month = `${date.getMonth() + 1}`.padStart(2, '0');
+    const day = `${date.getDate()}`.padStart(2, '0');
+    return `${date.getFullYear()}-${month}-${day}`; // YYYY-MM-DD
+}
+
 export function getRelativeDateString(offset: number): string {
     const d = new Date();
     d.setDate(d.getDate() + offset);
-    const month = `${d.getMonth() + 1}`.padStart(2, '0');
-    const day = `${d.getDate()}`.padStart(2, '0');
-    return `${d.getFullYear()}-${month}-${day}`; // YYYY-MM-DD
+    return formatDateString(d);
 }
 
 export function formatLocalDateString(dateStr: string): string {
