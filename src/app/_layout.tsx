@@ -10,6 +10,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { AnimatedSplashOverlay } from '@/components/animated-icon';
 import { useAuthGuard } from '@/hooks/use-auth-guard';
+import { ChoreDefinitionsProvider } from '@/hooks/use-chore-definitions';
 import { ChoresProvider } from '@/hooks/use-chores';
 import { FamilyProvider } from '@/hooks/use-family';
 import { MealProvider } from '@/hooks/use-meals';
@@ -35,18 +36,20 @@ export default function RootLayout() {
                 <FamilyProvider>
                     <MembersProvider>
                         <MealProvider>
-                            <ChoresProvider>
-                                <TodosProvider>
-                                    <Guarded>
-                                        <AnimatedSplashOverlay />
-                                        <Stack
-                                            screenOptions={{
-                                                headerShown: false,
-                                            }}
-                                        />
-                                    </Guarded>
-                                </TodosProvider>
-                            </ChoresProvider>
+                            <ChoreDefinitionsProvider>
+                                <ChoresProvider>
+                                    <TodosProvider>
+                                        <Guarded>
+                                            <AnimatedSplashOverlay />
+                                            <Stack
+                                                screenOptions={{
+                                                    headerShown: false,
+                                                }}
+                                            />
+                                        </Guarded>
+                                    </TodosProvider>
+                                </ChoresProvider>
+                            </ChoreDefinitionsProvider>
                         </MealProvider>
                     </MembersProvider>
                 </FamilyProvider>

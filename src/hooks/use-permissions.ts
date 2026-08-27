@@ -19,6 +19,15 @@ export function usePermissions() {
         canManageContent,
 
         /**
+         * Renaming or deleting one of the family's saved chores: whoever added
+         * it, and the owner, for whom every chore in the family is theirs to
+         * manage. A chore the family started with names no creator, so it is
+         * the owner's alone.
+         */
+        canManageChore: (createdBy?: string | null) =>
+            role === 'owner' || (canManageContent && createdBy === member?.id),
+
+        /**
          * Ticking something off. A checker may only touch what is assigned to
          * them, which is the one rule the routes fold into the `WHERE` clause.
          */
