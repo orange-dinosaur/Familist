@@ -10,7 +10,7 @@ import { and, eq, isNull } from 'drizzle-orm';
 import { type PgColumn } from 'drizzle-orm/pg-core';
 
 import { db } from '@/db';
-import { chore, familyMember, meal, todo } from '@/db/schema';
+import { chore, choreDefinition, familyMember, meal, todo } from '@/db/schema';
 import { type MealItem, type TodoItem } from '@/constants/types';
 
 export const MAX_LABEL_LENGTH = 200;
@@ -50,9 +50,18 @@ export const MEAL_COLUMNS = {
     deletedAt: meal.deletedAt,
 };
 
+export const CHORE_DEFINITION_COLUMNS = {
+    id: choreDefinition.id,
+    name: choreDefinition.name,
+    createdBy: choreDefinition.createdBy,
+    updatedAt: choreDefinition.updatedAt,
+    deletedAt: choreDefinition.deletedAt,
+};
+
 export const CHORE_COLUMNS = {
     id: chore.id,
     label: chore.label,
+    definitionId: chore.definitionId,
     done: chore.done,
     active: chore.active,
     assigneeId: chore.assigneeId,
@@ -177,6 +186,30 @@ export async function assigneeInFamily(
 }
 
 /**
+ * The name of one of the family's saved chores, or null if the family has no
+ * such chore. A day entry is planned from a definition, so this answers both
+ * whether it may be and what the entry is called.
+ */
+export async function choreDefinitionName(
+    familyId: string,
+    definitionId: string
+): Promise<string | null> {
+    const [definition] = await db
+        .select({ name: choreDefinition.name })
+        .from(choreDefinition)
+        .where(
+            and(
+                eq(choreDefinition.id, definitionId),
+                eq(choreDefinition.familyId, familyId),
+                isNull(choreDefinition.deletedAt)
+            )
+        )
+        .limit(1);
+
+    return definition?.name ?? null;
+}
+
+/**
  * Length and shape only. A record id is a primary key, not a secret: family
  * scoping is what keeps one family out of another's rows, so a client that
  * mints its own - which it must, to create a record before it can reach the
@@ -229,7 +262,7 @@ export function readSince(request: Request): {
  * another family is not that, and is refused without saying whose it is.
  */
 export async function retriedCreate(
-    table: typeof meal | typeof chore | typeof todo,
+    table: typeof meal | typeof chore | typeof choreDefinition | typeof todo,
     columns: Record<string, PgColumn>,
     key: string,
     id: string,

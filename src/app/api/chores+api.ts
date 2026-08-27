@@ -18,6 +18,7 @@ import {
     assigneeInFamily,
     badRequest,
     CHORE_COLUMNS,
+    choreDefinitionName,
     dayError,
     forbidden,
     idError,
@@ -61,6 +62,7 @@ export async function POST(request: Request): Promise<Response> {
     let body: {
         id?: unknown;
         label?: unknown;
+        definitionId?: unknown;
         day?: unknown;
         assigneeId?: unknown;
     };
@@ -70,7 +72,7 @@ export async function POST(request: Request): Promise<Response> {
         return badRequest('Invalid body');
     }
 
-    const { id, label, day, assigneeId } = body;
+    const { id, label, definitionId, day, assigneeId } = body;
 
     /** A client mints this when it creates a record it cannot yet send. */
     if (id !== undefined) {
@@ -80,7 +82,27 @@ export async function POST(request: Request): Promise<Response> {
 
     const recordId = typeof id === 'string' ? id : createId();
 
-    const invalid = labelError(label) ?? dayError(day);
+    if (definitionId !== undefined && typeof definitionId !== 'string') {
+        return badRequest('Invalid chore');
+    }
+
+    const definition = typeof definitionId === 'string' ? definitionId : null;
+
+    /**
+     * An entry planned from one of the family's chores is called whatever that
+     * chore is called, so the label is read from it rather than taken from the
+     * body. A body that carries a label instead is the older shape, kept until
+     * the column goes.
+     */
+    const name = definition
+        ? await choreDefinitionName(membership.familyId, definition)
+        : null;
+
+    if (definition && name === null) {
+        return notFound('That chore is not in your family');
+    }
+
+    const invalid = (name === null ? labelError(label) : null) ?? dayError(day);
     if (invalid) return badRequest(invalid);
 
     if (
@@ -102,7 +124,8 @@ export async function POST(request: Request): Promise<Response> {
         .values({
             id: recordId,
             familyId: membership.familyId,
-            label: (label as string).trim(),
+            label: name ?? (label as string).trim(),
+            definitionId: definition,
             day: day as string,
             assigneeId: assignee,
         })

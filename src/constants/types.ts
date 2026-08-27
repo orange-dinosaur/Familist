@@ -17,9 +17,19 @@ export interface MealItem {
     day: string;
 }
 
+/** One of the chores a family has saved, which its days are planned from. */
+export interface ChoreDefinition {
+    id: string;
+    name: string;
+    /** The member who added it, and null for one the family started with. */
+    createdBy?: string | null;
+}
+
 export interface ChoreItem {
     id: string;
     label: string;
+    /** The saved chore this day was planned from. */
+    definitionId?: string | null;
     done: boolean;
     /** False for a chore that is not planned for its day but keeps its state. */
     active: boolean;
