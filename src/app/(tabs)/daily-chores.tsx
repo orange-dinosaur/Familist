@@ -8,6 +8,7 @@ import {
     Pressable,
     ScrollView,
     StyleSheet,
+    TextInput,
     View,
 } from 'react-native';
 import Swipeable from 'react-native-gesture-handler/Swipeable';
@@ -24,9 +25,10 @@ import {
     getRelativeDateString,
     todayLabel,
 } from '@/constants/dates';
-import { type ChoreItem } from '@/constants/types';
+import { type ChoreDefinition, type ChoreItem } from '@/constants/types';
 import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
-import { PRESET_CHORES, useChores } from '@/hooks/use-chores';
+import { useChoreDefinitions } from '@/hooks/use-chore-definitions';
+import { useChores } from '@/hooks/use-chores';
 import { useMembers } from '@/hooks/use-members';
 import { usePermissions } from '@/hooks/use-permissions';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -34,6 +36,7 @@ import { useTheme } from '@/hooks/use-theme';
 
 interface ChoreRowProps {
     chore: ChoreItem;
+    name: string;
     canManage: boolean;
     canToggle: boolean;
     onToggle: () => void;
@@ -45,6 +48,7 @@ interface ChoreRowProps {
 const ChoreRow = React.memo(
     ({
         chore,
+        name,
         canManage,
         canToggle,
         onToggle,
@@ -143,7 +147,7 @@ const ChoreRow = React.memo(
                                 styles.choreLabel,
                                 chore.done && styles.strikethrough,
                             ]}>
-                            {chore.label}
+                            {name}
                         </ThemedText>
                     </Pressable>
 
@@ -170,20 +174,42 @@ export default function DailyChoresScreen() {
     const {
         chores,
         loading,
-        error,
-        clearError,
+        error: choresError,
+        clearError: clearChoresError,
         toggleChore,
         deleteChore,
         toggleChoreActive,
         assignChore,
     } = useChores();
+    const {
+        definitions,
+        loading: definitionsLoading,
+        error: definitionsError,
+        clearError: clearDefinitionsError,
+        addDefinition,
+        renameDefinition,
+        deleteDefinition,
+    } = useChoreDefinitions();
     const { members } = useMembers();
-    const { canManageContent, canToggle } = usePermissions();
+    const { canManageChore, canManageContent, canToggle } = usePermissions();
     const [modalVisible, setModalVisible] = useState(false);
     const [assigningChoreId, setAssigningChoreId] = useState<string | null>(
         null
     );
     const [isDayPreselected, setIsDayPreselected] = useState(false);
+    const [newChoreName, setNewChoreName] = useState('');
+    const [editing, setEditing] = useState(false);
+    const [renamingId, setRenamingId] = useState<string | null>(null);
+    const [renameText, setRenameText] = useState('');
+    const [confirmingId, setConfirmingId] = useState<string | null>(null);
+
+    /** Two collections, one message: a screen never has two places to look. */
+    const error = choresError ?? definitionsError;
+
+    const clearError = () => {
+        clearChoresError();
+        clearDefinitionsError();
+    };
 
     const scrollViewRef = useRef<ScrollView>(null);
     const todayYOffsetRef = useRef<number | null>(null);
@@ -201,6 +227,16 @@ export default function DailyChoresScreen() {
     const doneCount = activeChores.filter((c) => c.done).length;
     const hasChores = activeChores.length > 0;
 
+    /**
+     * A day entry is called whatever the chore it was planned from is called,
+     * so a rename reaches every day at once. The entry's own label is what an
+     * entry planned before the family chores existed still carries, and is all
+     * there is to show until the first pull of them arrives.
+     */
+    const choreNames = new Map(definitions.map((one) => [one.id, one.name]));
+    const nameOf = (chore: ChoreItem) =>
+        choreNames.get(chore.definitionId ?? '') ?? chore.label ?? '';
+
     useFocusEffect(
         React.useCallback(() => {
             if (todayYOffsetRef.current !== null) {
@@ -212,8 +248,54 @@ export default function DailyChoresScreen() {
         }, [])
     );
 
-    const isChoreActive = (label: string) =>
-        activeChores.some((c) => c.label === label && c.day === selectedDay);
+    const isPlanned = (definitionId: string) =>
+        activeChores.some(
+            (c) => c.definitionId === definitionId && c.day === selectedDay
+        );
+
+    /**
+     * Naming a chore adds it to the family and plans it for the day being
+     * looked at, which is the whole of what the field is for. A name the
+     * family already has is that chore rather than a second one like it.
+     */
+    const addNewChore = async () => {
+        const name = newChoreName.trim();
+        if (!name) return;
+
+        const existing = definitions.find(
+            (one) => one.name.toLowerCase() === name.toLowerCase()
+        );
+        const definition = existing ?? (await addDefinition(name));
+        if (!definition) return;
+
+        setNewChoreName('');
+        if (!isPlanned(definition.id)) {
+            await toggleChoreActive(definition.id, selectedDay);
+        }
+    };
+
+    const startRenaming = (definition: ChoreDefinition) => {
+        setConfirmingId(null);
+        setRenamingId(definition.id);
+        setRenameText(definition.name);
+    };
+
+    const saveRename = async () => {
+        const name = renameText.trim();
+        if (!renamingId || !name) return;
+        if (await renameDefinition(renamingId, name)) setRenamingId(null);
+    };
+
+    const confirmDelete = async () => {
+        if (!confirmingId) return;
+        if (await deleteDefinition(confirmingId)) setConfirmingId(null);
+    };
+
+    const toggleEditing = () => {
+        setEditing(!editing);
+        setRenamingId(null);
+        setConfirmingId(null);
+    };
 
     const openAddModal = () => {
         setSelectedDay(todayStr);
@@ -231,6 +313,10 @@ export default function DailyChoresScreen() {
 
     const closeModal = () => {
         clearError();
+        setNewChoreName('');
+        setEditing(false);
+        setRenamingId(null);
+        setConfirmingId(null);
         setModalVisible(false);
     };
 
@@ -406,6 +492,7 @@ export default function DailyChoresScreen() {
                                             <ChoreRow
                                                 key={chore.id}
                                                 chore={chore}
+                                                name={nameOf(chore)}
                                                 theme={theme}
                                                 canManage={canManageContent}
                                                 canToggle={canToggle(
@@ -478,20 +565,37 @@ export default function DailyChoresScreen() {
                         {/* Modal header */}
                         <View style={styles.modalHeader}>
                             <ThemedText type="subtitle">Add Chores</ThemedText>
-                            <Pressable
-                                onPress={closeModal}
-                                hitSlop={8}
-                                accessibilityLabel="Close"
-                                accessibilityRole="button">
-                                <SymbolView
-                                    name={{
-                                        ios: 'xmark.circle.fill',
-                                        web: 'cancel',
-                                    }}
-                                    tintColor={theme.textSecondary}
-                                    size={28}
-                                />
-                            </Pressable>
+                            <View style={styles.modalHeaderActions}>
+                                {definitions.length > 0 && (
+                                    <Pressable
+                                        onPress={toggleEditing}
+                                        hitSlop={8}
+                                        accessibilityLabel={
+                                            editing
+                                                ? 'Stop editing chores'
+                                                : 'Edit chores'
+                                        }
+                                        accessibilityRole="button">
+                                        <ThemedText themeColor="link">
+                                            {editing ? 'Done' : 'Edit'}
+                                        </ThemedText>
+                                    </Pressable>
+                                )}
+                                <Pressable
+                                    onPress={closeModal}
+                                    hitSlop={8}
+                                    accessibilityLabel="Close"
+                                    accessibilityRole="button">
+                                    <SymbolView
+                                        name={{
+                                            ios: 'xmark.circle.fill',
+                                            web: 'cancel',
+                                        }}
+                                        tintColor={theme.textSecondary}
+                                        size={28}
+                                    />
+                                </Pressable>
+                            </View>
                         </View>
 
                         <ScrollView
@@ -558,57 +662,289 @@ export default function DailyChoresScreen() {
 
                             <View style={styles.inputSection}>
                                 <ThemedText
+                                    type="default"
+                                    style={styles.modalLabel}>
+                                    New chore
+                                </ThemedText>
+                                <View style={styles.newChoreRow}>
+                                    <TextInput
+                                        style={[
+                                            styles.textInput,
+                                            {
+                                                backgroundColor:
+                                                    theme.backgroundElement,
+                                                color: theme.text,
+                                            },
+                                        ]}
+                                        placeholder="Name a chore..."
+                                        placeholderTextColor={
+                                            theme.textSecondary
+                                        }
+                                        value={newChoreName}
+                                        onChangeText={setNewChoreName}
+                                        onSubmitEditing={addNewChore}
+                                        returnKeyType="done"
+                                        accessibilityLabel="New chore"
+                                    />
+                                    <Pressable
+                                        onPress={addNewChore}
+                                        disabled={!newChoreName.trim()}
+                                        accessibilityLabel="Add this chore"
+                                        accessibilityRole="button"
+                                        style={({ pressed }) => [
+                                            styles.newChoreButton,
+                                            { backgroundColor: theme.text },
+                                            (pressed ||
+                                                !newChoreName.trim()) && {
+                                                opacity: 0.5,
+                                            },
+                                        ]}>
+                                        <ThemedText
+                                            style={[
+                                                styles.newChoreButtonText,
+                                                { color: theme.background },
+                                            ]}>
+                                            Add
+                                        </ThemedText>
+                                    </Pressable>
+                                </View>
+
+                                <ThemedText
                                     themeColor="textSecondary"
                                     type="small"
                                     style={styles.modalInstructionText}>
-                                    Select which chores are active for{' '}
-                                    {formatLocalDateString(selectedDay)}:
+                                    {editing
+                                        ? 'Rename or delete the chores you added:'
+                                        : `Select which chores are active for ${formatLocalDateString(selectedDay)}:`}
                                 </ThemedText>
 
-                                <View style={styles.pillsGrid}>
-                                    {PRESET_CHORES.map((preset) => {
-                                        const active = isChoreActive(preset);
-                                        return (
-                                            <Pressable
-                                                key={preset}
-                                                onPress={() =>
-                                                    toggleChoreActive(
-                                                        preset,
-                                                        selectedDay
-                                                    )
-                                                }
-                                                accessibilityLabel={`Toggle ${preset}`}
-                                                accessibilityRole="button"
-                                                accessibilityState={{
-                                                    selected: active,
-                                                }}
-                                                style={[
-                                                    styles.presetChorePill,
-                                                    {
-                                                        backgroundColor: active
-                                                            ? theme.text
-                                                            : theme.backgroundElement,
-                                                        borderColor: active
-                                                            ? theme.text
-                                                            : 'transparent',
-                                                        borderWidth: 2,
-                                                    },
-                                                ]}>
-                                                <ThemedText
+                                {definitions.length === 0 ? (
+                                    <ThemedText
+                                        themeColor="textSecondary"
+                                        type="small"
+                                        style={styles.noChoresText}>
+                                        {definitionsLoading
+                                            ? ''
+                                            : 'No chores yet. Add the first one above.'}
+                                    </ThemedText>
+                                ) : editing ? (
+                                    <View style={styles.definitionList}>
+                                        {definitions.map((definition) => {
+                                            const manageable = canManageChore(
+                                                definition.createdBy
+                                            );
+                                            const renaming =
+                                                renamingId === definition.id;
+
+                                            if (
+                                                confirmingId === definition.id
+                                            ) {
+                                                return (
+                                                    <View
+                                                        key={definition.id}
+                                                        style={[
+                                                            styles.definitionRow,
+                                                            styles.definitionConfirm,
+                                                            {
+                                                                backgroundColor:
+                                                                    theme.backgroundElement,
+                                                            },
+                                                        ]}>
+                                                        <ThemedText type="small">
+                                                            Delete{' '}
+                                                            {definition.name}?
+                                                            It goes from every
+                                                            day it is planned
+                                                            on.
+                                                        </ThemedText>
+                                                        <View
+                                                            style={
+                                                                styles.definitionConfirmActions
+                                                            }>
+                                                            <Pressable
+                                                                onPress={() =>
+                                                                    setConfirmingId(
+                                                                        null
+                                                                    )
+                                                                }
+                                                                accessibilityRole="button">
+                                                                <ThemedText themeColor="textSecondary">
+                                                                    Cancel
+                                                                </ThemedText>
+                                                            </Pressable>
+                                                            <Pressable
+                                                                onPress={
+                                                                    confirmDelete
+                                                                }
+                                                                accessibilityRole="button">
+                                                                <ThemedText
+                                                                    style={{
+                                                                        color: theme.destructive,
+                                                                    }}>
+                                                                    Delete
+                                                                </ThemedText>
+                                                            </Pressable>
+                                                        </View>
+                                                    </View>
+                                                );
+                                            }
+
+                                            return (
+                                                <View
+                                                    key={definition.id}
                                                     style={[
-                                                        styles.presetChoreText,
+                                                        styles.definitionRow,
                                                         {
-                                                            color: active
-                                                                ? theme.background
-                                                                : theme.text,
+                                                            backgroundColor:
+                                                                theme.backgroundElement,
                                                         },
                                                     ]}>
-                                                    {preset}
-                                                </ThemedText>
-                                            </Pressable>
-                                        );
-                                    })}
-                                </View>
+                                                    {renaming ? (
+                                                        <TextInput
+                                                            style={[
+                                                                styles.definitionInput,
+                                                                {
+                                                                    color: theme.text,
+                                                                },
+                                                            ]}
+                                                            value={renameText}
+                                                            onChangeText={
+                                                                setRenameText
+                                                            }
+                                                            onSubmitEditing={
+                                                                saveRename
+                                                            }
+                                                            returnKeyType="done"
+                                                            autoFocus
+                                                            accessibilityLabel={`Rename ${definition.name}`}
+                                                        />
+                                                    ) : (
+                                                        <ThemedText
+                                                            themeColor={
+                                                                manageable
+                                                                    ? 'text'
+                                                                    : 'textSecondary'
+                                                            }
+                                                            style={
+                                                                styles.definitionName
+                                                            }>
+                                                            {definition.name}
+                                                        </ThemedText>
+                                                    )}
+
+                                                    {manageable && (
+                                                        <View
+                                                            style={
+                                                                styles.definitionActions
+                                                            }>
+                                                            <Pressable
+                                                                onPress={() =>
+                                                                    renaming
+                                                                        ? saveRename()
+                                                                        : startRenaming(
+                                                                              definition
+                                                                          )
+                                                                }
+                                                                hitSlop={8}
+                                                                accessibilityLabel={
+                                                                    renaming
+                                                                        ? `Save ${definition.name}`
+                                                                        : `Rename ${definition.name}`
+                                                                }
+                                                                accessibilityRole="button">
+                                                                <SymbolView
+                                                                    name={{
+                                                                        ios: renaming
+                                                                            ? 'checkmark'
+                                                                            : 'pencil',
+                                                                        web: renaming
+                                                                            ? 'check'
+                                                                            : 'edit',
+                                                                    }}
+                                                                    tintColor={
+                                                                        theme.text
+                                                                    }
+                                                                    size={20}
+                                                                />
+                                                            </Pressable>
+                                                            <Pressable
+                                                                onPress={() => {
+                                                                    setRenamingId(
+                                                                        null
+                                                                    );
+                                                                    setConfirmingId(
+                                                                        definition.id
+                                                                    );
+                                                                }}
+                                                                hitSlop={8}
+                                                                accessibilityLabel={`Delete ${definition.name}`}
+                                                                accessibilityRole="button">
+                                                                <SymbolView
+                                                                    name={{
+                                                                        ios: 'trash',
+                                                                        web: 'delete',
+                                                                    }}
+                                                                    tintColor={
+                                                                        theme.destructive
+                                                                    }
+                                                                    size={20}
+                                                                />
+                                                            </Pressable>
+                                                        </View>
+                                                    )}
+                                                </View>
+                                            );
+                                        })}
+                                    </View>
+                                ) : (
+                                    <View style={styles.pillsGrid}>
+                                        {definitions.map((definition) => {
+                                            const planned = isPlanned(
+                                                definition.id
+                                            );
+                                            return (
+                                                <Pressable
+                                                    key={definition.id}
+                                                    onPress={() =>
+                                                        toggleChoreActive(
+                                                            definition.id,
+                                                            selectedDay
+                                                        )
+                                                    }
+                                                    accessibilityLabel={`Toggle ${definition.name}`}
+                                                    accessibilityRole="button"
+                                                    accessibilityState={{
+                                                        selected: planned,
+                                                    }}
+                                                    style={[
+                                                        styles.chorePill,
+                                                        {
+                                                            backgroundColor:
+                                                                planned
+                                                                    ? theme.text
+                                                                    : theme.backgroundElement,
+                                                            borderColor: planned
+                                                                ? theme.text
+                                                                : 'transparent',
+                                                            borderWidth: 2,
+                                                        },
+                                                    ]}>
+                                                    <ThemedText
+                                                        style={[
+                                                            styles.chorePillText,
+                                                            {
+                                                                color: planned
+                                                                    ? theme.background
+                                                                    : theme.text,
+                                                            },
+                                                        ]}>
+                                                        {definition.name}
+                                                    </ThemedText>
+                                                </Pressable>
+                                            );
+                                        })}
+                                    </View>
+                                )}
                             </View>
                         </ScrollView>
 
@@ -906,6 +1242,11 @@ const styles = StyleSheet.create({
         paddingTop: Spacing.three,
         paddingBottom: Spacing.two,
     },
+    modalHeaderActions: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: Spacing.three,
+    },
     modalScroll: {
         flex: 1,
     },
@@ -918,24 +1259,83 @@ const styles = StyleSheet.create({
         fontWeight: '600',
     },
     modalInstructionText: {
+        marginTop: Spacing.three,
         marginBottom: Spacing.two,
     },
     inputSection: {
         marginTop: Spacing.one,
+    },
+    newChoreRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: Spacing.two,
+        marginTop: Spacing.two,
+    },
+    textInput: {
+        flex: 1,
+        height: 48,
+        borderRadius: 12,
+        paddingHorizontal: Spacing.three,
+        fontSize: 16,
+    },
+    newChoreButton: {
+        height: 48,
+        justifyContent: 'center',
+        paddingHorizontal: Spacing.four,
+        borderRadius: 12,
+    },
+    newChoreButtonText: {
+        fontSize: 16,
+        fontWeight: '600',
     },
     pillsGrid: {
         flexDirection: 'row',
         flexWrap: 'wrap',
         gap: Spacing.two,
     },
-    presetChorePill: {
+    chorePill: {
         paddingHorizontal: Spacing.three,
         paddingVertical: Spacing.two,
         borderRadius: 20,
     },
-    presetChoreText: {
+    chorePillText: {
         fontSize: 14,
         fontWeight: '600',
+    },
+
+    // The family's chores, as rows that can be renamed and deleted
+    definitionList: {
+        gap: Spacing.one,
+    },
+    definitionRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: Spacing.two,
+        borderRadius: 14,
+        paddingVertical: Spacing.two + Spacing.one,
+        paddingHorizontal: Spacing.three,
+    },
+    definitionName: {
+        flex: 1,
+    },
+    definitionInput: {
+        flex: 1,
+        fontSize: 16,
+    },
+    definitionActions: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: Spacing.three,
+    },
+    definitionConfirm: {
+        flexDirection: 'column',
+        alignItems: 'stretch',
+        gap: Spacing.two,
+    },
+    definitionConfirmActions: {
+        flexDirection: 'row',
+        justifyContent: 'flex-end',
+        gap: Spacing.four,
     },
 
     // Day pills selector in modal

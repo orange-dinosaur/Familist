@@ -27,7 +27,8 @@ export interface ChoreDefinition {
 
 export interface ChoreItem {
     id: string;
-    label: string;
+    /** What an entry planned before the family kept its own chores is called. */
+    label?: string;
     /** The saved chore this day was planned from. */
     definitionId?: string | null;
     done: boolean;
