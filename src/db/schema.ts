@@ -273,6 +273,42 @@ export const meal = pgTable(
     (table) => [index('meal_family_id_day_idx').on(table.familyId, table.day)]
 );
 
+/**
+ * A chore the family has saved. The day entries in `chore` are planned from
+ * these, so a rename reaches every day the chore appears on, and a delete
+ * takes those days with it.
+ */
+export const choreDefinition = pgTable(
+    'chore_definition',
+    {
+        id: text('id').primaryKey(),
+        familyId: text('family_id')
+            .notNull()
+            .references(() => family.id, { onDelete: 'cascade' }),
+        name: text('name').notNull(),
+        /** Null for the chores backfilled from the preset list, which nobody added. */
+        createdBy: text('created_by'),
+        createdAt: timestamp('created_at').defaultNow().notNull(),
+        updatedAt: timestamp('updated_at')
+            .defaultNow()
+            .$onUpdate(() => new Date())
+            .notNull(),
+        deletedAt: timestamp('deleted_at'),
+    },
+    (table) => [
+        index('chore_definition_family_id_idx').on(table.familyId),
+        unique('chore_definition_family_id_id_key').on(
+            table.familyId,
+            table.id
+        ),
+        foreignKey({
+            columns: [table.familyId, table.createdBy],
+            foreignColumns: [familyMember.familyId, familyMember.id],
+            name: 'chore_definition_creator_fk',
+        }),
+    ]
+);
+
 export const chore = pgTable(
     'chore',
     {
@@ -281,6 +317,7 @@ export const chore = pgTable(
             .notNull()
             .references(() => family.id, { onDelete: 'cascade' }),
         label: text('label').notNull(),
+        definitionId: text('definition_id'),
         done: boolean('done').notNull().default(false),
         /** Off for a day the chore is not planned for, keeping its assignee. */
         active: boolean('active').notNull().default(true),
@@ -299,6 +336,11 @@ export const chore = pgTable(
             columns: [table.familyId, table.assigneeId],
             foreignColumns: [familyMember.familyId, familyMember.id],
             name: 'chore_assignee_fk',
+        }),
+        foreignKey({
+            columns: [table.familyId, table.definitionId],
+            foreignColumns: [choreDefinition.familyId, choreDefinition.id],
+            name: 'chore_definition_fk',
         }),
     ]
 );
