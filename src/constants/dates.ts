@@ -67,3 +67,32 @@ export function getDateRange(): string[] {
     }
     return range;
 }
+
+/** Whole days from today to `dateStr`, on the device's clock. */
+export function daysUntil(dateStr: string): number {
+    const [year, month, day] = dateStr.split('-').map(Number);
+    const target = new Date(year, month - 1, day);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return Math.round((target.getTime() - today.getTime()) / 86400000);
+}
+
+/**
+ * How far off a day is, in the device's language. Like `relativeToday`, this
+ * falls back to English where Hermes ships no `RelativeTimeFormat`.
+ */
+export function formatDaysUntil(dateStr: string): string {
+    const days = daysUntil(dateStr);
+
+    if (typeof Intl.RelativeTimeFormat === 'undefined') {
+        if (days === 0) return 'Today';
+        if (days === 1) return 'Tomorrow';
+        if (days === -1) return 'Yesterday';
+        return days > 0 ? `In ${days} days` : `${-days} days ago`;
+    }
+
+    const label = new Intl.RelativeTimeFormat(undefined, {
+        numeric: 'auto',
+    }).format(days, 'day');
+    return label.charAt(0).toLocaleUpperCase() + label.slice(1);
+}

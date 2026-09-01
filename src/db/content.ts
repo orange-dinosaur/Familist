@@ -20,20 +20,13 @@ import {
     todo,
 } from '@/db/schema';
 import { CURRENCIES, type Currency } from '@/constants/currencies';
+import { MAX_EMOJI_LENGTH, MAX_LABEL_LENGTH } from '@/constants/limits';
 import {
     type MealItem,
     type SubscriptionItem,
     type TodoItem,
 } from '@/constants/types';
 import { createId } from '@/utils/id';
-
-export const MAX_LABEL_LENGTH = 200;
-
-/**
- * Long enough for the sequences that render as one glyph - a family emoji is
- * eleven code units - and short enough that the column stays an emoji.
- */
-export const MAX_EMOJI_LENGTH = 16;
 
 export const MEAL_TIMES: MealItem['time'][] = [
     'breakfast',
