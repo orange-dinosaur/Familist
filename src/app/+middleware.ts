@@ -22,7 +22,12 @@ const APP_SCREENS = [
     '/todo',
     '/daily-meal',
     '/daily-chores',
-    '/explore',
+    '/other',
+    '/subscriptions',
+    '/when-did-i-last',
+    '/payments',
+    '/shared-links',
+    '/loaned-items',
     '/welcome',
 ];
 
@@ -30,7 +35,7 @@ const APP_SCREENS = [
  * Route groups stay in the URL as an optional segment, so `/(tabs)/todo` serves
  * the same screen as `/todo` and has to be matched as well.
  */
-const GROUPED = /^\/\((?:tabs|auth|onboarding)\)\//;
+const GROUPED = /^\/\((?:tabs|other|auth|onboarding)\)\//;
 
 export const unstable_settings: MiddlewareSettings = {
     matcher: {
@@ -42,7 +47,8 @@ export const unstable_settings: MiddlewareSettings = {
 const middleware: MiddlewareFunction = (request) => {
     const url = new URL(request.url);
     const pathname =
-        url.pathname.replace(/^\/\((?:tabs|auth|onboarding)\)/, '') || '/';
+        url.pathname.replace(/^\/\((?:tabs|other|auth|onboarding)\)/, '') ||
+        '/';
     const onAuthScreen = AUTH_SCREENS.includes(pathname);
     const signedIn = getSessionCookie(request.headers) !== null;
 

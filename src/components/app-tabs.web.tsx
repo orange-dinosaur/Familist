@@ -57,7 +57,7 @@ export default function AppTabs() {
                             To-Do
                         </TabButton>
                     </TabTrigger>
-                    <TabTrigger name="explore" href="/explore" asChild>
+                    <TabTrigger name="other" href="/other" asChild>
                         <TabButton
                             icon={{
                                 ios: 'rectangle.stack.fill',

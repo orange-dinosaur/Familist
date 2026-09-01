@@ -47,7 +47,7 @@ export default function AppTabs() {
                 />
             </NativeTabs.Trigger>
 
-            <NativeTabs.Trigger name="explore">
+            <NativeTabs.Trigger name="other">
                 <NativeTabs.Trigger.Label>Other</NativeTabs.Trigger.Label>
                 <NativeTabs.Trigger.Icon
                     sf="rectangle.stack.fill"

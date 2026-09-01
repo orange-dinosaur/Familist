@@ -1,16 +1,53 @@
+import { type Href, useRouter } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import React from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { FamilyBar } from '@/components/family-bar';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { MaxContentWidth, Spacing } from '@/constants/theme';
+import { type PlatformSymbol } from '@/constants/types';
+import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
-export default function ExploreScreen() {
+interface HubEntry {
+    label: string;
+    icon: PlatformSymbol;
+    path: Href;
+}
+
+const entries: HubEntry[] = [
+    {
+        label: 'Subscriptions',
+        icon: { ios: 'creditcard.fill', web: 'credit_card' },
+        path: '/subscriptions',
+    },
+    {
+        label: 'When Did I Last',
+        icon: { ios: 'clock.arrow.circlepath', web: 'history' },
+        path: '/when-did-i-last',
+    },
+    {
+        label: 'Payments',
+        icon: { ios: 'banknote.fill', web: 'payments' },
+        path: '/payments',
+    },
+    {
+        label: 'Shared Links',
+        icon: { ios: 'link', web: 'link' },
+        path: '/shared-links',
+    },
+    {
+        label: 'Loaned Items',
+        icon: { ios: 'arrow.left.arrow.right', web: 'swap_horiz' },
+        path: '/loaned-items',
+    },
+];
+
+export default function OtherScreen() {
     const theme = useTheme();
+    const router = useRouter();
 
     return (
         <ThemedView style={styles.container}>
@@ -24,24 +61,44 @@ export default function ExploreScreen() {
                     </ThemedText>
                 </View>
 
-                <View style={styles.body}>
-                    <View
-                        style={[
-                            styles.card,
-                            { backgroundColor: theme.backgroundElement },
-                        ]}>
-                        <SymbolView
-                            name={{ ios: 'sparkles', web: 'auto_awesome' }}
-                            tintColor={theme.textSecondary}
-                            size={28}
-                        />
-                        <ThemedText
-                            themeColor="textSecondary"
-                            style={styles.text}>
-                            Coming soon
-                        </ThemedText>
+                <ScrollView
+                    style={styles.scrollView}
+                    contentContainerStyle={styles.scrollContent}
+                    showsVerticalScrollIndicator={false}>
+                    <View style={styles.list}>
+                        {entries.map((entry) => (
+                            <Pressable
+                                key={entry.label}
+                                onPress={() => router.navigate(entry.path)}
+                                accessibilityRole="button"
+                                style={({ pressed }) => [
+                                    styles.row,
+                                    {
+                                        backgroundColor:
+                                            theme.backgroundElement,
+                                    },
+                                    pressed && styles.pressed,
+                                ]}>
+                                <SymbolView
+                                    name={entry.icon}
+                                    tintColor={theme.text}
+                                    size={22}
+                                />
+                                <ThemedText style={styles.rowLabel}>
+                                    {entry.label}
+                                </ThemedText>
+                                <SymbolView
+                                    name={{
+                                        ios: 'chevron.right',
+                                        web: 'chevron_right',
+                                    }}
+                                    tintColor={theme.textSecondary}
+                                    size={16}
+                                />
+                            </Pressable>
+                        ))}
                     </View>
-                </View>
+                </ScrollView>
             </SafeAreaView>
         </ThemedView>
     );
@@ -67,21 +124,28 @@ const styles = StyleSheet.create({
         fontSize: 34,
         lineHeight: 40,
     },
-    body: {
+    scrollView: {
         flex: 1,
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingHorizontal: Spacing.four,
     },
-    card: {
-        alignItems: 'center',
-        gap: Spacing.two,
-        borderRadius: 16,
-        paddingVertical: Spacing.five,
+    scrollContent: {
         paddingHorizontal: Spacing.four,
-        alignSelf: 'stretch',
+        paddingBottom: BottomTabInset + Spacing.six,
     },
-    text: {
-        textAlign: 'center',
+    list: {
+        gap: Spacing.one,
+    },
+    row: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: Spacing.three,
+        borderRadius: 14,
+        paddingVertical: Spacing.three,
+        paddingHorizontal: Spacing.three,
+    },
+    rowLabel: {
+        flex: 1,
+    },
+    pressed: {
+        opacity: 0.7,
     },
 });
