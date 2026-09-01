@@ -436,11 +436,11 @@ export default function HomeScreen() {
                                                     <SymbolView
                                                         name={{
                                                             ios: item.done
-                                                                ? 'checkmark.square.fill'
-                                                                : 'square',
+                                                                ? 'checkmark.circle.fill'
+                                                                : 'circle',
                                                             web: item.done
-                                                                ? 'check_box'
-                                                                : 'check_box_outline_blank',
+                                                                ? 'check_circle'
+                                                                : 'radio_button_unchecked',
                                                         }}
                                                         tintColor={
                                                             item.done ||
@@ -450,7 +450,7 @@ export default function HomeScreen() {
                                                                 ? theme.textSecondary
                                                                 : theme.text
                                                         }
-                                                        size={16}
+                                                        size={18}
                                                     />
                                                     <ThemedText
                                                         themeColor={
@@ -673,8 +673,8 @@ export default function HomeScreen() {
                                                     style={styles.checkItem}>
                                                     <SymbolView
                                                         name={{
-                                                            ios: 'square',
-                                                            web: 'check_box_outline_blank',
+                                                            ios: 'circle',
+                                                            web: 'radio_button_unchecked',
                                                         }}
                                                         tintColor={
                                                             canToggle(
@@ -683,7 +683,7 @@ export default function HomeScreen() {
                                                                 ? theme.text
                                                                 : theme.textSecondary
                                                         }
-                                                        size={16}
+                                                        size={18}
                                                     />
                                                     <View
                                                         style={[
