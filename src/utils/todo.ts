@@ -22,6 +22,17 @@ export function byUrgency(a: TodoItem, b: TodoItem): number {
     return priorityRank[b.priority] - priorityRank[a.priority];
 }
 
+/**
+ * The finished list, most recently ticked off first. A to-do completed before
+ * the app kept the time has none, and goes to the bottom - nothing knows when
+ * it was done.
+ */
+export function byCompletion(a: TodoItem, b: TodoItem): number {
+    if (!a.completedAt) return b.completedAt ? 1 : 0;
+    if (!b.completedAt) return -1;
+    return a.completedAt < b.completedAt ? 1 : -1;
+}
+
 export type TodoSort = 'urgency' | 'priority' | 'assignee' | 'added';
 
 export const TODO_SORTS: { key: TodoSort; label: string }[] = [

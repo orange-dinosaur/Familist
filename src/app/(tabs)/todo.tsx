@@ -29,7 +29,12 @@ import { useTheme } from '@/hooks/use-theme';
 import { useMembers } from '@/hooks/use-members';
 import { usePermissions } from '@/hooks/use-permissions';
 import { useTodos } from '@/hooks/use-todos';
-import { sortTodos, TODO_SORTS, type TodoSort } from '@/utils/todo';
+import {
+    byCompletion,
+    sortTodos,
+    TODO_SORTS,
+    type TodoSort,
+} from '@/utils/todo';
 
 const priorityColors = {
     low: 'priorityLow',
@@ -286,8 +291,8 @@ export default function TodoScreen() {
         sort,
         members.map((member) => member.id)
     );
-    /** Finished work keeps the order it arrived in, whatever the sort. */
-    const completed = todos.filter((t) => t.done);
+    /** Finished work is its own order, most recently done first. */
+    const completed = todos.filter((t) => t.done).sort(byCompletion);
     const progress =
         todos.length > 0
             ? Math.round((completed.length / todos.length) * 100)

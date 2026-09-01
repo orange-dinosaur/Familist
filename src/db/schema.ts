@@ -353,6 +353,8 @@ export const todo = pgTable(
             .references(() => family.id, { onDelete: 'cascade' }),
         label: text('label').notNull(),
         done: boolean('done').notNull().default(false),
+        /** When it was ticked off, which is what orders the finished list. */
+        completedAt: timestamp('completed_at'),
         priority: todoPriority('priority').notNull(),
         assigneeId: text('assignee_id'),
         /** A due date, which a to-do need not have. */

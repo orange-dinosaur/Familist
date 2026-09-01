@@ -70,12 +70,21 @@ export function TodosProvider({ children }: { children: React.ReactNode }) {
         [write]
     );
 
+    /**
+     * The completion time travels with the tick so the record on the device
+     * sorts right away; the route stamps its own over it on the way back.
+     */
     const toggleTodo = useCallback(
         (id: string) =>
             write('Could not change that task.', async (store) => {
                 const current = await store.list();
                 const todo = current.find((item) => item.id === id);
-                if (todo) await store.update(id, { done: !todo.done });
+                if (!todo) return;
+                const done = !todo.done;
+                await store.update(id, {
+                    done,
+                    completedAt: done ? new Date().toISOString() : null,
+                });
             }),
         [write]
     );

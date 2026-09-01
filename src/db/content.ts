@@ -74,6 +74,7 @@ export const TODO_COLUMNS = {
     id: todo.id,
     label: todo.label,
     done: todo.done,
+    completedAt: todo.completedAt,
     priority: todo.priority,
     assigneeId: todo.assigneeId,
     day: todo.day,

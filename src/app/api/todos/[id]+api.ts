@@ -5,6 +5,11 @@
  *
  * `priority` is an ordinary editable field. It is not something a checker may
  * change, which follows from the allowlist without needing its own rule.
+ *
+ * `completedAt` is derived here rather than taken from the body: a client
+ * sends its own so the row it is holding sorts right before the answer comes
+ * back, and two devices ticking the same to-do off would otherwise disagree
+ * about when it was done.
  */
 
 import { and, eq, isNull } from 'drizzle-orm';
@@ -43,13 +48,16 @@ export async function PATCH(
 
     const checker = membership.role === 'checker';
 
-    if (checker && submitted.some((field) => field !== 'done')) {
+    const tickingOff = ['done', 'completedAt'];
+
+    if (checker && submitted.some((field) => !tickingOff.includes(field))) {
         return forbidden('You can only tick to-dos off');
     }
 
     const changes: {
         label?: string;
         done?: boolean;
+        completedAt?: Date | null;
         day?: string | null;
         priority?: TodoItem['priority'];
         assigneeId?: string | null;
@@ -64,6 +72,7 @@ export async function PATCH(
     if ('done' in body) {
         if (typeof body.done !== 'boolean') return badRequest('Invalid done');
         changes.done = body.done;
+        changes.completedAt = body.done ? new Date() : null;
     }
 
     /** A `day` sent as null is a due date being taken off. */

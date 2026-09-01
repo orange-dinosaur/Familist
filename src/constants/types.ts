@@ -41,6 +41,8 @@ export interface TodoItem {
     id: string;
     label: string;
     done: boolean;
+    /** Set when it is ticked off and cleared when it is put back. */
+    completedAt?: string | null;
     priority: 'low' | 'medium' | 'high';
     /** Null is how the server says nobody, and how it is told so. */
     assigneeId?: string | null;
