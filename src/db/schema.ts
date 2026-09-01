@@ -421,3 +421,29 @@ export const subscription = pgTable(
         }),
     ]
 );
+
+/**
+ * Something the family wants to know when they last did. Only the latest date
+ * is kept: the question is "how long has it been", and a history nobody reads
+ * would be a second thing to maintain.
+ */
+export const activity = pgTable(
+    'activity',
+    {
+        id: text('id').primaryKey(),
+        familyId: text('family_id')
+            .notNull()
+            .references(() => family.id, { onDelete: 'cascade' }),
+        name: text('name').notNull(),
+        emoji: text('emoji').notNull().default(''),
+        /** Null until it has been done once. */
+        lastDoneOn: date('last_done_on'),
+        createdAt: timestamp('created_at').defaultNow().notNull(),
+        updatedAt: timestamp('updated_at')
+            .defaultNow()
+            .$onUpdate(() => new Date())
+            .notNull(),
+        deletedAt: timestamp('deleted_at'),
+    },
+    (table) => [index('activity_family_id_idx').on(table.familyId)]
+);
