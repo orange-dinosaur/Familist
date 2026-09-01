@@ -67,6 +67,10 @@ export default function HomeScreen() {
     const todayMeals = meals.filter((m) => m.day === todayStr);
     /** Inactive chores are rows for days they are not planned for. */
     const todayChores = chores.filter((c) => c.active && c.day === todayStr);
+    /** The card lists what is left to do; a chore ticked off leaves it. */
+    const openChores = todayChores.filter((c) => !c.done);
+    const choresEmptyText =
+        todayChores.length > 0 ? 'All chores done' : 'No chores for today';
     /**
      * A chore is named by the family's chore it was planned from, so the card
      * has both collections to wait for rather than one.
@@ -101,7 +105,7 @@ export default function HomeScreen() {
         .slice(0, 3)
         .map((m) => `${timeLabel[m.time]}: ${m.name}`);
     const remainingMeals = todayMeals.length - mealPreviewItems.length;
-    const remainingChores = todayChores.length - 3;
+    const remainingChores = openChores.length - 3;
 
     const hiddenMealsCount = !mealsExpanded ? Math.max(0, remainingMeals) : 0;
     const hiddenChoresCount = !choresExpanded
@@ -338,9 +342,9 @@ export default function HomeScreen() {
                             </View>
                             <View style={styles.cardPreview}>
                                 {choresExpanded ? (
-                                    todayChores.length > 0 ? (
+                                    openChores.length > 0 ? (
                                         <View style={styles.expandedList}>
-                                            {todayChores.map((item) => {
+                                            {openChores.map((item) => {
                                                 const assignee = members.find(
                                                     (u) =>
                                                         u.id === item.assigneeId
@@ -412,12 +416,12 @@ export default function HomeScreen() {
                                             type="small">
                                             {choresLoading
                                                 ? ''
-                                                : 'No chores for today'}
+                                                : choresEmptyText}
                                         </ThemedText>
                                     )
-                                ) : todayChores.length > 0 ? (
+                                ) : openChores.length > 0 ? (
                                     <>
-                                        {todayChores.slice(0, 3).map((item) => {
+                                        {openChores.slice(0, 3).map((item) => {
                                             const assignee = members.find(
                                                 (u) => u.id === item.assigneeId
                                             );
@@ -509,9 +513,7 @@ export default function HomeScreen() {
                                     <ThemedText
                                         themeColor="textSecondary"
                                         type="small">
-                                        {choresLoading
-                                            ? ''
-                                            : 'No chores for today'}
+                                        {choresLoading ? '' : choresEmptyText}
                                     </ThemedText>
                                 )}
                             </View>
