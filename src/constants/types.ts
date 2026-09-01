@@ -82,3 +82,21 @@ export interface ActivityItem {
     assigneeId?: string | null;
     lastDoneOn: string | null;
 }
+
+/**
+ * A payment with a deadline. The family's subscriptions are not stored as
+ * payments: the screen derives a row per subscription from its `nextRenewal`.
+ */
+export interface PaymentItem {
+    id: string;
+    name: string;
+    /** Minor units, so an amount is never held as a float. */
+    amount: number;
+    currency: Currency;
+    dueOn: string;
+    paid: boolean;
+    /** The day it was settled, and null while it is outstanding. */
+    paidOn: string | null;
+    /** Null is how the server says nobody, and how it is told so. */
+    payerId?: string | null;
+}

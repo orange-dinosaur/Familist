@@ -17,6 +17,7 @@ import {
     choreDefinition,
     familyMember,
     meal,
+    payment,
     subscription,
     todo,
 } from '@/db/schema';
@@ -122,6 +123,19 @@ export const ACTIVITY_COLUMNS = {
     lastDoneOn: activity.lastDoneOn,
     updatedAt: activity.updatedAt,
     deletedAt: activity.deletedAt,
+};
+
+export const PAYMENT_COLUMNS = {
+    id: payment.id,
+    name: payment.name,
+    amount: payment.amount,
+    currency: payment.currency,
+    dueOn: payment.dueOn,
+    paid: payment.paid,
+    paidOn: payment.paidOn,
+    payerId: payment.payerId,
+    updatedAt: payment.updatedAt,
+    deletedAt: payment.deletedAt,
 };
 
 /**
@@ -382,7 +396,8 @@ export async function retriedCreate(
         | typeof choreDefinition
         | typeof todo
         | typeof subscription
-        | typeof activity,
+        | typeof activity
+        | typeof payment,
     columns: Record<string, PgColumn>,
     key: string,
     id: string,
