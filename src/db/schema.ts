@@ -12,6 +12,7 @@ import {
     date,
     foreignKey,
     index,
+    integer,
     pgEnum,
     pgTable,
     text,
@@ -252,6 +253,12 @@ export const mealTime = pgEnum('meal_time', [
 
 export const todoPriority = pgEnum('todo_priority', ['low', 'medium', 'high']);
 
+export const subscriptionCycle = pgEnum('subscription_cycle', [
+    'weekly',
+    'monthly',
+    'yearly',
+]);
+
 export const meal = pgTable(
     'meal',
     {
@@ -372,6 +379,45 @@ export const todo = pgTable(
             columns: [table.familyId, table.assigneeId],
             foreignColumns: [familyMember.familyId, familyMember.id],
             name: 'todo_assignee_fk',
+        }),
+    ]
+);
+
+/**
+ * A recurring payment the family keeps track of. `nextRenewal` is the single
+ * date the subscription carries: the Payments screen derives its upcoming row
+ * from it and moves it on by one cycle when the row is ticked off, so no
+ * renewal is ever stored twice.
+ */
+export const subscription = pgTable(
+    'subscription',
+    {
+        id: text('id').primaryKey(),
+        familyId: text('family_id')
+            .notNull()
+            .references(() => family.id, { onDelete: 'cascade' }),
+        name: text('name').notNull(),
+        emoji: text('emoji').notNull().default(''),
+        /** Minor units, so nothing is ever held as a float. */
+        amount: integer('amount').notNull(),
+        currency: text('currency').notNull(),
+        cycle: subscriptionCycle('cycle').notNull(),
+        nextRenewal: date('next_renewal').notNull(),
+        /** Who pays for it, which the family need not have decided. */
+        payerId: text('payer_id'),
+        createdAt: timestamp('created_at').defaultNow().notNull(),
+        updatedAt: timestamp('updated_at')
+            .defaultNow()
+            .$onUpdate(() => new Date())
+            .notNull(),
+        deletedAt: timestamp('deleted_at'),
+    },
+    (table) => [
+        index('subscription_family_id_idx').on(table.familyId),
+        foreignKey({
+            columns: [table.familyId, table.payerId],
+            foreignColumns: [familyMember.familyId, familyMember.id],
+            name: 'subscription_payer_fk',
         }),
     ]
 );
