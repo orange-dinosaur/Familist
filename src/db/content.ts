@@ -12,6 +12,7 @@ import { type PgColumn } from 'drizzle-orm/pg-core';
 
 import { db } from '@/db';
 import {
+    activity,
     chore,
     choreDefinition,
     familyMember,
@@ -113,6 +114,15 @@ export const SUBSCRIPTION_COLUMNS = {
     deletedAt: subscription.deletedAt,
 };
 
+export const ACTIVITY_COLUMNS = {
+    id: activity.id,
+    name: activity.name,
+    emoji: activity.emoji,
+    lastDoneOn: activity.lastDoneOn,
+    updatedAt: activity.updatedAt,
+    deletedAt: activity.deletedAt,
+};
+
 /**
  * The validators answer with the message the client should see, or null. Each
  * one covers both a missing value and a malformed one, so `POST` and `PATCH`
@@ -152,11 +162,12 @@ export function dayError(value: unknown): string | null {
 }
 
 /**
- * A to-do's day is a due date it may not have, so nothing at all passes. The
- * two are separate validators rather than a flag because the collections that
- * are keyed by day must keep refusing a record without one.
+ * A day a record may not have - a to-do's due date, the last time an activity
+ * was done - so nothing at all passes. The two are separate validators rather
+ * than a flag because the collections that are keyed by day must keep refusing
+ * a record without one.
  */
-export function dueDayError(value: unknown): string | null {
+export function optionalDayError(value: unknown): string | null {
     if (value === undefined || value === null) return null;
     return dayError(value);
 }
@@ -369,7 +380,8 @@ export async function retriedCreate(
         | typeof chore
         | typeof choreDefinition
         | typeof todo
-        | typeof subscription,
+        | typeof subscription
+        | typeof activity,
     columns: Record<string, PgColumn>,
     key: string,
     id: string,

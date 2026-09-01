@@ -69,3 +69,14 @@ export interface SubscriptionItem {
     /** Null is how the server says nobody, and how it is told so. */
     payerId?: string | null;
 }
+
+/**
+ * Something the family wants to know when they last did. Only the latest date
+ * is kept, so `lastDoneOn` is the whole answer and null is "never".
+ */
+export interface ActivityItem {
+    id: string;
+    name: string;
+    emoji: string;
+    lastDoneOn: string | null;
+}

@@ -16,11 +16,11 @@ import { db } from '@/db';
 import {
     assigneeInFamily,
     badRequest,
-    dueDayError,
     forbidden,
     idError,
     labelError,
     notFound,
+    optionalDayError,
     priorityError,
     readSince,
     retriedCreate,
@@ -88,7 +88,7 @@ export async function POST(request: Request): Promise<Response> {
 
     /** `priority` is `NOT NULL` with no default, so the route asks for it. */
     const invalid =
-        labelError(label) ?? dueDayError(day) ?? priorityError(priority);
+        labelError(label) ?? optionalDayError(day) ?? priorityError(priority);
     if (invalid) return badRequest(invalid);
 
     if (

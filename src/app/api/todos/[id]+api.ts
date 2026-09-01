@@ -20,10 +20,10 @@ import { db } from '@/db';
 import {
     assigneeInFamily,
     badRequest,
-    dueDayError,
     forbidden,
     labelError,
     notFound,
+    optionalDayError,
     priorityError,
     TODO_COLUMNS,
 } from '@/db/content';
@@ -77,7 +77,7 @@ export async function PATCH(
 
     /** A `day` sent as null is a due date being taken off. */
     if ('day' in body) {
-        const invalid = dueDayError(body.day);
+        const invalid = optionalDayError(body.day);
         if (invalid) return badRequest(invalid);
         changes.day = typeof body.day === 'string' ? body.day : null;
     }
