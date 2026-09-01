@@ -1,5 +1,6 @@
 /**
- * Shared pieces of the content routes - meals, chores and todos.
+ * Shared pieces of the content routes - meals, chores, todos and the
+ * collections behind the Other tab.
  *
  * Server only, and here rather than in `utils/` for the reason `MemberRole`
  * moved the other way in 19b: this reaches the schema and the pool, so a client
@@ -10,8 +11,20 @@ import { and, eq, isNull } from 'drizzle-orm';
 import { type PgColumn } from 'drizzle-orm/pg-core';
 
 import { db } from '@/db';
-import { chore, choreDefinition, familyMember, meal, todo } from '@/db/schema';
-import { type MealItem, type TodoItem } from '@/constants/types';
+import {
+    chore,
+    choreDefinition,
+    familyMember,
+    meal,
+    subscription,
+    todo,
+} from '@/db/schema';
+import { CURRENCIES, type Currency } from '@/constants/currencies';
+import {
+    type MealItem,
+    type SubscriptionItem,
+    type TodoItem,
+} from '@/constants/types';
 import { createId } from '@/utils/id';
 
 export const MAX_LABEL_LENGTH = 200;
@@ -34,6 +47,18 @@ export const TODO_PRIORITIES: TodoItem['priority'][] = [
     'medium',
     'high',
 ];
+
+export const SUBSCRIPTION_CYCLES: SubscriptionItem['cycle'][] = [
+    'weekly',
+    'monthly',
+    'yearly',
+];
+
+/**
+ * What the `integer` column itself holds. Bounding the amount here keeps an
+ * absurd one an answer rather than a constraint violation.
+ */
+export const MAX_AMOUNT = 2147483647;
 
 /**
  * The columns a client is given. `family_id` and `created_at` stay here;
@@ -80,6 +105,19 @@ export const TODO_COLUMNS = {
     day: todo.day,
     updatedAt: todo.updatedAt,
     deletedAt: todo.deletedAt,
+};
+
+export const SUBSCRIPTION_COLUMNS = {
+    id: subscription.id,
+    name: subscription.name,
+    emoji: subscription.emoji,
+    amount: subscription.amount,
+    currency: subscription.currency,
+    cycle: subscription.cycle,
+    nextRenewal: subscription.nextRenewal,
+    payerId: subscription.payerId,
+    updatedAt: subscription.updatedAt,
+    deletedAt: subscription.deletedAt,
 };
 
 /**
@@ -158,6 +196,38 @@ export function priorityError(value: unknown): string | null {
         !TODO_PRIORITIES.includes(value as TodoItem['priority'])
     ) {
         return 'Unknown priority';
+    }
+    return null;
+}
+
+/**
+ * An amount is minor units, so a whole number is the only shape it takes. Zero
+ * passes: a subscription somebody is not being charged for this year is still
+ * one the family keeps.
+ */
+export function amountError(value: unknown): string | null {
+    if (typeof value !== 'number' || !Number.isInteger(value)) {
+        return 'An amount is required';
+    }
+    if (value < 0) return 'An amount cannot be negative';
+    if (value > MAX_AMOUNT) return 'That amount is too large';
+    return null;
+}
+
+export function currencyError(value: unknown): string | null {
+    if (typeof value !== 'string' || !CURRENCIES.includes(value as Currency)) {
+        return 'Unknown currency';
+    }
+    return null;
+}
+
+export function cycleError(value: unknown): string | null {
+    if (value === undefined || value === null) return 'A cycle is required';
+    if (
+        typeof value !== 'string' ||
+        !SUBSCRIPTION_CYCLES.includes(value as SubscriptionItem['cycle'])
+    ) {
+        return 'Unknown cycle';
     }
     return null;
 }
@@ -301,7 +371,12 @@ export function readSince(request: Request): {
  * another family is not that, and is refused without saying whose it is.
  */
 export async function retriedCreate(
-    table: typeof meal | typeof chore | typeof choreDefinition | typeof todo,
+    table:
+        | typeof meal
+        | typeof chore
+        | typeof choreDefinition
+        | typeof todo
+        | typeof subscription,
     columns: Record<string, PgColumn>,
     key: string,
     id: string,

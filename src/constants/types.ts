@@ -4,6 +4,8 @@
 
 import { AndroidSymbol, SFSymbol } from 'expo-symbols';
 
+import { type Currency } from '@/constants/currencies';
+
 export interface PlatformSymbol {
     ios: SFSymbol;
     web: AndroidSymbol;
@@ -48,4 +50,22 @@ export interface TodoItem {
     assigneeId?: string | null;
     /** A due date, which a to-do need not have. Meals and chores must. */
     day: string | null;
+}
+
+/**
+ * A recurring payment. `nextRenewal` is the only date it carries: the Payments
+ * screen derives its upcoming row from it and moves it on by one cycle when
+ * that row is ticked off.
+ */
+export interface SubscriptionItem {
+    id: string;
+    name: string;
+    emoji: string;
+    /** Minor units, so an amount is never held as a float. */
+    amount: number;
+    currency: Currency;
+    cycle: 'weekly' | 'monthly' | 'yearly';
+    nextRenewal: string;
+    /** Null is how the server says nobody, and how it is told so. */
+    payerId?: string | null;
 }
