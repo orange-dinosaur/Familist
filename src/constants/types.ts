@@ -78,5 +78,7 @@ export interface ActivityItem {
     id: string;
     name: string;
     emoji: string;
+    /** Null is how the server says nobody, and how it is told so. */
+    assigneeId?: string | null;
     lastDoneOn: string | null;
 }

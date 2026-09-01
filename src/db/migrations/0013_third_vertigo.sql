@@ -1,0 +1,2 @@
+ALTER TABLE "activity" ADD COLUMN "assignee_id" text;--> statement-breakpoint
+ALTER TABLE "activity" ADD CONSTRAINT "activity_assignee_fk" FOREIGN KEY ("family_id","assignee_id") REFERENCES "public"."family_member"("family_id","id") ON DELETE no action ON UPDATE no action;

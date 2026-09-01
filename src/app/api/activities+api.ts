@@ -2,10 +2,10 @@
  * The things the family wants to know when they last did, with the same four
  * scoping rules as the other collections.
  *
- * An activity has no assignee, so the checker rule cannot be the one the
- * to-do routes use. What stands in for it is the field allowlist alone:
- * `lastDoneOn` is the "done today" of this collection, and it is all a checker
- * may write. Creating and deleting stay with owners and editors.
+ * The checker rule is the same as for chores and to-dos: `lastDoneOn` is the
+ * "done today" of this collection and the only field they may write, and only
+ * on activities assigned to them. Creating and deleting stay with owners and
+ * editors.
  */
 
 import { and, asc, eq, gte, isNull } from 'drizzle-orm';
@@ -14,11 +14,13 @@ import { getMembership, unauthorized } from '@/auth/session';
 import { db } from '@/db';
 import {
     ACTIVITY_COLUMNS,
+    assigneeInFamily,
     badRequest,
     emojiError,
     forbidden,
     idError,
     nameError,
+    notFound,
     optionalDayError,
     readSince,
     retriedCreate,
@@ -62,6 +64,7 @@ export async function POST(request: Request): Promise<Response> {
         id?: unknown;
         name?: unknown;
         emoji?: unknown;
+        assigneeId?: unknown;
         lastDoneOn?: unknown;
     };
     try {
@@ -70,7 +73,7 @@ export async function POST(request: Request): Promise<Response> {
         return badRequest('Invalid body');
     }
 
-    const { id, name, emoji, lastDoneOn } = body;
+    const { id, name, emoji, assigneeId, lastDoneOn } = body;
 
     /** A client mints this when it creates a record it cannot yet send. */
     if (id !== undefined) {
@@ -89,6 +92,20 @@ export async function POST(request: Request): Promise<Response> {
         if (invalidEmoji) return badRequest(invalidEmoji);
     }
 
+    if (
+        assigneeId !== undefined &&
+        assigneeId !== null &&
+        typeof assigneeId !== 'string'
+    ) {
+        return badRequest('Invalid assignee');
+    }
+
+    const assignee = typeof assigneeId === 'string' ? assigneeId : null;
+
+    if (assignee && !(await assigneeInFamily(membership.familyId, assignee))) {
+        return notFound('That member is not in your family');
+    }
+
     const [created] = await db
         .insert(activity)
         .values({
@@ -96,6 +113,7 @@ export async function POST(request: Request): Promise<Response> {
             familyId: membership.familyId,
             name: (name as string).trim(),
             emoji: typeof emoji === 'string' ? emoji : '',
+            assigneeId: assignee,
             lastDoneOn: typeof lastDoneOn === 'string' ? lastDoneOn : null,
         })
         .onConflictDoNothing()

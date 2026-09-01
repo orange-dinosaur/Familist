@@ -118,6 +118,7 @@ export const ACTIVITY_COLUMNS = {
     id: activity.id,
     name: activity.name,
     emoji: activity.emoji,
+    assigneeId: activity.assigneeId,
     lastDoneOn: activity.lastDoneOn,
     updatedAt: activity.updatedAt,
     deletedAt: activity.deletedAt,

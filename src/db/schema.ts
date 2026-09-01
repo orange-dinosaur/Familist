@@ -436,6 +436,8 @@ export const activity = pgTable(
             .references(() => family.id, { onDelete: 'cascade' }),
         name: text('name').notNull(),
         emoji: text('emoji').notNull().default(''),
+        /** Whose it is, which the family need not have decided. */
+        assigneeId: text('assignee_id'),
         /** Null until it has been done once. */
         lastDoneOn: date('last_done_on'),
         createdAt: timestamp('created_at').defaultNow().notNull(),
@@ -445,5 +447,12 @@ export const activity = pgTable(
             .notNull(),
         deletedAt: timestamp('deleted_at'),
     },
-    (table) => [index('activity_family_id_idx').on(table.familyId)]
+    (table) => [
+        index('activity_family_id_idx').on(table.familyId),
+        foreignKey({
+            columns: [table.familyId, table.assigneeId],
+            foreignColumns: [familyMember.familyId, familyMember.id],
+            name: 'activity_assignee_fk',
+        }),
+    ]
 );

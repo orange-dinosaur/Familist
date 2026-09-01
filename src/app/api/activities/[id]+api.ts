@@ -1,9 +1,10 @@
 /**
- * One activity. `lastDoneOn` is the "done today" of this collection, so it is
- * the one field a checker may write - the allowlist here does the whole job,
- * since an activity has no assignee for a row condition to be built from.
+ * One activity. The checker rule is the same as for chores and to-dos:
+ * `lastDoneOn` is the "done today" of this collection and the only field they
+ * may touch, and only on activities assigned to them, with that condition in
+ * the `WHERE` rather than in a read.
  *
- * A null clears it, which is how a date written by mistake is taken back.
+ * A null clears the date, which is how one written by mistake is taken back.
  */
 
 import { and, eq, isNull } from 'drizzle-orm';
@@ -12,6 +13,7 @@ import { getMembership, unauthorized } from '@/auth/session';
 import { db } from '@/db';
 import {
     ACTIVITY_COLUMNS,
+    assigneeInFamily,
     badRequest,
     emojiError,
     forbidden,
@@ -38,16 +40,16 @@ export async function PATCH(
     const submitted = Object.keys(body);
     if (submitted.length === 0) return badRequest('Nothing to change');
 
-    if (
-        membership.role === 'checker' &&
-        submitted.some((field) => field !== 'lastDoneOn')
-    ) {
+    const checker = membership.role === 'checker';
+
+    if (checker && submitted.some((field) => field !== 'lastDoneOn')) {
         return forbidden('You can only mark activities done');
     }
 
     const changes: {
         name?: string;
         emoji?: string;
+        assigneeId?: string | null;
         lastDoneOn?: string | null;
     } = {};
 
@@ -61,6 +63,20 @@ export async function PATCH(
         const invalid = emojiError(body.emoji);
         if (invalid) return badRequest(invalid);
         changes.emoji = body.emoji as string;
+    }
+
+    if ('assigneeId' in body) {
+        const { assigneeId } = body;
+        if (assigneeId !== null && typeof assigneeId !== 'string') {
+            return badRequest('Invalid assignee');
+        }
+        if (
+            typeof assigneeId === 'string' &&
+            !(await assigneeInFamily(membership.familyId, assigneeId))
+        ) {
+            return notFound('That member is not in your family');
+        }
+        changes.assigneeId = assigneeId;
     }
 
     if ('lastDoneOn' in body) {
@@ -77,13 +93,20 @@ export async function PATCH(
             and(
                 eq(activity.id, id),
                 eq(activity.familyId, membership.familyId),
-                isNull(activity.deletedAt)
+                isNull(activity.deletedAt),
+                ...(checker
+                    ? [eq(activity.assigneeId, membership.memberId)]
+                    : [])
             )
         )
         .returning(ACTIVITY_COLUMNS);
 
     if (updated.length === 0) {
-        return notFound('That activity is no longer there');
+        return notFound(
+            checker
+                ? 'That activity is not yours to change'
+                : 'That activity is no longer there'
+        );
     }
 
     return Response.json({ activity: updated[0] });
