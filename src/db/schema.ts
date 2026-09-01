@@ -456,3 +456,43 @@ export const activity = pgTable(
         }),
     ]
 );
+
+/**
+ * A payment with a deadline. The subscriptions the family keeps are not stored
+ * here: the Payments screen derives one row per subscription from its
+ * `nextRenewal` and moves that date on when the row is ticked off, so a
+ * renewal is never written down twice.
+ */
+export const payment = pgTable(
+    'payment',
+    {
+        id: text('id').primaryKey(),
+        familyId: text('family_id')
+            .notNull()
+            .references(() => family.id, { onDelete: 'cascade' }),
+        name: text('name').notNull(),
+        /** Minor units, so nothing is ever held as a float. */
+        amount: integer('amount').notNull(),
+        currency: text('currency').notNull(),
+        dueOn: date('due_on').notNull(),
+        paid: boolean('paid').notNull().default(false),
+        /** The day it was settled, and null while it is outstanding. */
+        paidOn: date('paid_on'),
+        /** Whose payment it is, which the family need not have decided. */
+        payerId: text('payer_id'),
+        createdAt: timestamp('created_at').defaultNow().notNull(),
+        updatedAt: timestamp('updated_at')
+            .defaultNow()
+            .$onUpdate(() => new Date())
+            .notNull(),
+        deletedAt: timestamp('deleted_at'),
+    },
+    (table) => [
+        index('payment_family_id_due_on_idx').on(table.familyId, table.dueOn),
+        foreignKey({
+            columns: [table.familyId, table.payerId],
+            foreignColumns: [familyMember.familyId, familyMember.id],
+            name: 'payment_payer_fk',
+        }),
+    ]
+);
