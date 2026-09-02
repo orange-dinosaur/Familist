@@ -259,6 +259,8 @@ export const subscriptionCycle = pgEnum('subscription_cycle', [
     'yearly',
 ]);
 
+export const loanDirection = pgEnum('loan_direction', ['lent', 'borrowed']);
+
 export const meal = pgTable(
     'meal',
     {
@@ -527,6 +529,45 @@ export const sharedLink = pgTable(
             columns: [table.familyId, table.createdBy],
             foreignColumns: [familyMember.familyId, familyMember.id],
             name: 'shared_link_created_by_fk',
+        }),
+    ]
+);
+
+/**
+ * Something the family lent out or borrowed. `counterparty` is a free-typed
+ * name from outside the family, so `memberId` is what says whose loan it is -
+ * the member who lent the thing out, or who borrowed it.
+ */
+export const loan = pgTable(
+    'loan',
+    {
+        id: text('id').primaryKey(),
+        familyId: text('family_id')
+            .notNull()
+            .references(() => family.id, { onDelete: 'cascade' }),
+        item: text('item').notNull(),
+        direction: loanDirection('direction').notNull(),
+        /** Who it went to or came from, who is not in the family. */
+        counterparty: text('counterparty').notNull(),
+        /** Whose loan it is, which the family need not have decided. */
+        memberId: text('member_id'),
+        day: date('day').notNull(),
+        returned: boolean('returned').notNull().default(false),
+        /** The day it came back, and null while it is still out. */
+        returnedOn: date('returned_on'),
+        createdAt: timestamp('created_at').defaultNow().notNull(),
+        updatedAt: timestamp('updated_at')
+            .defaultNow()
+            .$onUpdate(() => new Date())
+            .notNull(),
+        deletedAt: timestamp('deleted_at'),
+    },
+    (table) => [
+        index('loan_family_id_idx').on(table.familyId),
+        foreignKey({
+            columns: [table.familyId, table.memberId],
+            foreignColumns: [familyMember.familyId, familyMember.id],
+            name: 'loan_member_fk',
         }),
     ]
 );
