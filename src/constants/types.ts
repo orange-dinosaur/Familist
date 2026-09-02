@@ -114,3 +114,21 @@ export interface SharedLinkItem {
     /** Null is how the server says nobody, and how it is told so. */
     createdBy?: string | null;
 }
+
+/**
+ * Something the family lent out or borrowed. `counterparty` is the person on
+ * the other side of it, who is not in the family, so `memberId` is what says
+ * whose loan it is - the member who lent the thing out, or who borrowed it.
+ */
+export interface LoanItem {
+    id: string;
+    item: string;
+    direction: 'lent' | 'borrowed';
+    counterparty: string;
+    /** Null is how the server says nobody, and how it is told so. */
+    memberId?: string | null;
+    day: string;
+    returned: boolean;
+    /** The day it came back, and null while it is still out. */
+    returnedOn: string | null;
+}

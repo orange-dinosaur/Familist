@@ -16,6 +16,7 @@ import {
     chore,
     choreDefinition,
     familyMember,
+    loan,
     meal,
     payment,
     sharedLink,
@@ -29,6 +30,7 @@ import {
     MAX_URL_LENGTH,
 } from '@/constants/limits';
 import {
+    type LoanItem,
     type MealItem,
     type SubscriptionItem,
     type TodoItem,
@@ -53,6 +55,8 @@ export const SUBSCRIPTION_CYCLES: SubscriptionItem['cycle'][] = [
     'monthly',
     'yearly',
 ];
+
+export const LOAN_DIRECTIONS: LoanItem['direction'][] = ['lent', 'borrowed'];
 
 /**
  * What the `integer` column itself holds. Bounding the amount here keeps an
@@ -153,6 +157,19 @@ export const SHARED_LINK_COLUMNS = {
     deletedAt: sharedLink.deletedAt,
 };
 
+export const LOAN_COLUMNS = {
+    id: loan.id,
+    item: loan.item,
+    direction: loan.direction,
+    counterparty: loan.counterparty,
+    memberId: loan.memberId,
+    day: loan.day,
+    returned: loan.returned,
+    returnedOn: loan.returnedOn,
+    updatedAt: loan.updatedAt,
+    deletedAt: loan.deletedAt,
+};
+
 /**
  * The validators answer with the message the client should see, or null. Each
  * one covers both a missing value and a malformed one, so `POST` and `PATCH`
@@ -169,6 +186,11 @@ function textError(value: unknown, noun: string): string | null {
 
 export function labelError(value: unknown): string | null {
     return textError(value, 'label');
+}
+
+/** A loan carries the thing itself where a to-do carries a label. */
+export function itemError(value: unknown): string | null {
+    return textError(value, 'item');
 }
 
 /** Links carry a title where meals carry a name. */
@@ -291,6 +313,19 @@ export function amountError(value: unknown): string | null {
 export function currencyError(value: unknown): string | null {
     if (typeof value !== 'string' || !CURRENCIES.includes(value as Currency)) {
         return 'Unknown currency';
+    }
+    return null;
+}
+
+export function directionError(value: unknown): string | null {
+    if (value === undefined || value === null) {
+        return 'A direction is required';
+    }
+    if (
+        typeof value !== 'string' ||
+        !LOAN_DIRECTIONS.includes(value as LoanItem['direction'])
+    ) {
+        return 'Unknown direction';
     }
     return null;
 }
@@ -453,7 +488,8 @@ export async function retriedCreate(
         | typeof subscription
         | typeof activity
         | typeof payment
-        | typeof sharedLink,
+        | typeof sharedLink
+        | typeof loan,
     columns: Record<string, PgColumn>,
     key: string,
     id: string,
