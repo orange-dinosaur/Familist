@@ -18,6 +18,7 @@ import {
     urlError,
 } from '@/db/content';
 import { sharedLink } from '@/db/schema';
+import { withScheme } from '@/utils/shared-link';
 
 export async function PATCH(
     request: Request,
@@ -52,10 +53,13 @@ export async function PATCH(
         changes.title = (body.title as string).trim();
     }
 
+    /** A link written without a scheme is an `https` one, as it is on POST. */
     if ('url' in body) {
-        const invalid = urlError(body.url);
+        const address =
+            typeof body.url === 'string' ? withScheme(body.url) : body.url;
+        const invalid = urlError(address);
         if (invalid) return badRequest(invalid);
-        changes.url = (body.url as string).trim();
+        changes.url = address as string;
     }
 
     /** An emptied note is no note, which is what the column holds. */

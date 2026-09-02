@@ -4,6 +4,10 @@
  * to them at all. A link has no "done" to tick, so there is nothing here that
  * falls within what a checker may touch.
  *
+ * A link written without a scheme is taken as an `https` one, here rather than
+ * on the device, so every client is held to the same rule and the record the
+ * device settles on is the address the family will be handed.
+ *
  * `createdBy` defaults to the caller - it is who kept the link - but is taken
  * from the body when it is given, so a link kept on somebody else's behalf can
  * say whose it is.
@@ -28,6 +32,7 @@ import {
 } from '@/db/content';
 import { sharedLink } from '@/db/schema';
 import { createId } from '@/utils/id';
+import { withScheme } from '@/utils/shared-link';
 
 export async function GET(request: Request): Promise<Response> {
     const membership = await getMembership(request);
@@ -83,7 +88,10 @@ export async function POST(request: Request): Promise<Response> {
 
     const recordId = typeof id === 'string' ? id : createId();
 
-    const invalid = titleError(title) ?? urlError(url) ?? noteError(note);
+    /** A link written without one is an `https` link, not a refusal. */
+    const address = typeof url === 'string' ? withScheme(url) : url;
+
+    const invalid = titleError(title) ?? urlError(address) ?? noteError(note);
     if (invalid) return badRequest(invalid);
 
     if (
@@ -112,7 +120,7 @@ export async function POST(request: Request): Promise<Response> {
             id: recordId,
             familyId: membership.familyId,
             title: (title as string).trim(),
-            url: (url as string).trim(),
+            url: address as string,
             note: trimmedNote || null,
             createdBy: keeper,
         })
