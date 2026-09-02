@@ -18,11 +18,16 @@ import {
     familyMember,
     meal,
     payment,
+    sharedLink,
     subscription,
     todo,
 } from '@/db/schema';
 import { CURRENCIES, type Currency } from '@/constants/currencies';
-import { MAX_EMOJI_LENGTH, MAX_LABEL_LENGTH } from '@/constants/limits';
+import {
+    MAX_EMOJI_LENGTH,
+    MAX_LABEL_LENGTH,
+    MAX_URL_LENGTH,
+} from '@/constants/limits';
 import {
     type MealItem,
     type SubscriptionItem,
@@ -138,6 +143,16 @@ export const PAYMENT_COLUMNS = {
     deletedAt: payment.deletedAt,
 };
 
+export const SHARED_LINK_COLUMNS = {
+    id: sharedLink.id,
+    title: sharedLink.title,
+    url: sharedLink.url,
+    note: sharedLink.note,
+    createdBy: sharedLink.createdBy,
+    updatedAt: sharedLink.updatedAt,
+    deletedAt: sharedLink.deletedAt,
+};
+
 /**
  * The validators answer with the message the client should see, or null. Each
  * one covers both a missing value and a malformed one, so `POST` and `PATCH`
@@ -154,6 +169,11 @@ function textError(value: unknown, noun: string): string | null {
 
 export function labelError(value: unknown): string | null {
     return textError(value, 'label');
+}
+
+/** Links carry a title where meals carry a name. */
+export function titleError(value: unknown): string | null {
+    return textError(value, 'title');
 }
 
 /** Meals carry a name where chores and todos carry a label. */
@@ -205,6 +225,41 @@ export function timeError(value: unknown): string | null {
 export function emojiError(value: unknown): string | null {
     if (typeof value !== 'string') return 'Invalid emoji';
     if (value.length > MAX_EMOJI_LENGTH) return 'That emoji is too long';
+    return null;
+}
+
+/**
+ * The scheme is the whole of what is checked beyond the shape: a link the
+ * family kept is opened in a browser, and anything but `http` or `https`
+ * would be handed to whatever else the device has registered.
+ */
+export function urlError(value: unknown): string | null {
+    if (typeof value !== 'string' || !value.trim()) return 'A link is required';
+    const trimmed = value.trim();
+    if (trimmed.length > MAX_URL_LENGTH) return 'That link is too long';
+
+    let parsed: URL;
+    try {
+        parsed = new URL(trimmed);
+    } catch {
+        return 'That is not a valid link';
+    }
+
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+        return 'A link must start with http:// or https://';
+    }
+
+    return null;
+}
+
+/**
+ * What the link is for, when the title does not say it on its own, so nothing
+ * at all passes and an empty one is stored as no note.
+ */
+export function noteError(value: unknown): string | null {
+    if (value === undefined || value === null) return null;
+    if (typeof value !== 'string') return 'Invalid note';
+    if (value.trim().length > MAX_LABEL_LENGTH) return 'That note is too long';
     return null;
 }
 
@@ -397,7 +452,8 @@ export async function retriedCreate(
         | typeof todo
         | typeof subscription
         | typeof activity
-        | typeof payment,
+        | typeof payment
+        | typeof sharedLink,
     columns: Record<string, PgColumn>,
     key: string,
     id: string,

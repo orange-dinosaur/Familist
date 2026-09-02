@@ -12,3 +12,9 @@ export const MAX_LABEL_LENGTH = 200;
  * eleven code units - and short enough that the column stays an emoji.
  */
 export const MAX_EMOJI_LENGTH = 16;
+
+/**
+ * Long enough for the addresses people actually paste - a share link with its
+ * query string - and a bound the `text` column would otherwise not have.
+ */
+export const MAX_URL_LENGTH = 2048;

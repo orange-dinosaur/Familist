@@ -100,3 +100,17 @@ export interface PaymentItem {
     /** Null is how the server says nobody, and how it is told so. */
     payerId?: string | null;
 }
+
+/**
+ * A link the family keep. `createdBy` is who kept it, which the screen offers
+ * as itself and the family may say otherwise about.
+ */
+export interface SharedLinkItem {
+    id: string;
+    title: string;
+    url: string;
+    /** Null when the title says enough. */
+    note: string | null;
+    /** Null is how the server says nobody, and how it is told so. */
+    createdBy?: string | null;
+}
