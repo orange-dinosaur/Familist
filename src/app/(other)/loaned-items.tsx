@@ -1,18 +1,660 @@
-import React from 'react';
-import { StyleSheet } from 'react-native';
+import { SymbolView } from 'expo-symbols';
+import React, { useRef, useState } from 'react';
+import {
+    Animated,
+    Modal,
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    TextInput,
+    View,
+} from 'react-native';
+import Swipeable from 'react-native-gesture-handler/Swipeable';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { DatePickerModal } from '@/components/date-picker-modal';
+import { MemberAvatar } from '@/components/member-avatar';
 import { ScreenHeader } from '@/components/screen-header';
+import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { MaxContentWidth } from '@/constants/theme';
+import {
+    formatDaysUntil,
+    formatShortDateString,
+    getRelativeDateString,
+} from '@/constants/dates';
+import { MaxContentWidth, Spacing } from '@/constants/theme';
+import { type LoanItem } from '@/constants/types';
+import { LoansProvider, useLoans } from '@/hooks/use-loans';
+import { useMembers } from '@/hooks/use-members';
+import { usePermissions } from '@/hooks/use-permissions';
+import { useTheme } from '@/hooks/use-theme';
 
-export default function LoanedItemsScreen() {
+import {
+    byDay,
+    counterpartyLabel,
+    LOAN_DIRECTIONS,
+    directionLabel,
+} from '@/utils/loan';
+
+interface LoanRowProps {
+    loan: LoanItem;
+    canManage: boolean;
+    canTick: boolean;
+    onTick: () => void;
+    onEdit: () => void;
+    onDelete: () => void;
+    theme: any;
+}
+
+const LoanRow = React.memo(
+    ({
+        loan,
+        canManage,
+        canTick,
+        onTick,
+        onEdit,
+        onDelete,
+        theme,
+    }: LoanRowProps) => {
+        const { members } = useMembers();
+        const swipeableRef = useRef<Swipeable>(null);
+
+        const renderRightActions = (
+            progress: Animated.AnimatedInterpolation<number>,
+            dragX: Animated.AnimatedInterpolation<number>
+        ) => {
+            const trans = dragX.interpolate({
+                inputRange: [-160, 0],
+                outputRange: [0, 160],
+                extrapolate: 'clamp',
+            });
+            return (
+                <View style={styles.rightActionsContainer}>
+                    <Animated.View
+                        style={[
+                            styles.actionButton,
+                            {
+                                transform: [{ translateX: trans }],
+                                backgroundColor: theme.backgroundSelected,
+                            },
+                        ]}>
+                        <Pressable
+                            style={styles.actionPressable}
+                            onPress={() => {
+                                swipeableRef.current?.close();
+                                onEdit();
+                            }}>
+                            <SymbolView
+                                name={{ ios: 'pencil', web: 'edit' }}
+                                tintColor={theme.text}
+                                size={18}
+                            />
+                            <ThemedText
+                                style={{
+                                    color: theme.text,
+                                    fontSize: 11,
+                                    fontWeight: '600',
+                                }}>
+                                Edit
+                            </ThemedText>
+                        </Pressable>
+                    </Animated.View>
+
+                    <Animated.View
+                        style={[
+                            styles.actionButton,
+                            {
+                                transform: [{ translateX: trans }],
+                                backgroundColor: theme.destructive,
+                            },
+                        ]}>
+                        <Pressable
+                            style={styles.actionPressable}
+                            onPress={() => {
+                                swipeableRef.current?.close();
+                                onDelete();
+                            }}>
+                            <SymbolView
+                                name={{ ios: 'trash', web: 'delete' }}
+                                tintColor="#ffffff"
+                                size={18}
+                            />
+                            <ThemedText style={styles.actionText}>
+                                Delete
+                            </ThemedText>
+                        </Pressable>
+                    </Animated.View>
+                </View>
+            );
+        };
+
+        const member = members.find((m) => m.id === loan.memberId);
+
+        return (
+            <Swipeable
+                ref={swipeableRef}
+                friction={2}
+                rightThreshold={40}
+                renderRightActions={canManage ? renderRightActions : undefined}
+                containerStyle={styles.swipeableContainer}>
+                <View
+                    style={[
+                        styles.row,
+                        { backgroundColor: theme.backgroundElement },
+                    ]}>
+                    <Pressable
+                        onPress={onTick}
+                        disabled={!canTick}
+                        accessibilityLabel={`Mark ${loan.item} returned`}
+                        accessibilityRole="button"
+                        style={({ pressed }) => [
+                            styles.rowMain,
+                            pressed && { opacity: 0.6 },
+                        ]}>
+                        <SymbolView
+                            name={{
+                                ios: loan.returned
+                                    ? 'checkmark.circle.fill'
+                                    : 'circle',
+                                web: loan.returned
+                                    ? 'check_circle'
+                                    : 'radio_button_unchecked',
+                            }}
+                            tintColor={
+                                loan.returned || !canTick
+                                    ? theme.textSecondary
+                                    : theme.text
+                            }
+                            size={22}
+                        />
+
+                        <View style={styles.rowTextColumn}>
+                            <ThemedText
+                                themeColor={
+                                    loan.returned ? 'textSecondary' : 'text'
+                                }
+                                style={loan.returned && styles.strikethrough}>
+                                {loan.item}
+                            </ThemedText>
+                            <ThemedText type="small" themeColor="textSecondary">
+                                {counterpartyLabel(loan.direction)}{' '}
+                                {loan.counterparty} ·{' '}
+                                {loan.returned && loan.returnedOn
+                                    ? `back ${formatShortDateString(loan.returnedOn)}`
+                                    : formatDaysUntil(loan.day)}
+                            </ThemedText>
+                        </View>
+                    </Pressable>
+
+                    {member && <MemberAvatar member={member} size={24} />}
+                </View>
+            </Swipeable>
+        );
+    }
+);
+
+LoanRow.displayName = 'LoanRow';
+
+function Loans() {
+    const theme = useTheme();
+    const {
+        loans,
+        loading,
+        error,
+        clearError,
+        addLoan,
+        editLoan,
+        toggleReturned,
+        deleteLoan,
+    } = useLoans();
+    const { members } = useMembers();
+    const { canManageContent, canToggle } = usePermissions();
+
+    const [modalVisible, setModalVisible] = useState(false);
+    const [editing, setEditing] = useState<LoanItem | null>(null);
+    const [showingReturned, setShowingReturned] = useState(false);
+    const [datePickerVisible, setDatePickerVisible] = useState(false);
+
+    const [item, setItem] = useState('');
+    const [direction, setDirection] = useState<LoanItem['direction']>('lent');
+    const [counterparty, setCounterparty] = useState('');
+    const [memberId, setMemberId] = useState<string | undefined>(undefined);
+    const [day, setDay] = useState(getRelativeDateString(0));
+
+    const complete = item.trim().length > 0 && counterparty.trim().length > 0;
+
+    const out = loans.filter((one) => !one.returned);
+    const lent = out.filter((one) => one.direction === 'lent').sort(byDay);
+    const borrowed = out
+        .filter((one) => one.direction === 'borrowed')
+        .sort(byDay);
+    const back = loans.filter((one) => one.returned).sort(byDay);
+
+    const openAddModal = () => {
+        setEditing(null);
+        setItem('');
+        setDirection('lent');
+        setCounterparty('');
+        setMemberId(undefined);
+        setDay(getRelativeDateString(0));
+        clearError();
+        setModalVisible(true);
+    };
+
+    const openEditModal = (loan: LoanItem) => {
+        setEditing(loan);
+        setItem(loan.item);
+        setDirection(loan.direction);
+        setCounterparty(loan.counterparty);
+        setMemberId(loan.memberId ?? undefined);
+        setDay(loan.day);
+        clearError();
+        setModalVisible(true);
+    };
+
+    const closeModal = () => {
+        clearError();
+        setDatePickerVisible(false);
+        setModalVisible(false);
+    };
+
+    const save = async () => {
+        if (!complete) return;
+
+        const input = {
+            item: item.trim(),
+            direction,
+            counterparty: counterparty.trim(),
+            memberId,
+            day,
+        };
+
+        const saved = editing
+            ? await editLoan(editing.id, input)
+            : await addLoan(input);
+
+        if (saved) setModalVisible(false);
+    };
+
+    const renderRow = (loan: LoanItem) => (
+        <LoanRow
+            key={loan.id}
+            loan={loan}
+            theme={theme}
+            canManage={canManageContent}
+            canTick={canToggle(loan.memberId)}
+            onTick={() => toggleReturned(loan.id)}
+            onEdit={() => openEditModal(loan)}
+            onDelete={() => deleteLoan(loan.id)}
+        />
+    );
+
+    const renderGroup = (which: LoanItem['direction'], group: LoanItem[]) =>
+        group.length > 0 && (
+            <View key={which} style={styles.group}>
+                <ThemedText type="small" themeColor="textSecondary">
+                    {directionLabel(which)}
+                </ThemedText>
+                <View style={styles.list}>{group.map(renderRow)}</View>
+            </View>
+        );
+
     return (
         <ThemedView style={styles.container}>
             <SafeAreaView style={styles.safeArea}>
                 <ScreenHeader title="Loaned Items" />
+
+                {error && !modalVisible && (
+                    <ThemedText
+                        type="small"
+                        style={[
+                            styles.listError,
+                            { color: theme.destructive },
+                        ]}>
+                        {error}
+                    </ThemedText>
+                )}
+
+                <ScrollView
+                    style={styles.scrollView}
+                    contentContainerStyle={styles.scrollContent}
+                    showsVerticalScrollIndicator={false}>
+                    {out.length === 0 ? (
+                        <ThemedText
+                            themeColor="textSecondary"
+                            style={styles.emptyText}>
+                            {loading ? '' : 'Nothing is out.'}
+                        </ThemedText>
+                    ) : (
+                        <>
+                            {renderGroup('lent', lent)}
+                            {renderGroup('borrowed', borrowed)}
+                        </>
+                    )}
+
+                    {/* Back again, out of the way but not out of reach. */}
+                    {back.length > 0 && (
+                        <>
+                            <Pressable
+                                onPress={() =>
+                                    setShowingReturned((shown) => !shown)
+                                }
+                                accessibilityRole="button"
+                                accessibilityState={{
+                                    expanded: showingReturned,
+                                }}
+                                style={({ pressed }) => [
+                                    styles.showReturnedRow,
+                                    pressed && { opacity: 0.6 },
+                                ]}>
+                                <SymbolView
+                                    name={{
+                                        ios: showingReturned
+                                            ? 'chevron.down'
+                                            : 'chevron.right',
+                                        web: showingReturned
+                                            ? 'expand_less'
+                                            : 'expand_more',
+                                    }}
+                                    tintColor={theme.textSecondary}
+                                    size={14}
+                                />
+                                <ThemedText
+                                    themeColor="textSecondary"
+                                    type="small">
+                                    {showingReturned ? 'Hide' : 'Show'}{' '}
+                                    {back.length} returned
+                                </ThemedText>
+                            </Pressable>
+
+                            {showingReturned && (
+                                <View style={styles.list}>
+                                    {back.map(renderRow)}
+                                </View>
+                            )}
+                        </>
+                    )}
+                </ScrollView>
+
+                {canManageContent && (
+                    <View style={styles.addButtonContainer}>
+                        <Pressable
+                            onPress={openAddModal}
+                            accessibilityLabel="Add loan"
+                            accessibilityRole="button"
+                            style={({ pressed }) => [
+                                styles.addButton,
+                                { backgroundColor: theme.text },
+                                pressed && { opacity: 0.8 },
+                            ]}>
+                            <SymbolView
+                                name={{ ios: 'plus', web: 'add' }}
+                                tintColor={theme.background}
+                                size={20}
+                            />
+                            <ThemedText
+                                style={[
+                                    styles.addButtonText,
+                                    { color: theme.background },
+                                ]}>
+                                Add Loan
+                            </ThemedText>
+                        </Pressable>
+                    </View>
+                )}
             </SafeAreaView>
+
+            <Modal
+                visible={modalVisible}
+                animationType="slide"
+                presentationStyle="pageSheet"
+                onRequestClose={closeModal}>
+                <View
+                    style={[
+                        styles.modalContainer,
+                        { backgroundColor: theme.background },
+                    ]}>
+                    <SafeAreaView style={styles.modalSafeArea}>
+                        <View style={styles.modalHeader}>
+                            <ThemedText type="subtitle">
+                                {editing ? 'Edit Loan' : 'Add Loan'}
+                            </ThemedText>
+                            <Pressable
+                                onPress={closeModal}
+                                hitSlop={8}
+                                accessibilityLabel="Close"
+                                accessibilityRole="button">
+                                <SymbolView
+                                    name={{
+                                        ios: 'xmark.circle.fill',
+                                        web: 'cancel',
+                                    }}
+                                    tintColor={theme.textSecondary}
+                                    size={28}
+                                />
+                            </Pressable>
+                        </View>
+
+                        <ScrollView
+                            style={styles.modalScroll}
+                            contentContainerStyle={styles.modalScrollContent}
+                            showsVerticalScrollIndicator={false}
+                            keyboardShouldPersistTaps="handled">
+                            <ThemedText style={styles.modalLabel}>
+                                Item
+                            </ThemedText>
+                            <TextInput
+                                style={[
+                                    styles.textInput,
+                                    {
+                                        backgroundColor:
+                                            theme.backgroundElement,
+                                        color: theme.text,
+                                    },
+                                ]}
+                                placeholder="What it is..."
+                                placeholderTextColor={theme.textSecondary}
+                                value={item}
+                                onChangeText={setItem}
+                                accessibilityLabel="Item"
+                            />
+
+                            <ThemedText style={styles.modalLabel}>
+                                Direction
+                            </ThemedText>
+                            <View style={styles.pillRow}>
+                                {LOAN_DIRECTIONS.map(({ key, label }) => {
+                                    const isSelected = direction === key;
+                                    return (
+                                        <Pressable
+                                            key={key}
+                                            onPress={() => setDirection(key)}
+                                            accessibilityRole="button"
+                                            accessibilityState={{
+                                                selected: isSelected,
+                                            }}
+                                            style={[
+                                                styles.pill,
+                                                styles.directionPill,
+                                                {
+                                                    backgroundColor: isSelected
+                                                        ? theme.text
+                                                        : theme.backgroundElement,
+                                                },
+                                            ]}>
+                                            <ThemedText
+                                                style={{
+                                                    color: isSelected
+                                                        ? theme.background
+                                                        : theme.text,
+                                                }}>
+                                                {label}
+                                            </ThemedText>
+                                        </Pressable>
+                                    );
+                                })}
+                            </View>
+
+                            <ThemedText style={styles.modalLabel}>
+                                {direction === 'lent'
+                                    ? 'Who has it'
+                                    : 'Who it is from'}
+                            </ThemedText>
+                            <TextInput
+                                style={[
+                                    styles.textInput,
+                                    {
+                                        backgroundColor:
+                                            theme.backgroundElement,
+                                        color: theme.text,
+                                    },
+                                ]}
+                                placeholder="A name..."
+                                placeholderTextColor={theme.textSecondary}
+                                value={counterparty}
+                                onChangeText={setCounterparty}
+                                accessibilityLabel="Counterparty"
+                            />
+
+                            <ThemedText style={styles.modalLabel}>
+                                {direction === 'lent'
+                                    ? 'Day it went out'
+                                    : 'Day it came in'}
+                            </ThemedText>
+                            <Pressable
+                                onPress={() => setDatePickerVisible(true)}
+                                accessibilityLabel="Pick the day"
+                                accessibilityRole="button"
+                                style={[
+                                    styles.pill,
+                                    styles.datePill,
+                                    { backgroundColor: theme.text },
+                                ]}>
+                                <SymbolView
+                                    name={{
+                                        ios: 'calendar',
+                                        web: 'calendar_month',
+                                    }}
+                                    tintColor={theme.background}
+                                    size={18}
+                                />
+                                <ThemedText style={{ color: theme.background }}>
+                                    {formatShortDateString(day)}
+                                </ThemedText>
+                            </Pressable>
+
+                            <ThemedText style={styles.modalLabel}>
+                                Whose loan it is
+                            </ThemedText>
+                            <View style={styles.memberList}>
+                                {members.map((member) => {
+                                    const isSelected = memberId === member.id;
+                                    return (
+                                        <Pressable
+                                            key={member.id}
+                                            onPress={() =>
+                                                setMemberId(
+                                                    isSelected
+                                                        ? undefined
+                                                        : member.id
+                                                )
+                                            }
+                                            accessibilityLabel={`Loan of ${member.name}`}
+                                            accessibilityRole="button"
+                                            accessibilityState={{
+                                                selected: isSelected,
+                                            }}
+                                            style={[
+                                                styles.memberRow,
+                                                {
+                                                    backgroundColor:
+                                                        theme.backgroundElement,
+                                                    borderColor: isSelected
+                                                        ? theme.text
+                                                        : 'transparent',
+                                                },
+                                            ]}>
+                                            <MemberAvatar
+                                                member={member}
+                                                size={32}
+                                            />
+                                            <ThemedText
+                                                style={styles.memberName}>
+                                                {member.name}
+                                            </ThemedText>
+                                            {isSelected && (
+                                                <SymbolView
+                                                    name={{
+                                                        ios: 'checkmark.circle.fill',
+                                                        web: 'check_circle',
+                                                    }}
+                                                    tintColor={theme.text}
+                                                    size={22}
+                                                />
+                                            )}
+                                        </Pressable>
+                                    );
+                                })}
+                            </View>
+                        </ScrollView>
+
+                        <View style={styles.modalFooter}>
+                            {error && (
+                                <ThemedText
+                                    type="small"
+                                    style={{ color: theme.destructive }}>
+                                    {error}
+                                </ThemedText>
+                            )}
+                            <Pressable
+                                onPress={save}
+                                disabled={!complete}
+                                accessibilityLabel="Save loan"
+                                accessibilityRole="button"
+                                style={({ pressed }) => [
+                                    styles.saveButton,
+                                    {
+                                        backgroundColor: complete
+                                            ? theme.text
+                                            : theme.backgroundElement,
+                                    },
+                                    pressed && { opacity: 0.8 },
+                                ]}>
+                                <ThemedText
+                                    style={[
+                                        styles.saveButtonText,
+                                        {
+                                            color: complete
+                                                ? theme.background
+                                                : theme.textSecondary,
+                                        },
+                                    ]}>
+                                    Save
+                                </ThemedText>
+                            </Pressable>
+                        </View>
+
+                        <DatePickerModal
+                            visible={datePickerVisible}
+                            value={day}
+                            onSelect={(picked) => {
+                                setDay(picked);
+                                setDatePickerVisible(false);
+                            }}
+                            onClose={() => setDatePickerVisible(false)}
+                        />
+                    </SafeAreaView>
+                </View>
+            </Modal>
         </ThemedView>
+    );
+}
+
+export default function LoanedItemsScreen() {
+    return (
+        <LoansProvider>
+            <Loans />
+        </LoansProvider>
     );
 }
 
@@ -25,5 +667,174 @@ const styles = StyleSheet.create({
     safeArea: {
         flex: 1,
         maxWidth: MaxContentWidth,
+    },
+    scrollView: {
+        flex: 1,
+    },
+    scrollContent: {
+        paddingHorizontal: Spacing.four,
+        paddingBottom: Spacing.six,
+    },
+    listError: {
+        paddingHorizontal: Spacing.four,
+        paddingBottom: Spacing.two,
+    },
+    emptyText: {
+        fontStyle: 'italic',
+        paddingVertical: Spacing.two,
+    },
+
+    // The two groups
+    group: {
+        gap: Spacing.two,
+        paddingBottom: Spacing.four,
+    },
+    list: {
+        gap: Spacing.one,
+    },
+    swipeableContainer: {
+        borderRadius: 14,
+        overflow: 'hidden',
+    },
+    row: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: Spacing.three,
+        paddingVertical: Spacing.three,
+        paddingHorizontal: Spacing.three,
+    },
+    rowMain: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: Spacing.three,
+    },
+    rowTextColumn: {
+        flex: 1,
+        gap: Spacing.half,
+    },
+    strikethrough: {
+        textDecorationLine: 'line-through',
+    },
+    showReturnedRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: Spacing.two,
+        paddingVertical: Spacing.three,
+    },
+    rightActionsContainer: {
+        flexDirection: 'row',
+    },
+    actionButton: {
+        width: 80,
+    },
+    actionPressable: {
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: Spacing.half,
+    },
+    actionText: {
+        color: '#ffffff',
+        fontSize: 11,
+        fontWeight: '600',
+    },
+
+    // Add button
+    addButtonContainer: {
+        paddingHorizontal: Spacing.four,
+        paddingBottom: Spacing.three,
+    },
+    addButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: Spacing.two,
+        borderRadius: 14,
+        paddingVertical: Spacing.three,
+    },
+    addButtonText: {
+        fontWeight: '600',
+    },
+
+    // The add and edit form
+    modalContainer: {
+        flex: 1,
+    },
+    modalSafeArea: {
+        flex: 1,
+    },
+    modalHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingHorizontal: Spacing.four,
+        paddingVertical: Spacing.three,
+    },
+    modalScroll: {
+        flex: 1,
+    },
+    modalScrollContent: {
+        paddingHorizontal: Spacing.four,
+        paddingBottom: Spacing.four,
+    },
+    modalLabel: {
+        fontWeight: '600',
+        marginTop: Spacing.three,
+        marginBottom: Spacing.two,
+    },
+    textInput: {
+        borderRadius: 12,
+        paddingHorizontal: Spacing.three,
+        paddingVertical: Spacing.three,
+        fontSize: 16,
+    },
+    pillRow: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: Spacing.two,
+    },
+    pill: {
+        borderRadius: 16,
+        paddingHorizontal: Spacing.three,
+        paddingVertical: Spacing.two,
+    },
+    directionPill: {
+        flex: 1,
+        alignItems: 'center',
+    },
+    datePill: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        alignSelf: 'flex-start',
+        gap: Spacing.two,
+    },
+    memberList: {
+        gap: Spacing.two,
+    },
+    memberRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: Spacing.three,
+        borderRadius: 12,
+        borderWidth: 2,
+        paddingHorizontal: Spacing.three,
+        paddingVertical: Spacing.two,
+    },
+    memberName: {
+        flex: 1,
+    },
+    modalFooter: {
+        paddingHorizontal: Spacing.four,
+        paddingVertical: Spacing.three,
+        gap: Spacing.two,
+    },
+    saveButton: {
+        alignItems: 'center',
+        borderRadius: 14,
+        paddingVertical: Spacing.three,
+    },
+    saveButtonText: {
+        fontWeight: '600',
     },
 });
