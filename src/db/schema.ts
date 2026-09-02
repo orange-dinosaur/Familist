@@ -496,3 +496,37 @@ export const payment = pgTable(
         }),
     ]
 );
+
+/**
+ * A link the family want to keep. `note` is what the link is for, when the
+ * title does not say it on its own.
+ */
+export const sharedLink = pgTable(
+    'shared_link',
+    {
+        id: text('id').primaryKey(),
+        familyId: text('family_id')
+            .notNull()
+            .references(() => family.id, { onDelete: 'cascade' }),
+        title: text('title').notNull(),
+        url: text('url').notNull(),
+        /** Null when the title says enough. */
+        note: text('note'),
+        /** Who kept it, which the family need not have decided. */
+        createdBy: text('created_by'),
+        createdAt: timestamp('created_at').defaultNow().notNull(),
+        updatedAt: timestamp('updated_at')
+            .defaultNow()
+            .$onUpdate(() => new Date())
+            .notNull(),
+        deletedAt: timestamp('deleted_at'),
+    },
+    (table) => [
+        index('shared_link_family_id_idx').on(table.familyId),
+        foreignKey({
+            columns: [table.familyId, table.createdBy],
+            foreignColumns: [familyMember.familyId, familyMember.id],
+            name: 'shared_link_created_by_fk',
+        }),
+    ]
+);
