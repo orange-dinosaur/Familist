@@ -1,6 +1,6 @@
 import { BlurView } from 'expo-blur';
 import { Image } from 'expo-image';
-import { SymbolView } from 'expo-symbols';
+import { SymbolView, type AndroidSymbol, type SFSymbol } from 'expo-symbols';
 import React, { useState } from 'react';
 import { Modal, Pressable, StyleSheet, TextInput, View } from 'react-native';
 
@@ -12,7 +12,7 @@ import { FamilyMembers } from '@/components/family-members';
 import { MemberAvatar } from '@/components/member-avatar';
 import { ThemedText } from '@/components/themed-text';
 import { apiFetch, authClient } from '@/auth/client';
-import { MaxContentWidth, Spacing } from '@/constants/theme';
+import { Colors, MaxContentWidth, Spacing } from '@/constants/theme';
 import { useAvatar } from '@/hooks/use-avatar';
 import { useFamily } from '@/hooks/use-family';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -50,6 +50,54 @@ const CONFIRM: Record<Confirm, { title: string; body: string; act: string }> = {
         act: 'Delete',
     },
 };
+
+/** One line of the family sheet: an icon, a label, and a way further in. */
+function SheetRow({
+    label,
+    icon,
+    onPress,
+    tone = 'default',
+    chevron = true,
+}: {
+    label: string;
+    icon: { ios: SFSymbol; web: AndroidSymbol };
+    onPress: () => void;
+    tone?: 'default' | 'destructive';
+    chevron?: boolean;
+}) {
+    const theme = useTheme();
+    const tint =
+        tone === 'destructive' ? theme.destructive : theme.textSecondary;
+
+    return (
+        <Pressable
+            onPress={onPress}
+            accessibilityLabel={label}
+            accessibilityRole="button"
+            style={({ pressed }) => [
+                styles.sheetRow,
+                { borderBottomColor: `${theme.text}17` },
+                pressed && { opacity: 0.6 },
+            ]}>
+            <SymbolView name={icon} tintColor={tint} size={20} />
+            <ThemedText
+                type="default"
+                style={[
+                    styles.sheetRowLabel,
+                    tone === 'destructive' && { color: theme.destructive },
+                ]}>
+                {label}
+            </ThemedText>
+            {chevron && (
+                <SymbolView
+                    name={{ ios: 'chevron.right', web: 'chevron_right' }}
+                    tintColor={theme.textSecondary}
+                    size={12}
+                />
+            )}
+        </Pressable>
+    );
+}
 
 /**
  * Which family you are in, and who you are signed in as. Sits above every
@@ -303,7 +351,7 @@ export function FamilyBar() {
                         ) : mode === 'leave' || mode === 'delete' ? (
                             <>
                                 <View style={styles.identity}>
-                                    <ThemedText type="subtitle">
+                                    <ThemedText type="figureLarge">
                                         {CONFIRM[mode].title}
                                     </ThemedText>
                                     <ThemedText
@@ -351,7 +399,7 @@ export function FamilyBar() {
                             </>
                         ) : mode !== 'family' ? (
                             <>
-                                <ThemedText type="subtitle">
+                                <ThemedText type="figureLarge">
                                     {PROMPT[mode]}
                                 </ThemedText>
                                 <TextInput
@@ -423,144 +471,61 @@ export function FamilyBar() {
                         ) : (
                             <>
                                 <View style={styles.identity}>
-                                    <ThemedText type="subtitle">
+                                    <ThemedText type="figureLarge">
                                         {family?.name}
                                     </ThemedText>
                                     <ThemedText
                                         type="small"
                                         themeColor="textSecondary">
+                                        {members.length === 1
+                                            ? '1 member'
+                                            : `${members.length} members`}
                                         {isOwner
-                                            ? 'You own this family'
-                                            : 'You are a member of this family'}
+                                            ? ' · you own this family'
+                                            : ' · you are a member'}
                                     </ThemedText>
                                 </View>
 
-                                <Pressable
-                                    onPress={() => start('members')}
-                                    accessibilityLabel="Family members"
-                                    accessibilityRole="button"
-                                    style={({ pressed }) => [
-                                        styles.row,
-                                        {
-                                            backgroundColor:
-                                                theme.backgroundElement,
-                                        },
-                                        pressed && {
-                                            backgroundColor:
-                                                theme.backgroundSelected,
-                                        },
-                                    ]}>
-                                    <SymbolView
-                                        name={{
+                                <View>
+                                    <View
+                                        style={[
+                                            styles.sectionHeader,
+                                            {
+                                                borderTopColor: `${theme.text}29`,
+                                            },
+                                        ]}>
+                                        <ThemedText type="label">
+                                            This family
+                                        </ThemedText>
+                                    </View>
+
+                                    <SheetRow
+                                        label="Family members"
+                                        icon={{
                                             ios: 'person.2.fill',
                                             web: 'group',
                                         }}
-                                        tintColor={theme.textSecondary}
-                                        size={22}
+                                        onPress={() => start('members')}
                                     />
-                                    <ThemedText type="default">
-                                        Family members
-                                    </ThemedText>
-                                </Pressable>
 
-                                {isOwner && (
-                                    <Pressable
-                                        onPress={() => start('rename')}
-                                        accessibilityLabel="Rename family"
-                                        accessibilityRole="button"
-                                        style={({ pressed }) => [
-                                            styles.row,
-                                            {
-                                                backgroundColor:
-                                                    theme.backgroundElement,
-                                            },
-                                            pressed && {
-                                                backgroundColor:
-                                                    theme.backgroundSelected,
-                                            },
-                                        ]}>
-                                        <SymbolView
-                                            name={{
+                                    {isOwner && (
+                                        <SheetRow
+                                            label="Rename family"
+                                            icon={{
                                                 ios: 'pencil',
                                                 web: 'edit',
                                             }}
-                                            tintColor={theme.textSecondary}
-                                            size={22}
+                                            onPress={() => start('rename')}
                                         />
-                                        <ThemedText type="default">
-                                            Rename family
-                                        </ThemedText>
-                                    </Pressable>
-                                )}
+                                    )}
 
-                                {others.length > 0 && (
-                                    <>
-                                        <ThemedText
-                                            type="small"
-                                            themeColor="textSecondary"
-                                            style={styles.heading}>
-                                            Switch to
-                                        </ThemedText>
-                                        {others.map((option) => (
-                                            <Pressable
-                                                key={option.id}
-                                                onPress={() =>
-                                                    switchTo(option.id)
-                                                }
-                                                accessibilityLabel={`Switch to ${option.name}`}
-                                                accessibilityRole="button"
-                                                style={({ pressed }) => [
-                                                    styles.row,
-                                                    {
-                                                        backgroundColor:
-                                                            theme.backgroundElement,
-                                                    },
-                                                    pressed && {
-                                                        backgroundColor:
-                                                            theme.backgroundSelected,
-                                                    },
-                                                ]}>
-                                                <SymbolView
-                                                    name={{
-                                                        ios: 'house.fill',
-                                                        web: 'home',
-                                                    }}
-                                                    tintColor={
-                                                        theme.textSecondary
-                                                    }
-                                                    size={22}
-                                                />
-                                                <ThemedText type="default">
-                                                    {option.name}
-                                                </ThemedText>
-                                            </Pressable>
-                                        ))}
-                                    </>
-                                )}
-
-                                <Pressable
-                                    onPress={() =>
-                                        start(canDelete ? 'delete' : 'leave')
-                                    }
-                                    accessibilityLabel={
-                                        canDelete
-                                            ? 'Delete this family'
-                                            : 'Leave this family'
-                                    }
-                                    accessibilityRole="button"
-                                    style={({ pressed }) => [
-                                        styles.row,
-                                        {
-                                            backgroundColor:
-                                                theme.backgroundElement,
-                                        },
-                                        pressed && {
-                                            backgroundColor:
-                                                theme.backgroundSelected,
-                                        },
-                                    ]}>
-                                    <SymbolView
-                                        name={
+                                    <SheetRow
+                                        label={
+                                            canDelete
+                                                ? 'Delete this family'
+                                                : 'Leave this family'
+                                        }
+                                        icon={
                                             canDelete
                                                 ? {
                                                       ios: 'trash',
@@ -571,51 +536,53 @@ export function FamilyBar() {
                                                       web: 'logout',
                                                   }
                                         }
-                                        tintColor={theme.destructive}
-                                        size={22}
+                                        tone="destructive"
+                                        chevron={false}
+                                        onPress={() =>
+                                            start(
+                                                canDelete ? 'delete' : 'leave'
+                                            )
+                                        }
                                     />
-                                    <ThemedText
-                                        type="default"
-                                        style={{ color: theme.destructive }}>
-                                        {canDelete
-                                            ? 'Delete this family'
-                                            : 'Leave this family'}
-                                    </ThemedText>
-                                </Pressable>
+                                </View>
 
-                                <View style={styles.actions}>
-                                    <Pressable
+                                <View>
+                                    <View
+                                        style={[
+                                            styles.sectionHeader,
+                                            {
+                                                borderTopColor: `${theme.text}29`,
+                                            },
+                                        ]}>
+                                        <ThemedText type="label">
+                                            Your families
+                                        </ThemedText>
+                                    </View>
+
+                                    {others.map((option) => (
+                                        <SheetRow
+                                            key={option.id}
+                                            label={option.name}
+                                            icon={{
+                                                ios: 'house.fill',
+                                                web: 'home',
+                                            }}
+                                            chevron={false}
+                                            onPress={() => switchTo(option.id)}
+                                        />
+                                    ))}
+
+                                    <SheetRow
+                                        label="Create a family"
+                                        icon={{ ios: 'plus', web: 'add' }}
                                         onPress={() => start('create')}
-                                        accessibilityLabel="Create a family"
-                                        accessibilityRole="button"
-                                        style={({ pressed }) => [
-                                            styles.action,
-                                            {
-                                                backgroundColor:
-                                                    theme.backgroundElement,
-                                            },
-                                            pressed && { opacity: 0.8 },
-                                        ]}>
-                                        <ThemedText type="small">
-                                            Create a family
-                                        </ThemedText>
-                                    </Pressable>
-                                    <Pressable
+                                    />
+
+                                    <SheetRow
+                                        label="Join with a code"
+                                        icon={{ ios: 'key', web: 'key' }}
                                         onPress={() => start('join')}
-                                        accessibilityLabel="Join with a code"
-                                        accessibilityRole="button"
-                                        style={({ pressed }) => [
-                                            styles.action,
-                                            {
-                                                backgroundColor:
-                                                    theme.backgroundElement,
-                                            },
-                                            pressed && { opacity: 0.8 },
-                                        ]}>
-                                        <ThemedText type="small">
-                                            Join with a code
-                                        </ThemedText>
-                                    </Pressable>
+                                    />
                                 </View>
                             </>
                         )}
@@ -904,11 +871,14 @@ const styles = StyleSheet.create({
         paddingVertical: Spacing.three,
         fontSize: 16,
     },
-    heading: {
-        marginTop: Spacing.one,
+    sectionHeader: {
+        borderTopWidth: 1,
+        paddingTop: Spacing.three,
+        paddingBottom: Spacing.one,
     },
+    /** The destructive fill is the same red in both schemes, so its label is too. */
     destructiveLabel: {
-        color: '#ffffff',
+        color: Colors.light.background,
     },
     actions: {
         flexDirection: 'row',
@@ -955,5 +925,16 @@ const styles = StyleSheet.create({
         borderRadius: 14,
         paddingVertical: Spacing.three,
         paddingHorizontal: Spacing.three,
+    },
+    sheetRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: Spacing.three,
+        paddingVertical: Spacing.three,
+        borderBottomWidth: 1,
+    },
+    sheetRowLabel: {
+        flex: 1,
+        minWidth: 0,
     },
 });
