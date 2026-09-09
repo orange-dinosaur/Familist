@@ -17,12 +17,15 @@ import { ThemedView } from '@/components/themed-view';
 import {
     getDateRange,
     formatLocalDateString,
-    formatShortDateString,
     getRelativeDateString,
-    todayLabel,
 } from '@/constants/dates';
 import { type MealItem } from '@/constants/types';
-import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
+import {
+    BottomTabInset,
+    Fonts,
+    MaxContentWidth,
+    Spacing,
+} from '@/constants/theme';
 import { useMeals } from '@/hooks/use-meals';
 import { usePermissions } from '@/hooks/use-permissions';
 import { useTheme } from '@/hooks/use-theme';
@@ -36,6 +39,31 @@ const timeLabel: Record<MealItem['time'], string> = {
 
 const MEAL_TIMES = ['breakfast', 'lunch', 'snack', 'dinner'] as const;
 
+/** Seven of these fill a phone; the rest of the range scrolls. */
+const DayColumnWidth = 48;
+
+/** The day the screen is showing, written out: "Monday 8 September". */
+function longDay(dateStr: string): string {
+    const [year, month, day] = dateStr.split('-').map(Number);
+    return new Date(year, month - 1, day).toLocaleDateString(undefined, {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+    });
+}
+
+/** The initial and the date the strip puts in each column. */
+function dayColumn(dateStr: string): { initial: string; date: string } {
+    const [year, month, day] = dateStr.split('-').map(Number);
+    const d = new Date(year, month - 1, day);
+    return {
+        initial: d
+            .toLocaleDateString(undefined, { weekday: 'narrow' })
+            .toLocaleUpperCase(),
+        date: `${d.getDate()}`,
+    };
+}
+
 type MealTime = MealItem['time'];
 
 export default function DailyMealScreen() {
@@ -48,39 +76,31 @@ export default function DailyMealScreen() {
     const [dishName, setDishName] = useState('');
     const [isDayPreselected, setIsDayPreselected] = useState(false);
 
-    const scrollViewRef = useRef<ScrollView>(null);
-    const todayYOffsetRef = useRef<number | null>(null);
+    const stripRef = useRef<ScrollView>(null);
     const todayStr = getRelativeDateString(0);
     const [selectedDay, setSelectedDay] = useState<string>(todayStr);
 
     const dates = getDateRange();
-    const hasMeals = meals.length > 0;
+    const dayMeals = meals.filter((m) => m.day === selectedDay);
 
+    /** The strip opens on the selected day rather than at its left edge. */
     useFocusEffect(
         React.useCallback(() => {
-            if (todayYOffsetRef.current !== null) {
-                scrollViewRef.current?.scrollTo({
-                    y: todayYOffsetRef.current - Spacing.four,
-                    animated: false,
-                });
-            }
+            const index = dates.indexOf(selectedDay);
+            if (index < 0) return;
+            stripRef.current?.scrollTo({
+                x: Math.max(0, (index - 3) * DayColumnWidth),
+                animated: false,
+            });
+            // The strip only needs placing when the screen comes back.
+            // eslint-disable-next-line react-hooks/exhaustive-deps
         }, [])
     );
 
     const openModal = () => {
-        setSelectedDay(todayStr);
         setSelectedTime(null);
         setDishName('');
         setIsDayPreselected(false);
-        clearError();
-        setModalVisible(true);
-    };
-
-    const openModalForDay = (day: string) => {
-        setSelectedDay(day);
-        setSelectedTime(null);
-        setDishName('');
-        setIsDayPreselected(true);
         clearError();
         setModalVisible(true);
     };
@@ -122,253 +142,151 @@ export default function DailyMealScreen() {
             <SafeAreaView style={styles.safeArea}>
                 <FamilyBar />
 
-                {/* Header */}
                 <View style={styles.header}>
-                    <ThemedText type="title" style={styles.pageTitle}>
-                        Meals Plan
-                    </ThemedText>
-                    <ThemedText
-                        themeColor="textSecondary"
-                        style={styles.subtitle}>
-                        {loading
-                            ? ''
-                            : hasMeals
-                              ? `${meals.length} dish${meals.length !== 1 ? 'es' : ''} planned in total`
-                              : 'No meals planned yet'}
-                    </ThemedText>
-                    {error && (
+                    <View style={styles.headerTitle}>
+                        <ThemedText type="title">Meals</ThemedText>
                         <ThemedText
-                            type="small"
-                            style={{ color: theme.destructive }}>
-                            {error}
+                            themeColor="textSecondary"
+                            style={styles.subtitle}>
+                            {longDay(selectedDay)}
                         </ThemedText>
-                    )}
+                    </View>
+                    <View style={styles.headerFigure}>
+                        <ThemedText type="figureLarge" themeColor="memberSage">
+                            {dayMeals.length}
+                        </ThemedText>
+                        <ThemedText type="label" themeColor="textMuted">
+                            Planned
+                        </ThemedText>
+                    </View>
+                </View>
+
+                {error && (
+                    <ThemedText
+                        type="small"
+                        style={[styles.error, { color: theme.destructive }]}>
+                        {error}
+                    </ThemedText>
+                )}
+
+                <View
+                    style={[
+                        styles.strip,
+                        { borderBottomColor: `${theme.text}29` },
+                    ]}>
+                    <ScrollView
+                        ref={stripRef}
+                        horizontal
+                        showsHorizontalScrollIndicator={false}
+                        contentContainerStyle={styles.stripContent}>
+                        {dates.map((day) => {
+                            const { initial, date } = dayColumn(day);
+                            const isSelected = day === selectedDay;
+                            const isToday = day === todayStr;
+                            const dayColor = isToday
+                                ? 'link'
+                                : isSelected
+                                  ? 'text'
+                                  : 'textMuted';
+                            return (
+                                <Pressable
+                                    key={day}
+                                    onPress={() => setSelectedDay(day)}
+                                    accessibilityLabel={
+                                        isToday
+                                            ? `Today, ${longDay(day)}`
+                                            : longDay(day)
+                                    }
+                                    accessibilityRole="button"
+                                    accessibilityState={{
+                                        selected: isSelected,
+                                    }}
+                                    style={styles.dayColumn}>
+                                    <ThemedText
+                                        type="label"
+                                        themeColor={dayColor}>
+                                        {initial}
+                                    </ThemedText>
+                                    <ThemedText
+                                        type="figureSmall"
+                                        themeColor={dayColor}
+                                        style={styles.dayDate}>
+                                        {date}
+                                    </ThemedText>
+                                    <View
+                                        style={[
+                                            styles.dayMark,
+                                            isSelected && {
+                                                backgroundColor: theme.text,
+                                            },
+                                        ]}
+                                    />
+                                </Pressable>
+                            );
+                        })}
+                    </ScrollView>
                 </View>
 
                 <ScrollView
-                    ref={scrollViewRef}
                     style={styles.scrollView}
                     contentContainerStyle={styles.scrollContent}
                     showsVerticalScrollIndicator={false}>
-                    {/* Empty state */}
-                    {!hasMeals && (
-                        <View
-                            style={[
-                                styles.emptyState,
-                                {
-                                    backgroundColor: theme.backgroundElement,
-                                },
-                            ]}>
-                            <ThemedText
-                                themeColor="textSecondary"
-                                style={styles.emptyText}>
-                                {canManageContent
-                                    ? 'Tap the button below to start planning your meals for the week'
-                                    : 'No meals have been planned for this week'}
-                            </ThemedText>
-                        </View>
-                    )}
-
-                    {/* Meal cards grouped by day */}
-                    {dates.map((day) => {
-                        const dayMeals = meals.filter((m) => m.day === day);
-                        const isToday = day === todayStr;
-
-                        // Group day meals by time slot
-                        const grouped = dayMeals.reduce(
-                            (acc, meal) => {
-                                if (!acc[meal.time]) acc[meal.time] = [];
-                                acc[meal.time].push(meal);
-                                return acc;
-                            },
-                            {} as Record<string, MealItem[]>
-                        );
-
-                        return (
-                            <View
-                                key={day}
-                                onLayout={(event) => {
-                                    if (isToday) {
-                                        const y = event.nativeEvent.layout.y;
-                                        todayYOffsetRef.current = y;
-                                        setTimeout(() => {
-                                            scrollViewRef.current?.scrollTo({
-                                                y: y - Spacing.four,
-                                                animated: false,
-                                            });
-                                        }, 100);
-                                    }
-                                }}
-                                style={[
-                                    styles.dayCard,
-                                    {
-                                        backgroundColor:
-                                            theme.backgroundElement,
-                                    },
-                                    isToday && styles.todayCard,
-                                    isToday && { borderColor: theme.text },
-                                ]}>
-                                {/* Day Card Header */}
+                    {dayMeals.length === 0 ? (
+                        <ThemedText
+                            themeColor="textSecondary"
+                            type="small"
+                            style={styles.emptyText}>
+                            {loading
+                                ? ''
+                                : canManageContent
+                                  ? 'Nothing planned for this day yet.'
+                                  : 'No meals planned for this day.'}
+                        </ThemedText>
+                    ) : (
+                        MEAL_TIMES.map((time) => {
+                            const timeMeals = dayMeals.filter(
+                                (m) => m.time === time
+                            );
+                            if (timeMeals.length === 0) return null;
+                            return timeMeals.map((meal) => (
                                 <View
+                                    key={meal.id}
                                     style={[
-                                        styles.dayCardHeader,
+                                        styles.mealRow,
                                         {
-                                            borderBottomColor:
-                                                theme.backgroundSelected,
+                                            borderBottomColor: `${theme.text}1A`,
                                         },
                                     ]}>
-                                    <View style={styles.dayCardTitleRow}>
-                                        <ThemedText
-                                            type="subtitle"
-                                            style={styles.dayCardTitle}>
-                                            {formatLocalDateString(day)}
-                                        </ThemedText>
-                                        {isToday && (
-                                            <View
-                                                style={[
-                                                    styles.todayBadge,
-                                                    {
-                                                        backgroundColor:
-                                                            theme.text,
-                                                    },
-                                                ]}>
-                                                <ThemedText
-                                                    style={[
-                                                        styles.todayBadgeText,
-                                                        {
-                                                            color: theme.background,
-                                                        },
-                                                    ]}>
-                                                    {todayLabel}
-                                                </ThemedText>
-                                            </View>
-                                        )}
-                                    </View>
+                                    <ThemedText
+                                        type="label"
+                                        themeColor="textSecondary"
+                                        style={styles.mealTime}>
+                                        {timeLabel[time]}
+                                    </ThemedText>
+                                    <ThemedText
+                                        type="small"
+                                        style={styles.mealName}>
+                                        {meal.name}
+                                    </ThemedText>
                                     {canManageContent && (
                                         <Pressable
-                                            onPress={() => openModalForDay(day)}
-                                            accessibilityLabel={`Add meal for ${formatLocalDateString(day)}`}
-                                            accessibilityRole="button"
-                                            style={({ pressed }) => [
-                                                styles.dayAddButton,
-                                                pressed && { opacity: 0.7 },
-                                            ]}>
+                                            onPress={() => removeMeal(meal.id)}
+                                            hitSlop={8}
+                                            accessibilityLabel={`Remove ${meal.name}`}
+                                            accessibilityRole="button">
                                             <SymbolView
                                                 name={{
-                                                    ios: 'plus.circle.fill',
-                                                    web: 'add_circle',
+                                                    ios: 'xmark',
+                                                    web: 'close',
                                                 }}
-                                                tintColor={theme.text}
-                                                size={22}
+                                                tintColor={theme.textSecondary}
+                                                size={14}
                                             />
                                         </Pressable>
                                     )}
                                 </View>
-
-                                {/* Day Meals list */}
-                                {dayMeals.length === 0 ? (
-                                    <ThemedText
-                                        themeColor="textSecondary"
-                                        type="small"
-                                        style={styles.noMealsText}>
-                                        {loading
-                                            ? ''
-                                            : 'No meals planned for this day.'}
-                                    </ThemedText>
-                                ) : (
-                                    <View style={styles.dayMealsContent}>
-                                        {MEAL_TIMES.map((time) => {
-                                            const timeMeals = grouped[time];
-                                            if (!timeMeals) return null;
-                                            return (
-                                                <View
-                                                    key={time}
-                                                    style={styles.timeSection}>
-                                                    <ThemedText
-                                                        type="small"
-                                                        style={[
-                                                            styles.timeSectionTitle,
-                                                            {
-                                                                color: theme.textSecondary,
-                                                            },
-                                                        ]}>
-                                                        {timeLabel[time]}
-                                                    </ThemedText>
-                                                    {timeMeals.map((meal) => {
-                                                        return (
-                                                            <View
-                                                                key={meal.id}
-                                                                style={[
-                                                                    styles.mealRow,
-                                                                    {
-                                                                        backgroundColor:
-                                                                            theme.backgroundSelected,
-                                                                    },
-                                                                ]}>
-                                                                <ThemedText
-                                                                    type="default"
-                                                                    style={
-                                                                        styles.mealName
-                                                                    }>
-                                                                    {meal.name}
-                                                                </ThemedText>
-                                                                {canManageContent && (
-                                                                    <Pressable
-                                                                        onPress={() =>
-                                                                            removeMeal(
-                                                                                meal.id
-                                                                            )
-                                                                        }
-                                                                        hitSlop={
-                                                                            8
-                                                                        }
-                                                                        accessibilityLabel={`Remove ${meal.name}`}
-                                                                        accessibilityRole="button">
-                                                                        <SymbolView
-                                                                            name={{
-                                                                                ios: 'xmark.circle.fill',
-                                                                                web: 'cancel',
-                                                                            }}
-                                                                            tintColor={
-                                                                                theme.textSecondary
-                                                                            }
-                                                                            size={
-                                                                                20
-                                                                            }
-                                                                        />
-                                                                    </Pressable>
-                                                                )}
-                                                            </View>
-                                                        );
-                                                    })}
-                                                </View>
-                                            );
-                                        })}
-                                    </View>
-                                )}
-                            </View>
-                        );
-                    })}
-
-                    {/* Summary footer */}
-                    {hasMeals && (
-                        <View
-                            style={[
-                                styles.summaryCard,
-                                {
-                                    backgroundColor: theme.backgroundElement,
-                                },
-                            ]}>
-                            <SymbolView
-                                name={{ ios: 'fork.knife', web: 'restaurant' }}
-                                tintColor={theme.textSecondary}
-                                size={20}
-                            />
-                            <ThemedText themeColor="textSecondary" type="small">
-                                {meals.length} meal
-                                {meals.length !== 1 ? 's' : ''} planned in total
-                            </ThemedText>
-                        </View>
+                            ));
+                        })
                     )}
                 </ScrollView>
 
@@ -384,20 +302,12 @@ export default function DailyMealScreen() {
                                 { backgroundColor: theme.text },
                                 pressed && { opacity: 0.8 },
                             ]}>
-                            <SymbolView
-                                name={{
-                                    ios: 'plus',
-                                    web: 'add',
-                                }}
-                                tintColor={theme.background}
-                                size={20}
-                            />
                             <ThemedText
                                 style={[
                                     styles.addButtonText,
                                     { color: theme.background },
                                 ]}>
-                                Add Meal
+                                Add a meal
                             </ThemedText>
                         </Pressable>
                     </View>
@@ -418,19 +328,18 @@ export default function DailyMealScreen() {
                     <SafeAreaView style={styles.modalSafeArea}>
                         {/* Modal header */}
                         <View style={styles.modalHeader}>
-                            <ThemedText type="subtitle">Add Meal</ThemedText>
+                            <ThemedText type="figureLarge">
+                                Add a meal
+                            </ThemedText>
                             <Pressable
                                 onPress={closeModal}
                                 hitSlop={8}
                                 accessibilityLabel="Close"
                                 accessibilityRole="button">
                                 <SymbolView
-                                    name={{
-                                        ios: 'xmark.circle.fill',
-                                        web: 'cancel',
-                                    }}
+                                    name={{ ios: 'xmark', web: 'close' }}
                                     tintColor={theme.textSecondary}
-                                    size={28}
+                                    size={16}
                                 />
                             </Pressable>
                         </View>
@@ -442,111 +351,127 @@ export default function DailyMealScreen() {
                             keyboardShouldPersistTaps="handled">
                             {/* Step 1: Choose Day */}
                             {!isDayPreselected && (
-                                <>
+                                <View style={styles.modalSection}>
                                     <ThemedText
-                                        type="default"
-                                        style={styles.modalLabel}>
-                                        Choose day
+                                        type="label"
+                                        themeColor="textSecondary">
+                                        Day
                                     </ThemedText>
                                     <ScrollView
                                         horizontal
                                         showsHorizontalScrollIndicator={false}
-                                        style={styles.dayPillsScrollView}
                                         contentContainerStyle={
-                                            styles.dayPillsContainer
+                                            styles.modalStrip
                                         }>
                                         {dates.map((day) => {
+                                            const { initial, date } =
+                                                dayColumn(day);
                                             const isSelected =
                                                 selectedDay === day;
+                                            const isToday = day === todayStr;
+                                            const dayColor = isToday
+                                                ? 'link'
+                                                : isSelected
+                                                  ? 'text'
+                                                  : 'textMuted';
                                             return (
                                                 <Pressable
                                                     key={day}
                                                     onPress={() =>
                                                         setSelectedDay(day)
                                                     }
-                                                    style={[
-                                                        styles.dayPill,
-                                                        {
-                                                            backgroundColor:
-                                                                isSelected
-                                                                    ? theme.text
-                                                                    : theme.backgroundElement,
-                                                            borderColor:
-                                                                isSelected
-                                                                    ? theme.text
-                                                                    : 'transparent',
-                                                        },
-                                                    ]}>
+                                                    accessibilityLabel={
+                                                        isToday
+                                                            ? `Today, ${longDay(day)}`
+                                                            : longDay(day)
+                                                    }
+                                                    accessibilityRole="button"
+                                                    accessibilityState={{
+                                                        selected: isSelected,
+                                                    }}
+                                                    style={styles.dayColumn}>
                                                     <ThemedText
-                                                        style={[
-                                                            styles.dayPillText,
-                                                            {
-                                                                color: isSelected
-                                                                    ? theme.background
-                                                                    : theme.text,
-                                                            },
-                                                        ]}>
-                                                        {formatShortDateString(
-                                                            day
-                                                        )}
+                                                        type="label"
+                                                        themeColor={dayColor}>
+                                                        {initial}
                                                     </ThemedText>
+                                                    <ThemedText
+                                                        type="figureSmall"
+                                                        themeColor={dayColor}
+                                                        style={styles.dayDate}>
+                                                        {date}
+                                                    </ThemedText>
+                                                    <View
+                                                        style={[
+                                                            styles.dayMark,
+                                                            isSelected && {
+                                                                backgroundColor:
+                                                                    theme.text,
+                                                            },
+                                                        ]}
+                                                    />
                                                 </Pressable>
                                             );
                                         })}
                                     </ScrollView>
-                                </>
+                                </View>
                             )}
 
                             {/* Step 2: Choose meal type */}
-                            <ThemedText
-                                type="default"
-                                style={styles.modalLabel}>
-                                Choose meal type
-                            </ThemedText>
-                            <View style={styles.mealTypeGrid}>
-                                {MEAL_TIMES.map((time) => {
-                                    const isSelected = selectedTime === time;
-                                    return (
-                                        <Pressable
-                                            key={time}
-                                            onPress={() =>
-                                                setSelectedTime(time)
-                                            }
-                                            accessibilityLabel={`Select ${time}`}
-                                            accessibilityRole="button"
-                                            accessibilityState={{
-                                                selected: isSelected,
-                                            }}
-                                            style={[
-                                                styles.mealTypeCard,
-                                                {
-                                                    backgroundColor: isSelected
-                                                        ? theme.backgroundSelected
-                                                        : theme.backgroundElement,
-                                                    borderColor: isSelected
-                                                        ? theme.text
-                                                        : 'transparent',
-                                                },
-                                            ]}>
-                                            <ThemedText
-                                                type="small"
-                                                style={styles.mealTypeLabel}>
-                                                {time.charAt(0).toUpperCase() +
-                                                    time.slice(1)}
-                                            </ThemedText>
-                                        </Pressable>
-                                    );
-                                })}
+                            <View style={styles.modalSection}>
+                                <ThemedText
+                                    type="label"
+                                    themeColor="textSecondary">
+                                    Meal time
+                                </ThemedText>
+                                <View style={styles.mealTypeRow}>
+                                    {MEAL_TIMES.map((time) => {
+                                        const isSelected =
+                                            selectedTime === time;
+                                        return (
+                                            <Pressable
+                                                key={time}
+                                                onPress={() =>
+                                                    setSelectedTime(time)
+                                                }
+                                                accessibilityLabel={`Select ${time}`}
+                                                accessibilityRole="button"
+                                                accessibilityState={{
+                                                    selected: isSelected,
+                                                }}
+                                                style={styles.mealType}>
+                                                <ThemedText
+                                                    type="label"
+                                                    themeColor={
+                                                        isSelected
+                                                            ? 'text'
+                                                            : 'textMuted'
+                                                    }>
+                                                    {timeLabel[time]}
+                                                </ThemedText>
+                                                <View
+                                                    style={[
+                                                        styles.dayMark,
+                                                        isSelected && {
+                                                            backgroundColor:
+                                                                theme.text,
+                                                        },
+                                                    ]}
+                                                />
+                                            </Pressable>
+                                        );
+                                    })}
+                                </View>
                             </View>
 
                             {/* Step 3: Add dishes (only when type selected) */}
                             {selectedTime && (
-                                <View style={styles.dishInputSection}>
+                                <View style={styles.modalSection}>
                                     <ThemedText
-                                        type="default"
-                                        style={styles.modalLabel}>
-                                        Add dishes to {timeLabel[selectedTime]}{' '}
-                                        on {formatLocalDateString(selectedDay)}
+                                        type="label"
+                                        themeColor="textSecondary">
+                                        {timeLabel[selectedTime]} on{' '}
+                                        {formatLocalDateString(selectedDay)}
                                     </ThemedText>
 
                                     <View style={styles.dishInputRow}>
@@ -554,8 +479,7 @@ export default function DailyMealScreen() {
                                             style={[
                                                 styles.dishInput,
                                                 {
-                                                    backgroundColor:
-                                                        theme.backgroundElement,
+                                                    borderBottomColor: `${theme.text}29`,
                                                     color: theme.text,
                                                 },
                                             ]}
@@ -608,16 +532,6 @@ export default function DailyMealScreen() {
                                             m.time === selectedTime
                                     ).length > 0 && (
                                         <View style={styles.addedDishList}>
-                                            <ThemedText
-                                                type="small"
-                                                themeColor="textSecondary"
-                                                style={styles.addedDishHeader}>
-                                                {timeLabel[selectedTime]} dishes
-                                                on{' '}
-                                                {formatLocalDateString(
-                                                    selectedDay
-                                                )}
-                                            </ThemedText>
                                             {meals
                                                 .filter(
                                                     (m) =>
@@ -631,12 +545,11 @@ export default function DailyMealScreen() {
                                                             style={[
                                                                 styles.addedDishRow,
                                                                 {
-                                                                    backgroundColor:
-                                                                        theme.backgroundElement,
+                                                                    borderBottomColor: `${theme.text}1A`,
                                                                 },
                                                             ]}>
                                                             <ThemedText
-                                                                type="default"
+                                                                type="small"
                                                                 style={
                                                                     styles.mealName
                                                                 }>
@@ -653,13 +566,13 @@ export default function DailyMealScreen() {
                                                                 accessibilityRole="button">
                                                                 <SymbolView
                                                                     name={{
-                                                                        ios: 'xmark.circle.fill',
-                                                                        web: 'cancel',
+                                                                        ios: 'xmark',
+                                                                        web: 'close',
                                                                     }}
                                                                     tintColor={
                                                                         theme.textSecondary
                                                                     }
-                                                                    size={18}
+                                                                    size={14}
                                                                 />
                                                             </Pressable>
                                                         </View>
@@ -720,112 +633,73 @@ const styles = StyleSheet.create({
     },
     scrollContent: {
         paddingHorizontal: Spacing.four,
-        paddingBottom: BottomTabInset + Spacing.four,
-        gap: Spacing.three,
+        paddingBottom: BottomTabInset + Spacing.three,
     },
     header: {
-        paddingTop: Spacing.two,
+        flexDirection: 'row',
+        alignItems: 'flex-end',
+        justifyContent: 'space-between',
+        gap: Spacing.three,
+        paddingTop: Spacing.three,
         paddingHorizontal: Spacing.four,
         paddingBottom: Spacing.three,
-        gap: Spacing.one,
     },
-    pageTitle: {
-        fontSize: 34,
-        lineHeight: 40,
+    headerTitle: {
+        flex: 1,
+    },
+    headerFigure: {
+        alignItems: 'flex-end',
+        paddingBottom: Spacing.half,
     },
     subtitle: {
-        marginTop: -Spacing.one,
+        marginTop: Spacing.two,
+        fontSize: 13,
+        lineHeight: 18,
+    },
+    error: {
+        paddingHorizontal: Spacing.four,
+        paddingBottom: Spacing.two,
     },
 
-    // Empty state
-    emptyState: {
-        alignItems: 'center',
-        borderRadius: 14,
-        padding: Spacing.five,
-        gap: Spacing.three,
-    },
-
-    emptyText: {
-        textAlign: 'center',
-        lineHeight: 22,
-    },
-
-    // Day card styles
-    dayCard: {
-        borderRadius: 16,
-        padding: Spacing.three,
-        gap: Spacing.two,
-    },
-    todayCard: {
-        borderWidth: 1.5,
-    },
-    dayCardHeader: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingBottom: Spacing.one,
+    /* ── The week ── */
+    strip: {
         borderBottomWidth: 1,
-        gap: Spacing.two,
     },
-    dayCardTitleRow: {
-        flex: 1,
-        flexDirection: 'row',
+    stripContent: {
+        paddingHorizontal: Spacing.four,
+    },
+    dayColumn: {
+        width: DayColumnWidth,
         alignItems: 'center',
-        flexWrap: 'wrap',
-        gap: Spacing.two,
+        paddingBottom: Spacing.two,
     },
-    dayCardTitle: {
-        fontWeight: '700',
-    },
-    todayBadge: {
-        borderRadius: 6,
-        paddingHorizontal: Spacing.one + Spacing.half,
-        paddingVertical: Spacing.half / 2,
-    },
-    todayBadgeText: {
-        fontSize: 10,
-        fontWeight: '700',
-        textTransform: 'uppercase',
-    },
-    dayAddButton: {
-        padding: Spacing.half,
-    },
-    noMealsText: {
-        fontStyle: 'italic',
-        paddingVertical: Spacing.half,
-    },
-    dayMealsContent: {
-        gap: Spacing.two,
-    },
-    timeSection: {
-        gap: Spacing.one,
-    },
-    timeSectionTitle: {
-        fontSize: 12,
-        fontWeight: '600',
-        textTransform: 'uppercase',
-        letterSpacing: 0.5,
+    dayDate: {
         marginTop: Spacing.one,
     },
+    /** The mark under the day the screen is showing. */
+    dayMark: {
+        height: 2,
+        alignSelf: 'stretch',
+        marginTop: Spacing.two,
+        marginHorizontal: Spacing.two,
+    },
 
+    /* ── The day ── */
+    emptyText: {
+        paddingVertical: Spacing.three,
+    },
     mealRow: {
         flexDirection: 'row',
-        alignItems: 'center',
-        borderRadius: 12,
-        paddingHorizontal: Spacing.three,
-        paddingVertical: Spacing.two + Spacing.half,
+        alignItems: 'flex-start',
         gap: Spacing.three,
+        paddingVertical: Spacing.three,
+        borderBottomWidth: 1,
     },
-
+    mealTime: {
+        width: 64,
+    },
     mealName: {
         flex: 1,
-    },
-    summaryCard: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: Spacing.two,
-        borderRadius: 14,
-        padding: Spacing.three,
     },
 
     // Add button
@@ -835,16 +709,15 @@ const styles = StyleSheet.create({
         paddingBottom: BottomTabInset + Spacing.three,
     },
     addButton: {
-        flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        gap: Spacing.two,
-        borderRadius: 14,
-        padding: Spacing.three,
+        borderRadius: 12,
+        paddingVertical: Spacing.three,
     },
     addButtonText: {
-        fontSize: 16,
-        fontWeight: '600',
+        fontFamily: Fonts.sansSemiBold,
+        fontSize: 13.5,
+        lineHeight: 18,
     },
 
     // Modal
@@ -867,70 +740,41 @@ const styles = StyleSheet.create({
     },
     modalScrollContent: {
         paddingHorizontal: Spacing.four,
-        gap: Spacing.three,
         paddingBottom: Spacing.four,
     },
-    modalLabel: {
-        fontWeight: '600',
-    },
-    mealTypeGrid: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
+    modalSection: {
+        paddingTop: Spacing.three,
         gap: Spacing.two,
-        marginBottom: Spacing.two,
     },
-    mealTypeCard: {
+    modalStrip: {
+        paddingTop: Spacing.one,
+    },
+    mealTypeRow: {
+        flexDirection: 'row',
+        paddingTop: Spacing.one,
+    },
+    mealType: {
         flex: 1,
-        minWidth: 140,
         alignItems: 'center',
-        borderRadius: 14,
-        padding: Spacing.three,
-        gap: Spacing.one,
-        borderWidth: 2,
-    },
-
-    mealTypeLabel: {
-        fontWeight: '600',
-    },
-
-    // Day pills selector in modal
-    dayPillsScrollView: {
-        marginBottom: Spacing.two,
-    },
-    dayPillsContainer: {
-        gap: Spacing.one + Spacing.half,
-        paddingVertical: Spacing.half,
-    },
-    dayPill: {
-        paddingHorizontal: Spacing.three + Spacing.half,
-        paddingVertical: Spacing.two,
-        borderRadius: 20,
-    },
-    dayPillText: {
-        fontSize: 14,
-        fontWeight: '600',
     },
 
     // Dish input
-    dishInputSection: {
-        gap: Spacing.three,
-    },
     dishInputRow: {
         flexDirection: 'row',
         gap: Spacing.two,
         alignItems: 'center',
+        paddingTop: Spacing.two,
     },
-
     dishInput: {
         flex: 1,
-        height: 48,
-        borderRadius: 12,
-        paddingHorizontal: Spacing.three,
-        fontSize: 16,
+        height: 44,
+        borderBottomWidth: 1,
+        fontFamily: Fonts.sansMedium,
+        fontSize: 15,
     },
     addDishButton: {
-        width: 48,
-        height: 48,
+        width: 44,
+        height: 44,
         borderRadius: 12,
         alignItems: 'center',
         justifyContent: 'center',
@@ -938,17 +782,14 @@ const styles = StyleSheet.create({
 
     // Added dishes list in modal
     addedDishList: {
-        gap: Spacing.two,
-    },
-    addedDishHeader: {
-        fontWeight: '600',
+        paddingTop: Spacing.two,
     },
     addedDishRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        borderRadius: 12,
-        padding: Spacing.two + Spacing.one,
         gap: Spacing.two,
+        paddingVertical: Spacing.three,
+        borderBottomWidth: 1,
     },
 
     // Modal footer
@@ -960,11 +801,12 @@ const styles = StyleSheet.create({
     doneButton: {
         alignItems: 'center',
         justifyContent: 'center',
-        borderRadius: 14,
-        padding: Spacing.three,
+        borderRadius: 12,
+        paddingVertical: Spacing.three,
     },
     doneButtonText: {
-        fontSize: 16,
-        fontWeight: '600',
+        fontFamily: Fonts.sansSemiBold,
+        fontSize: 13.5,
+        lineHeight: 18,
     },
 });
