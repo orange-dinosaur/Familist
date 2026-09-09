@@ -7,6 +7,7 @@ export type ThemedTextProps = TextProps & {
     type?:
         | 'default'
         | 'title'
+        | 'heading'
         | 'small'
         | 'smallBold'
         | 'subtitle'
@@ -36,6 +37,7 @@ export function ThemedText({
                 { color: theme[themeColor ?? 'text'] },
                 type === 'default' && styles.default,
                 type === 'title' && styles.title,
+                type === 'heading' && styles.heading,
                 type === 'small' && styles.small,
                 type === 'smallBold' && styles.smallBold,
                 type === 'subtitle' && styles.subtitle,
@@ -82,6 +84,12 @@ const styles = StyleSheet.create({
         fontFamily: Fonts.serif,
         fontSize: 40,
         lineHeight: 44,
+    },
+    /** What a sheet or a face calls itself, where a screen would use `title`. */
+    heading: {
+        fontFamily: Fonts.serif,
+        fontSize: 30,
+        lineHeight: 36,
     },
     subtitle: {
         fontFamily: Fonts.sansSemiBold,

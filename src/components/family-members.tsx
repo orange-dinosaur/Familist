@@ -266,7 +266,7 @@ export function FamilyMembers({ onBack }: { onBack: () => void }) {
     if (open && confirming !== null) {
         return (
             <>
-                <ThemedText type="figureLarge">
+                <ThemedText type="heading">
                     {CONFIRMATIONS[confirming].title}
                 </ThemedText>
                 <ThemedText type="small" themeColor="textSecondary">
@@ -298,7 +298,7 @@ export function FamilyMembers({ onBack }: { onBack: () => void }) {
     if (inviting && invitation !== null) {
         return (
             <>
-                <ThemedText type="figureLarge">Their invite code</ThemedText>
+                <ThemedText type="heading">Their invite code</ThemedText>
                 <ThemedText
                     selectable
                     style={[styles.code, { color: theme.text }]}>
@@ -333,7 +333,7 @@ export function FamilyMembers({ onBack }: { onBack: () => void }) {
     if (inviting) {
         return (
             <>
-                <ThemedText type="figureLarge">
+                <ThemedText type="heading">
                     {inviting.target
                         ? `Invite ${inviting.target.name}`
                         : 'Invite someone'}
@@ -388,7 +388,7 @@ export function FamilyMembers({ onBack }: { onBack: () => void }) {
                 <View style={styles.memberHeader}>
                     <MemberAvatar member={open} size={44} />
                     <View style={styles.memberText}>
-                        <ThemedText type="figureLarge">{open.name}</ThemedText>
+                        <ThemedText type="heading">{open.name}</ThemedText>
                         <ThemedText type="labelSmall" themeColor="textMuted">
                             {roleCaption(open, membership?.id)}
                         </ThemedText>
@@ -468,7 +468,7 @@ export function FamilyMembers({ onBack }: { onBack: () => void }) {
 
     return (
         <>
-            <ThemedText type="figureLarge">Family members</ThemedText>
+            <ThemedText type="heading">Family members</ThemedText>
 
             <SectionLabel label="Members" count={members.length} />
 

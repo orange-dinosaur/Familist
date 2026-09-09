@@ -1,3 +1,4 @@
+import { Image } from 'expo-image';
 import { Link, router } from 'expo-router';
 import React, { useState } from 'react';
 import {
@@ -12,11 +13,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { authClient, verificationCallbackURL } from '@/auth/client';
-import { MaxContentWidth, Spacing } from '@/constants/theme';
+import { Fonts, MaxContentWidth, Spacing } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useTheme } from '@/hooks/use-theme';
 
 export default function LoginScreen() {
     const theme = useTheme();
+    const scheme = useColorScheme();
 
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -74,54 +77,71 @@ export default function LoginScreen() {
         <ThemedView style={styles.container}>
             <SafeAreaView style={styles.safeArea}>
                 <View style={styles.content}>
-                    <ThemedText type="subtitle">Welcome back</ThemedText>
-                    <ThemedText type="small" themeColor="textSecondary">
-                        Sign in to your family&apos;s lists.
-                    </ThemedText>
+                    <View style={styles.head}>
+                        <Image
+                            source={
+                                scheme === 'dark'
+                                    ? require('@/assets/images/familist-lockup-verde.svg')
+                                    : require('@/assets/images/familist-lockup-chiaro.svg')
+                            }
+                            style={styles.lockup}
+                            contentFit="contain"
+                            accessibilityLabel="FamiList"
+                        />
+                        <ThemedText type="heading" style={styles.tagline}>
+                            One list for the whole house.
+                        </ThemedText>
+                    </View>
 
                     <View style={styles.form}>
-                        <ThemedText type="default" style={styles.label}>
-                            Email
-                        </ThemedText>
-                        <TextInput
+                        <View
                             style={[
-                                styles.textInput,
-                                {
-                                    backgroundColor: theme.backgroundElement,
-                                    color: theme.text,
-                                },
-                            ]}
-                            placeholder="you@example.com"
-                            placeholderTextColor={theme.textSecondary}
-                            value={email}
-                            onChangeText={setEmail}
-                            autoCapitalize="none"
-                            autoComplete="email"
-                            keyboardType="email-address"
-                            accessibilityLabel="Email"
-                        />
+                                styles.field,
+                                { borderBottomColor: `${theme.text}24` },
+                            ]}>
+                            <ThemedText type="label" themeColor="textSecondary">
+                                Email
+                            </ThemedText>
+                            <TextInput
+                                style={[
+                                    styles.textInput,
+                                    { color: theme.text },
+                                ]}
+                                placeholder="you@example.com"
+                                placeholderTextColor={theme.textMuted}
+                                value={email}
+                                onChangeText={setEmail}
+                                autoCapitalize="none"
+                                autoComplete="email"
+                                keyboardType="email-address"
+                                accessibilityLabel="Email"
+                            />
+                        </View>
 
-                        <ThemedText type="default" style={styles.label}>
-                            Password
-                        </ThemedText>
-                        <TextInput
+                        <View
                             style={[
-                                styles.textInput,
-                                {
-                                    backgroundColor: theme.backgroundElement,
-                                    color: theme.text,
-                                },
-                            ]}
-                            placeholder="Your password"
-                            placeholderTextColor={theme.textSecondary}
-                            value={password}
-                            onChangeText={setPassword}
-                            autoCapitalize="none"
-                            autoComplete="current-password"
-                            secureTextEntry
-                            onSubmitEditing={signIn}
-                            accessibilityLabel="Password"
-                        />
+                                styles.field,
+                                { borderBottomColor: `${theme.text}24` },
+                            ]}>
+                            <ThemedText type="label" themeColor="textSecondary">
+                                Password
+                            </ThemedText>
+                            <TextInput
+                                style={[
+                                    styles.textInput,
+                                    { color: theme.text },
+                                ]}
+                                placeholder="Your password"
+                                placeholderTextColor={theme.textMuted}
+                                value={password}
+                                onChangeText={setPassword}
+                                autoCapitalize="none"
+                                autoComplete="current-password"
+                                secureTextEntry
+                                onSubmitEditing={signIn}
+                                accessibilityLabel="Password"
+                            />
+                        </View>
                     </View>
 
                     {error && (
@@ -168,29 +188,33 @@ export default function LoginScreen() {
                             <ActivityIndicator color={theme.textSecondary} />
                         ) : (
                             <ThemedText
-                                style={[
-                                    styles.submitButtonText,
-                                    {
-                                        color: canSubmit
-                                            ? theme.background
-                                            : theme.textSecondary,
-                                    },
-                                ]}>
+                                type="smallBold"
+                                style={{
+                                    color: canSubmit
+                                        ? theme.background
+                                        : theme.textSecondary,
+                                }}>
                                 Sign in
                             </ThemedText>
                         )}
                     </Pressable>
 
-                    <View style={styles.footer}>
+                    <View style={styles.spacer} />
+
+                    <View
+                        style={[
+                            styles.footer,
+                            { borderTopColor: `${theme.text}24` },
+                        ]}>
                         <ThemedText type="small" themeColor="textSecondary">
-                            No account yet?
+                            New here?
                         </ThemedText>
                         <Link href="/signup" asChild>
                             <Pressable
                                 accessibilityLabel="Create an account"
                                 accessibilityRole="button">
-                                <ThemedText type="linkPrimary">
-                                    Create one
+                                <ThemedText type="smallBold">
+                                    Create a family
                                 </ThemedText>
                             </Pressable>
                         </Link>
@@ -213,38 +237,52 @@ const styles = StyleSheet.create({
     },
     content: {
         flex: 1,
-        justifyContent: 'center',
         paddingHorizontal: Spacing.four,
         gap: Spacing.two,
     },
-    form: {
-        gap: Spacing.two,
-        paddingTop: Spacing.three,
+    head: {
+        paddingTop: Spacing.five,
+        gap: Spacing.four,
     },
-    label: {
-        fontWeight: '600',
+    /** The lockup's artwork is 168 by 37, and it is drawn at its own size. */
+    lockup: {
+        width: 168,
+        height: 37,
+    },
+    tagline: {
+        maxWidth: 250,
+    },
+    form: {
+        paddingTop: Spacing.five,
+    },
+    field: {
+        gap: Spacing.two,
+        paddingBottom: Spacing.two,
+        marginBottom: Spacing.four,
+        borderBottomWidth: 1,
     },
     textInput: {
-        height: 48,
-        borderRadius: 12,
-        paddingHorizontal: Spacing.three,
+        fontFamily: Fonts.sansMedium,
         fontSize: 16,
+        paddingVertical: Spacing.one,
     },
     submitButton: {
         alignItems: 'center',
         justifyContent: 'center',
-        borderRadius: 14,
+        borderRadius: 12,
         padding: Spacing.three,
         marginTop: Spacing.two,
     },
-    submitButtonText: {
-        fontSize: 16,
-        fontWeight: '600',
+    spacer: {
+        flex: 1,
     },
     footer: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
         gap: Spacing.two,
+        paddingTop: Spacing.four,
+        paddingBottom: Spacing.three,
+        borderTopWidth: 1,
     },
 });

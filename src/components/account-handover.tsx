@@ -111,7 +111,7 @@ export function AccountHandover({
         return (
             <>
                 <View style={styles.identity}>
-                    <ThemedText type="figureLarge">
+                    <ThemedText type="heading">
                         Who takes {open.name}?
                     </ThemedText>
                     <ThemedText type="small" themeColor="textSecondary">
@@ -169,9 +169,7 @@ export function AccountHandover({
     return (
         <>
             <View style={styles.identity}>
-                <ThemedText type="figureLarge">
-                    Hand these over first
-                </ThemedText>
+                <ThemedText type="heading">Hand these over first</ThemedText>
                 <ThemedText type="small" themeColor="textSecondary">
                     You are the only owner of{' '}
                     {families.length === 1 ? 'this family' : 'these families'},

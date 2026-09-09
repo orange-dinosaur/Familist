@@ -415,7 +415,7 @@ export function FamilyBar() {
                         ) : mode === 'leave' || mode === 'delete' ? (
                             <>
                                 <View style={styles.identity}>
-                                    <ThemedText type="figureLarge">
+                                    <ThemedText type="heading">
                                         {CONFIRM[mode].title}
                                     </ThemedText>
                                     <ThemedText
@@ -463,7 +463,7 @@ export function FamilyBar() {
                             </>
                         ) : mode !== 'family' ? (
                             <>
-                                <ThemedText type="figureLarge">
+                                <ThemedText type="heading">
                                     {PROMPT[mode]}
                                 </ThemedText>
                                 <TextInput
@@ -535,7 +535,7 @@ export function FamilyBar() {
                         ) : (
                             <>
                                 <View style={styles.identity}>
-                                    <ThemedText type="figureLarge">
+                                    <ThemedText type="heading">
                                         {family?.name}
                                     </ThemedText>
                                     <ThemedText
@@ -824,7 +824,7 @@ export function FamilyBar() {
                         ) : (
                             <>
                                 <View style={styles.identity}>
-                                    <ThemedText type="figureLarge">
+                                    <ThemedText type="heading">
                                         Delete your account?
                                     </ThemedText>
                                     <ThemedText
