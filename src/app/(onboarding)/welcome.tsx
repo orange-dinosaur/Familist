@@ -11,7 +11,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { MaxContentWidth, Spacing } from '@/constants/theme';
+import { Fonts, MaxContentWidth, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useFamily } from '@/hooks/use-family';
 import { useTheme } from '@/hooks/use-theme';
@@ -61,33 +61,37 @@ export default function WelcomeScreen() {
         if (message) setError(message);
     };
 
-    const switchMode = () => {
-        if (pending) return;
-        setMode(joining ? 'create' : 'join');
-        setError(null);
-    };
-
     const begin = (next: Mode) => {
         setMode(next);
         setStage('form');
     };
 
+    const back = () => {
+        if (pending) return;
+        setError(null);
+        setStage('intro');
+    };
+
+    const lockup = (
+        <Image
+            source={
+                scheme === 'dark'
+                    ? require('@/assets/images/familist-lockup-verde.svg')
+                    : require('@/assets/images/familist-lockup-chiaro.svg')
+            }
+            style={styles.lockup}
+            contentFit="contain"
+            accessibilityLabel="FamiList"
+        />
+    );
+
     if (stage === 'intro') {
         return (
             <ThemedView style={styles.container}>
                 <SafeAreaView style={styles.safeArea}>
-                    <View style={styles.introContent}>
+                    <View style={styles.content}>
                         <View style={styles.head}>
-                            <Image
-                                source={
-                                    scheme === 'dark'
-                                        ? require('@/assets/images/familist-lockup-verde.svg')
-                                        : require('@/assets/images/familist-lockup-chiaro.svg')
-                                }
-                                style={styles.lockup}
-                                contentFit="contain"
-                                accessibilityLabel="FamiList"
-                            />
+                            {lockup}
                             <ThemedText type="heading" style={styles.headline}>
                                 Meals, chores and the small stuff, in one place.
                             </ThemedText>
@@ -130,36 +134,38 @@ export default function WelcomeScreen() {
 
                         <View style={styles.spacer} />
 
-                        <Pressable
-                            onPress={() => begin('create')}
-                            accessibilityLabel="Create a family"
-                            accessibilityRole="button"
-                            style={({ pressed }) => [
-                                styles.introButton,
-                                { backgroundColor: theme.text },
-                                pressed && { opacity: 0.8 },
-                            ]}>
-                            <ThemedText
-                                type="smallBold"
-                                style={{ color: theme.background }}>
-                                Create a family
-                            </ThemedText>
-                        </Pressable>
+                        <View style={styles.introFoot}>
+                            <Pressable
+                                onPress={() => begin('create')}
+                                accessibilityLabel="Create a family"
+                                accessibilityRole="button"
+                                style={({ pressed }) => [
+                                    styles.introButton,
+                                    { backgroundColor: theme.text },
+                                    pressed && { opacity: 0.8 },
+                                ]}>
+                                <ThemedText
+                                    type="smallBold"
+                                    style={{ color: theme.background }}>
+                                    Create a family
+                                </ThemedText>
+                            </Pressable>
 
-                        <Pressable
-                            onPress={() => begin('join')}
-                            accessibilityLabel="I have an invite code"
-                            accessibilityRole="button"
-                            style={({ pressed }) => [
-                                styles.introButton,
-                                styles.introButtonOutlined,
-                                { borderColor: theme.text },
-                                pressed && { opacity: 0.8 },
-                            ]}>
-                            <ThemedText type="smallBold">
-                                I have an invite code
-                            </ThemedText>
-                        </Pressable>
+                            <Pressable
+                                onPress={() => begin('join')}
+                                accessibilityLabel="I have an invite code"
+                                accessibilityRole="button"
+                                style={({ pressed }) => [
+                                    styles.introButton,
+                                    styles.introButtonOutlined,
+                                    { borderColor: theme.text },
+                                    pressed && { opacity: 0.8 },
+                                ]}>
+                                <ThemedText type="smallBold">
+                                    I have an invite code
+                                </ThemedText>
+                            </Pressable>
+                        </View>
                     </View>
                 </SafeAreaView>
             </ThemedView>
@@ -170,40 +176,53 @@ export default function WelcomeScreen() {
         <ThemedView style={styles.container}>
             <SafeAreaView style={styles.safeArea}>
                 <View style={styles.content}>
-                    <ThemedText type="subtitle">
-                        {joining ? 'Join your family' : 'Set up your family'}
-                    </ThemedText>
-                    <ThemedText type="small" themeColor="textSecondary">
-                        {joining
-                            ? 'Enter the code you were sent.'
-                            : 'Give it a name. You can add everyone else afterwards.'}
-                    </ThemedText>
+                    <View style={styles.head}>
+                        {lockup}
+                        <ThemedText type="heading" style={styles.headline}>
+                            {joining
+                                ? 'Join your family'
+                                : 'Set up your family'}
+                        </ThemedText>
+                        <ThemedText
+                            type="small"
+                            themeColor="textSecondary"
+                            style={styles.subhead}>
+                            {joining
+                                ? 'Enter the code you were sent.'
+                                : 'Give it a name. You can add everyone else afterwards.'}
+                        </ThemedText>
+                    </View>
 
                     <View style={styles.form}>
-                        <ThemedText type="default" style={styles.label}>
-                            {joining ? 'Invite code' : 'Family name'}
-                        </ThemedText>
-                        <TextInput
+                        <View
                             style={[
-                                styles.textInput,
-                                {
-                                    backgroundColor: theme.backgroundElement,
-                                    color: theme.text,
-                                },
-                            ]}
-                            placeholder={joining ? 'ABCD234XYZ' : 'The Rossis'}
-                            placeholderTextColor={theme.textSecondary}
-                            value={joining ? code : name}
-                            onChangeText={joining ? setCode : setName}
-                            autoCapitalize={
-                                joining ? 'characters' : 'sentences'
-                            }
-                            autoCorrect={!joining}
-                            onSubmitEditing={submit}
-                            accessibilityLabel={
-                                joining ? 'Invite code' : 'Family name'
-                            }
-                        />
+                                styles.field,
+                                { borderBottomColor: `${theme.text}24` },
+                            ]}>
+                            <ThemedText type="label" themeColor="textSecondary">
+                                {joining ? 'Invite code' : 'Family name'}
+                            </ThemedText>
+                            <TextInput
+                                style={[
+                                    styles.textInput,
+                                    { color: theme.text },
+                                ]}
+                                placeholder={
+                                    joining ? 'ABCD234XYZ' : 'The Rossis'
+                                }
+                                placeholderTextColor={theme.textMuted}
+                                value={joining ? code : name}
+                                onChangeText={joining ? setCode : setName}
+                                autoCapitalize={
+                                    joining ? 'characters' : 'sentences'
+                                }
+                                autoCorrect={!joining}
+                                onSubmitEditing={submit}
+                                accessibilityLabel={
+                                    joining ? 'Invite code' : 'Family name'
+                                }
+                            />
+                        </View>
                     </View>
 
                     {error && (
@@ -235,36 +254,29 @@ export default function WelcomeScreen() {
                             <ActivityIndicator color={theme.textSecondary} />
                         ) : (
                             <ThemedText
-                                style={[
-                                    styles.submitButtonText,
-                                    {
-                                        color: canSubmit
-                                            ? theme.background
-                                            : theme.textSecondary,
-                                    },
-                                ]}>
+                                type="smallBold"
+                                style={{
+                                    color: canSubmit
+                                        ? theme.background
+                                        : theme.textSecondary,
+                                }}>
                                 {joining ? 'Join family' : 'Create family'}
                             </ThemedText>
                         )}
                     </Pressable>
 
-                    <View style={styles.footer}>
-                        <ThemedText type="small" themeColor="textSecondary">
-                            {joining
-                                ? 'Starting fresh?'
-                                : 'Got an invite code?'}
-                        </ThemedText>
+                    <View style={styles.spacer} />
+
+                    <View
+                        style={[
+                            styles.footer,
+                            { borderTopColor: `${theme.text}24` },
+                        ]}>
                         <Pressable
-                            onPress={switchMode}
-                            accessibilityLabel={
-                                joining
-                                    ? 'Create a family instead'
-                                    : 'Join a family with a code'
-                            }
+                            onPress={back}
+                            accessibilityLabel="Back"
                             accessibilityRole="button">
-                            <ThemedText type="linkPrimary">
-                                {joining ? 'Create a family' : 'Join a family'}
-                            </ThemedText>
+                            <ThemedText type="smallBold">Back</ThemedText>
                         </Pressable>
                     </View>
                 </View>
@@ -285,15 +297,12 @@ const styles = StyleSheet.create({
     },
     content: {
         flex: 1,
-        justifyContent: 'center',
         paddingHorizontal: Spacing.four,
         gap: Spacing.two,
     },
-    introContent: {
-        flex: 1,
-        paddingHorizontal: Spacing.four,
-        paddingBottom: Spacing.four,
+    introFoot: {
         gap: Spacing.two,
+        paddingBottom: Spacing.four,
     },
     head: {
         paddingTop: Spacing.five,
@@ -342,33 +351,33 @@ const styles = StyleSheet.create({
         padding: Spacing.three - 1.5,
     },
     form: {
-        gap: Spacing.two,
-        paddingTop: Spacing.three,
+        paddingTop: Spacing.five,
     },
-    label: {
-        fontWeight: '600',
+    field: {
+        gap: Spacing.two,
+        paddingBottom: Spacing.two,
+        marginBottom: Spacing.four,
+        borderBottomWidth: 1,
     },
     textInput: {
-        height: 48,
-        borderRadius: 12,
-        paddingHorizontal: Spacing.three,
+        fontFamily: Fonts.sansMedium,
         fontSize: 16,
+        paddingVertical: Spacing.one,
     },
     submitButton: {
         alignItems: 'center',
         justifyContent: 'center',
-        borderRadius: 14,
+        borderRadius: 12,
         padding: Spacing.three,
         marginTop: Spacing.two,
-    },
-    submitButtonText: {
-        fontSize: 16,
-        fontWeight: '600',
     },
     footer: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
         gap: Spacing.two,
+        paddingTop: Spacing.four,
+        paddingBottom: Spacing.three,
+        borderTopWidth: 1,
     },
 });
