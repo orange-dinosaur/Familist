@@ -10,10 +10,11 @@
 
 import { useRouter } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
-import React from 'react';
+import React, { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { DeleteAccount, signOutAndClear } from '@/components/delete-account';
 import { MemberAvatar } from '@/components/member-avatar';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -39,6 +40,8 @@ export default function SettingsScreen() {
     const { members } = useMembers();
     const { data: session } = authClient.useSession();
     const { appearance, chooseAppearance } = useAppearance();
+
+    const [deleting, setDeleting] = useState(false);
 
     const me = members.find((one) => one.id === member?.id) ?? null;
 
@@ -143,6 +146,44 @@ export default function SettingsScreen() {
                         </View>
                     </View>
                 </ScrollView>
+
+                <View style={styles.foot}>
+                    <Pressable
+                        onPress={signOutAndClear}
+                        accessibilityLabel="Sign out"
+                        accessibilityRole="button"
+                        style={({ pressed }) => [
+                            styles.signOut,
+                            { backgroundColor: theme.text },
+                            pressed && styles.pressed,
+                        ]}>
+                        <ThemedText
+                            type="smallBold"
+                            style={{ color: theme.background }}>
+                            Sign out
+                        </ThemedText>
+                    </Pressable>
+
+                    <Pressable
+                        onPress={() => setDeleting(true)}
+                        accessibilityLabel="Delete account"
+                        accessibilityRole="button"
+                        style={({ pressed }) => [
+                            styles.delete,
+                            pressed && styles.pressed,
+                        ]}>
+                        <ThemedText
+                            type="label"
+                            style={{ color: theme.destructive }}>
+                            Delete account
+                        </ThemedText>
+                    </Pressable>
+                </View>
+
+                <DeleteAccount
+                    visible={deleting}
+                    onClose={() => setDeleting(false)}
+                />
             </SafeAreaView>
         </ThemedView>
     );
@@ -219,5 +260,20 @@ const styles = StyleSheet.create({
         borderRadius: 999,
         paddingHorizontal: Spacing.three,
         paddingVertical: Spacing.one,
+    },
+    foot: {
+        paddingHorizontal: Spacing.four,
+        paddingBottom: Spacing.four,
+    },
+    signOut: {
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderRadius: 12,
+        padding: Spacing.three,
+    },
+    delete: {
+        alignItems: 'center',
+        paddingTop: Spacing.four,
+        paddingBottom: Spacing.two,
     },
 });
