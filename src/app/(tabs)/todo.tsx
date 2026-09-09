@@ -19,11 +19,18 @@ import { ThemedText } from '@/components/themed-text';
 import { MemberAvatar } from '@/components/member-avatar';
 import { ThemedView } from '@/components/themed-view';
 import {
+    formatDaysUntil,
     formatShortDateString,
     getRelativeDateString,
 } from '@/constants/dates';
 import { type TodoItem } from '@/constants/types';
-import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
+import {
+    BottomTabInset,
+    Colors,
+    Fonts,
+    MaxContentWidth,
+    Spacing,
+} from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useTheme } from '@/hooks/use-theme';
 import { useMembers } from '@/hooks/use-members';
@@ -103,11 +110,10 @@ const TodoRow = React.memo(
                                 size={18}
                             />
                             <ThemedText
-                                style={{
-                                    color: theme.text,
-                                    fontSize: 11,
-                                    fontWeight: '600',
-                                }}>
+                                style={[
+                                    styles.actionText,
+                                    { color: theme.text },
+                                ]}>
                                 Edit
                             </ThemedText>
                         </Pressable>
@@ -132,10 +138,14 @@ const TodoRow = React.memo(
                                     ios: 'trash',
                                     web: 'delete',
                                 }}
-                                tintColor="#ffffff"
+                                tintColor={Colors.light.background}
                                 size={18}
                             />
-                            <ThemedText style={styles.actionText}>
+                            <ThemedText
+                                style={[
+                                    styles.actionText,
+                                    { color: Colors.light.background },
+                                ]}>
                                 Delete
                             </ThemedText>
                         </Pressable>
@@ -156,20 +166,8 @@ const TodoRow = React.memo(
                 <View
                     style={[
                         styles.todoRow,
-                        { backgroundColor: theme.backgroundElement },
+                        { borderBottomColor: `${theme.text}1A` },
                     ]}>
-                    {/* The priority, now that no day grouping competes with it. */}
-                    <View
-                        style={[
-                            styles.priorityBar,
-                            {
-                                backgroundColor: todo.done
-                                    ? theme.backgroundSelected
-                                    : theme[priorityColors[todo.priority]],
-                            },
-                        ]}
-                    />
-
                     <Pressable
                         onPress={onToggle}
                         disabled={!canToggle}
@@ -177,25 +175,40 @@ const TodoRow = React.memo(
                             styles.todoMain,
                             pressed && { opacity: 0.6 },
                         ]}>
-                        <SymbolView
-                            name={{
-                                ios: todo.done
-                                    ? 'checkmark.circle.fill'
-                                    : 'circle',
-                                web: todo.done
-                                    ? 'check_circle'
-                                    : 'radio_button_unchecked',
-                            }}
-                            tintColor={
-                                todo.done || !canToggle
-                                    ? theme.textSecondary
-                                    : theme.text
-                            }
-                            size={22}
+                        <View style={styles.check}>
+                            <SymbolView
+                                name={{
+                                    ios: todo.done
+                                        ? 'checkmark.circle.fill'
+                                        : 'circle',
+                                    web: todo.done
+                                        ? 'check_circle'
+                                        : 'radio_button_unchecked',
+                                }}
+                                tintColor={
+                                    todo.done || !canToggle
+                                        ? theme.textSecondary
+                                        : theme.text
+                                }
+                                size={19}
+                            />
+                        </View>
+
+                        {/* The priority, now that no day grouping competes with it. */}
+                        <View
+                            style={[
+                                styles.priorityBar,
+                                {
+                                    backgroundColor: todo.done
+                                        ? theme.backgroundSelected
+                                        : theme[priorityColors[todo.priority]],
+                                },
+                            ]}
                         />
+
                         <View style={styles.todoTextColumn}>
                             <ThemedText
-                                type="default"
+                                type="small"
                                 themeColor={
                                     todo.done ? 'textSecondary' : 'text'
                                 }
@@ -203,29 +216,20 @@ const TodoRow = React.memo(
                                 {todo.label}
                             </ThemedText>
                             {todo.day && (
-                                <View style={styles.dueRow}>
-                                    <SymbolView
-                                        name={{
-                                            ios: 'calendar',
-                                            web: 'calendar_today',
-                                        }}
-                                        tintColor={
-                                            overdue
-                                                ? theme.destructive
-                                                : theme.textSecondary
-                                        }
-                                        size={12}
-                                    />
-                                    <ThemedText
-                                        type="small"
-                                        style={{
+                                <ThemedText
+                                    style={[
+                                        styles.dueText,
+                                        overdue && styles.dueOverdue,
+                                        {
                                             color: overdue
-                                                ? theme.destructive
+                                                ? theme.priorityHigh
                                                 : theme.textSecondary,
-                                        }}>
-                                        {formatShortDateString(todo.day)}
-                                    </ThemedText>
-                                </View>
+                                        },
+                                    ]}>
+                                    {overdue
+                                        ? `${formatDaysUntil(todo.day)} · ${formatShortDateString(todo.day)}`
+                                        : formatShortDateString(todo.day)}
+                                </ThemedText>
                             )}
                         </View>
                     </Pressable>
@@ -241,7 +245,7 @@ const TodoRow = React.memo(
                             }
                             accessibilityRole="button"
                             style={styles.assigneeBadgeContainer}>
-                            <MemberAvatar member={assignee ?? null} size={28} />
+                            <MemberAvatar member={assignee ?? null} size={26} />
                         </Pressable>
                     )}
                 </View>
@@ -367,19 +371,22 @@ export default function TodoScreen() {
 
                 {/* Header */}
                 <View style={styles.header}>
-                    <ThemedText type="title" style={styles.pageTitle}>
-                        To-Do List
-                    </ThemedText>
-                    <ThemedText
-                        themeColor="textSecondary"
-                        style={styles.subtitle}>
-                        {completed.length} of {todos.length} completed in total
-                    </ThemedText>
+                    <ThemedText type="title">To-do</ThemedText>
+                    <View style={styles.summary}>
+                        <ThemedText type="figure" themeColor="textSecondary">
+                            {completed.length}
+                        </ThemedText>
+                        <ThemedText
+                            themeColor="textSecondary"
+                            style={styles.summaryText}>
+                            of {todos.length} completed in total
+                        </ThemedText>
+                    </View>
                     {todos.length > 0 && (
                         <View
                             style={[
                                 styles.progressTrack,
-                                { backgroundColor: theme.backgroundSelected },
+                                { backgroundColor: `${theme.text}29` },
                             ]}>
                             <View
                                 style={[
@@ -392,22 +399,23 @@ export default function TodoScreen() {
                             />
                         </View>
                     )}
-                    {error && (
-                        <ThemedText
-                            type="small"
-                            style={{ color: theme.destructive }}>
-                            {error}
-                        </ThemedText>
-                    )}
                 </View>
+
+                {error && (
+                    <ThemedText
+                        type="small"
+                        style={[styles.error, { color: theme.destructive }]}>
+                        {error}
+                    </ThemedText>
+                )}
 
                 {/* Only worth offering once there is a list to arrange. */}
                 {outstanding.length > 1 && (
-                    <ScrollView
-                        horizontal
-                        showsHorizontalScrollIndicator={false}
-                        style={styles.sortScrollView}
-                        contentContainerStyle={styles.sortContainer}>
+                    <View
+                        style={[
+                            styles.sortRow,
+                            { borderBottomColor: `${theme.text}24` },
+                        ]}>
                         {TODO_SORTS.map(({ key, label }) => {
                             const isSelected = sort === key;
                             return (
@@ -419,30 +427,28 @@ export default function TodoScreen() {
                                     accessibilityState={{
                                         selected: isSelected,
                                     }}
-                                    style={[
-                                        styles.sortPill,
-                                        {
-                                            backgroundColor: isSelected
-                                                ? theme.text
-                                                : theme.backgroundElement,
-                                        },
-                                    ]}>
+                                    style={styles.sortTab}>
                                     <ThemedText
-                                        type="small"
-                                        style={[
-                                            styles.sortPillText,
-                                            {
-                                                color: isSelected
-                                                    ? theme.background
-                                                    : theme.textSecondary,
-                                            },
-                                        ]}>
+                                        type="label"
+                                        themeColor={
+                                            isSelected
+                                                ? 'text'
+                                                : 'textSecondary'
+                                        }>
                                         {label}
                                     </ThemedText>
+                                    <View
+                                        style={[
+                                            styles.sortMark,
+                                            isSelected && {
+                                                backgroundColor: theme.text,
+                                            },
+                                        ]}
+                                    />
                                 </Pressable>
                             );
                         })}
-                    </ScrollView>
+                    </View>
                 )}
 
                 <ScrollView
@@ -460,9 +466,7 @@ export default function TodoScreen() {
                                   : 'Everything is done.'}
                         </ThemedText>
                     ) : (
-                        <View style={styles.todoList}>
-                            {outstanding.map(renderRow)}
-                        </View>
+                        <View>{outstanding.map(renderRow)}</View>
                     )}
 
                     {/* Done, out of the way but not out of reach. */}
@@ -494,16 +498,14 @@ export default function TodoScreen() {
                                 />
                                 <ThemedText
                                     themeColor="textSecondary"
-                                    type="small">
+                                    type="label">
                                     {showingCompleted ? 'Hide' : 'Show'}{' '}
                                     {completed.length} completed
                                 </ThemedText>
                             </Pressable>
 
                             {showingCompleted && (
-                                <View style={styles.todoList}>
-                                    {completed.map(renderRow)}
-                                </View>
+                                <View>{completed.map(renderRow)}</View>
                             )}
                         </>
                     )}
@@ -521,20 +523,12 @@ export default function TodoScreen() {
                                 { backgroundColor: theme.text },
                                 pressed && { opacity: 0.8 },
                             ]}>
-                            <SymbolView
-                                name={{
-                                    ios: 'plus',
-                                    web: 'add',
-                                }}
-                                tintColor={theme.background}
-                                size={20}
-                            />
                             <ThemedText
                                 style={[
                                     styles.addButtonText,
                                     { color: theme.background },
                                 ]}>
-                                Add Task
+                                Add task
                             </ThemedText>
                         </Pressable>
                     </View>
@@ -976,108 +970,106 @@ const styles = StyleSheet.create({
     },
     scrollContent: {
         paddingHorizontal: Spacing.four,
-        paddingBottom: BottomTabInset + Spacing.six,
+        paddingBottom: BottomTabInset + Spacing.three,
     },
     header: {
-        paddingTop: Spacing.two,
+        paddingTop: Spacing.three,
         paddingHorizontal: Spacing.four,
         paddingBottom: Spacing.three,
-        gap: Spacing.one,
-        marginBottom: Spacing.one,
     },
-    pageTitle: {
-        fontSize: 34,
-        lineHeight: 40,
+    summary: {
+        flexDirection: 'row',
+        alignItems: 'baseline',
+        gap: Spacing.two,
+        marginTop: Spacing.two,
     },
-    subtitle: {
-        marginTop: -Spacing.one,
+    summaryText: {
+        fontSize: 12.5,
+        lineHeight: 17,
     },
     progressTrack: {
-        height: 6,
-        borderRadius: 3,
+        height: 2,
         overflow: 'hidden',
-        marginTop: Spacing.one,
+        marginTop: Spacing.three,
     },
     progressFill: {
         height: '100%',
-        borderRadius: 3,
     },
-    sortScrollView: {
-        flexGrow: 0,
-        marginBottom: Spacing.two,
-    },
-    sortContainer: {
+    error: {
         paddingHorizontal: Spacing.four,
-        gap: Spacing.one + Spacing.half,
+        paddingBottom: Spacing.two,
     },
-    sortPill: {
-        paddingHorizontal: Spacing.three,
-        paddingVertical: Spacing.one + Spacing.half,
-        borderRadius: 16,
+
+    /* ── How the list is gathered ── */
+    sortRow: {
+        flexDirection: 'row',
+        gap: Spacing.four,
+        paddingHorizontal: Spacing.four,
+        borderBottomWidth: 1,
     },
-    sortPillText: {
-        fontWeight: '600',
+    sortTab: {
+        alignItems: 'center',
+    },
+    /** The mark under the order the list is in. */
+    sortMark: {
+        height: 2,
+        alignSelf: 'stretch',
+        marginTop: Spacing.two + Spacing.one,
     },
     emptyText: {
-        fontStyle: 'italic',
-        paddingVertical: Spacing.two,
+        paddingVertical: Spacing.three,
     },
 
     // The list
-    todoList: {
-        gap: Spacing.one,
-    },
     swipeableContainer: {
-        borderRadius: 14,
         overflow: 'hidden',
     },
     todoRow: {
         flexDirection: 'row',
-        alignItems: 'stretch',
+        alignItems: 'flex-start',
+        borderBottomWidth: 1,
     },
     priorityBar: {
-        width: 4,
+        width: 3,
+        alignSelf: 'stretch',
+        marginTop: Spacing.half / 2,
     },
     todoMain: {
         flex: 1,
         flexDirection: 'row',
-        alignItems: 'center',
-        gap: Spacing.two,
-        paddingVertical: Spacing.two + Spacing.one,
-        paddingHorizontal: Spacing.three,
+        alignItems: 'flex-start',
+        gap: Spacing.three,
+        paddingVertical: Spacing.three,
+    },
+    /** Nudged onto the title's baseline rather than its line box. */
+    check: {
+        paddingTop: Spacing.half,
     },
     todoTextColumn: {
         flex: 1,
-        gap: Spacing.half,
+        gap: Spacing.one + Spacing.half / 2,
     },
-    dueRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: Spacing.half,
+    dueText: {
+        fontFamily: Fonts.sansMedium,
+        fontSize: 11,
+        lineHeight: 15,
+    },
+    dueOverdue: {
+        fontFamily: Fonts.sansSemiBold,
     },
     strikethrough: {
         textDecorationLine: 'line-through',
     },
     assigneeBadgeContainer: {
-        justifyContent: 'center',
-        paddingLeft: Spacing.one,
-        paddingRight: Spacing.three,
+        paddingTop: Spacing.three,
+        paddingLeft: Spacing.three,
     },
     showCompletedRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: Spacing.one,
-        paddingVertical: Spacing.three,
+        gap: Spacing.two,
+        paddingVertical: Spacing.four,
     },
-
-    // Priority Dot
-    priorityDot: {
-        width: 6,
-        height: 6,
-        borderRadius: 3,
-    },
-
-    // Assignee styling
 
     // Add button
     addButtonContainer: {
@@ -1086,16 +1078,22 @@ const styles = StyleSheet.create({
         paddingBottom: BottomTabInset + Spacing.three,
     },
     addButton: {
-        flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        gap: Spacing.two,
-        borderRadius: 14,
-        padding: Spacing.three,
+        borderRadius: 12,
+        paddingVertical: Spacing.three,
     },
     addButtonText: {
-        fontSize: 16,
-        fontWeight: '600',
+        fontFamily: Fonts.sansSemiBold,
+        fontSize: 13.5,
+        lineHeight: 18,
+    },
+
+    // Priority Dot
+    priorityDot: {
+        width: 6,
+        height: 6,
+        borderRadius: 3,
     },
 
     // Modal
@@ -1258,8 +1256,8 @@ const styles = StyleSheet.create({
         gap: Spacing.half,
     },
     actionText: {
-        color: '#ffffff',
+        fontFamily: Fonts.sansSemiBold,
         fontSize: 11,
-        fontWeight: '600',
+        lineHeight: 15,
     },
 });

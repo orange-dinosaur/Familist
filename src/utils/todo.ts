@@ -38,7 +38,7 @@ export type TodoSort = 'urgency' | 'priority' | 'assignee' | 'added';
 export const TODO_SORTS: { key: TodoSort; label: string }[] = [
     { key: 'urgency', label: 'Urgency' },
     { key: 'priority', label: 'Priority' },
-    { key: 'assignee', label: 'Assignee' },
+    { key: 'assignee', label: 'Person' },
     { key: 'added', label: 'Added' },
 ];
 
