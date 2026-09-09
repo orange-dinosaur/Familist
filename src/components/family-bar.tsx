@@ -824,7 +824,7 @@ export function FamilyBar() {
                         ) : (
                             <>
                                 <View style={styles.identity}>
-                                    <ThemedText type="subtitle">
+                                    <ThemedText type="figureLarge">
                                         Delete your account?
                                     </ThemedText>
                                     <ThemedText

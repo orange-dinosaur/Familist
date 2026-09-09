@@ -7,6 +7,7 @@
  * somewhere the reader has to go and find.
  */
 
+import { SymbolView } from 'expo-symbols';
 import React, { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
@@ -20,6 +21,27 @@ import { type Member } from '@/utils/member';
 export interface OwnedFamily {
     id: string;
     name: string;
+}
+
+function SectionLabel({ label, count }: { label: string; count?: number }) {
+    const theme = useTheme();
+
+    return (
+        <View
+            style={[
+                styles.sectionHeader,
+                { borderTopColor: `${theme.text}29` },
+            ]}>
+            <ThemedText type="label">{label}</ThemedText>
+            {count !== undefined && (
+                <ThemedText
+                    themeColor="textSecondary"
+                    style={styles.sectionCount}>
+                    {count}
+                </ThemedText>
+            )}
+        </View>
+    );
 }
 
 interface AccountHandoverProps {
@@ -89,7 +111,7 @@ export function AccountHandover({
         return (
             <>
                 <View style={styles.identity}>
-                    <ThemedText type="subtitle">
+                    <ThemedText type="figureLarge">
                         Who takes {open.name}?
                     </ThemedText>
                     <ThemedText type="small" themeColor="textSecondary">
@@ -97,6 +119,8 @@ export function AccountHandover({
                         an owner until your account goes.
                     </ThemedText>
                 </View>
+
+                <SectionLabel label="New owner" count={candidates.length} />
 
                 <ScrollView
                     style={styles.scroll}
@@ -111,11 +135,11 @@ export function AccountHandover({
                             accessibilityRole="button"
                             style={({ pressed }) => [
                                 styles.row,
-                                { backgroundColor: theme.backgroundElement },
+                                { borderBottomColor: `${theme.text}17` },
                                 pressed && { opacity: 0.6 },
                             ]}>
-                            <MemberAvatar member={member} size={32} />
-                            <ThemedText type="default">
+                            <MemberAvatar member={member} size={34} />
+                            <ThemedText type="default" style={styles.rowLabel}>
                                 {member.name}
                             </ThemedText>
                         </Pressable>
@@ -145,7 +169,9 @@ export function AccountHandover({
     return (
         <>
             <View style={styles.identity}>
-                <ThemedText type="subtitle">Hand these over first</ThemedText>
+                <ThemedText type="figureLarge">
+                    Hand these over first
+                </ThemedText>
                 <ThemedText type="small" themeColor="textSecondary">
                     You are the only owner of{' '}
                     {families.length === 1 ? 'this family' : 'these families'},
@@ -155,7 +181,8 @@ export function AccountHandover({
                 </ThemedText>
             </View>
 
-            <View style={styles.list}>
+            <View>
+                <SectionLabel label="Families" count={families.length} />
                 {families.map((family) => (
                     <Pressable
                         key={family.id}
@@ -165,10 +192,20 @@ export function AccountHandover({
                         accessibilityRole="button"
                         style={({ pressed }) => [
                             styles.row,
-                            { backgroundColor: theme.backgroundElement },
+                            { borderBottomColor: `${theme.text}17` },
                             pressed && { opacity: 0.6 },
                         ]}>
-                        <ThemedText type="default">{family.name}</ThemedText>
+                        <ThemedText type="default" style={styles.rowLabel}>
+                            {family.name}
+                        </ThemedText>
+                        <SymbolView
+                            name={{
+                                ios: 'chevron.right',
+                                web: 'chevron_right',
+                            }}
+                            tintColor={theme.textSecondary}
+                            size={12}
+                        />
                     </Pressable>
                 ))}
             </View>
@@ -195,8 +232,18 @@ const styles = StyleSheet.create({
     identity: {
         gap: Spacing.one,
     },
-    list: {
+    sectionHeader: {
+        flexDirection: 'row',
+        alignItems: 'baseline',
+        justifyContent: 'space-between',
         gap: Spacing.two,
+        borderTopWidth: 1,
+        paddingTop: Spacing.three,
+        paddingBottom: Spacing.one,
+    },
+    sectionCount: {
+        fontSize: 11,
+        lineHeight: 16,
     },
     /** The sheet is centred, so a long list gives way rather than pushing it off. */
     scroll: {
@@ -204,14 +251,18 @@ const styles = StyleSheet.create({
         maxHeight: 280,
     },
     scrollContent: {
-        gap: Spacing.two,
+        paddingBottom: Spacing.two,
     },
     row: {
         flexDirection: 'row',
         alignItems: 'center',
         gap: Spacing.three,
-        borderRadius: 12,
-        padding: Spacing.three,
+        paddingVertical: Spacing.three,
+        borderBottomWidth: 1,
+    },
+    rowLabel: {
+        flex: 1,
+        minWidth: 0,
     },
     actions: {
         flexDirection: 'row',
