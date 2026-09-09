@@ -1,5 +1,6 @@
 import { BlurView } from 'expo-blur';
 import { Image } from 'expo-image';
+import { useRouter } from 'expo-router';
 import { SymbolView, type AndroidSymbol, type SFSymbol } from 'expo-symbols';
 import React, { useState } from 'react';
 import { Modal, Pressable, StyleSheet, TextInput, View } from 'react-native';
@@ -184,6 +185,7 @@ export function FamilyBar() {
     } = useFamily();
     const { members, setMyImage, refresh: refreshMembers } = useMembers();
     const { data: session } = authClient.useSession();
+    const router = useRouter();
     const [accountOpen, setAccountOpen] = useState(false);
     const [familyOpen, setFamilyOpen] = useState(false);
     const [mode, setMode] = useState<Mode>('family');
@@ -747,13 +749,14 @@ export function FamilyBar() {
                             </ThemedText>
                         )}
 
-                        {/* Settings has no route until the appearance step builds it. */}
                         <MenuRow
                             label="Settings"
                             icon={{ ios: 'gearshape', web: 'settings' }}
                             chevron
-                            disabled
-                            onPress={() => {}}
+                            onPress={() => {
+                                setAccountOpen(false);
+                                router.navigate('/settings');
+                            }}
                         />
 
                         <MenuRow
