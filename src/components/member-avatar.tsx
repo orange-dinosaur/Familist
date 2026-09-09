@@ -13,6 +13,7 @@ import { StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { apiUrl } from '@/auth/client';
+import { Fonts } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { type Member } from '@/utils/member';
 
@@ -66,8 +67,9 @@ export function MemberAvatar({ member, size, icon }: MemberAvatarProps) {
             <ThemedText
                 themeColor="background"
                 style={{
-                    fontSize: Math.round(size * 0.42),
-                    fontWeight: '700',
+                    fontFamily: Fonts.sansBold,
+                    fontSize: Math.round(size * 0.4),
+                    lineHeight: Math.round(size * 0.5),
                 }}>
                 {member.initials}
             </ThemedText>
