@@ -18,11 +18,12 @@ import { ScreenHeader } from '@/components/screen-header';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import {
-    formatDaysUntil,
+    daysUntil,
+    formatCompactDateString,
     formatShortDateString,
     getRelativeDateString,
 } from '@/constants/dates';
-import { MaxContentWidth, Spacing } from '@/constants/theme';
+import { Colors, Fonts, MaxContentWidth, Spacing } from '@/constants/theme';
 import { type LoanItem } from '@/constants/types';
 import { LoansProvider, useLoans } from '@/hooks/use-loans';
 import { useMembers } from '@/hooks/use-members';
@@ -116,10 +117,14 @@ const LoanRow = React.memo(
                             }}>
                             <SymbolView
                                 name={{ ios: 'trash', web: 'delete' }}
-                                tintColor="#ffffff"
+                                tintColor={Colors.light.background}
                                 size={18}
                             />
-                            <ThemedText style={styles.actionText}>
+                            <ThemedText
+                                style={[
+                                    styles.actionText,
+                                    { color: Colors.light.background },
+                                ]}>
                                 Delete
                             </ThemedText>
                         </Pressable>
@@ -140,7 +145,7 @@ const LoanRow = React.memo(
                 <View
                     style={[
                         styles.row,
-                        { backgroundColor: theme.backgroundElement },
+                        { borderBottomColor: `${theme.text}17` },
                     ]}>
                     <Pressable
                         onPress={onTick}
@@ -161,30 +166,49 @@ const LoanRow = React.memo(
                                     : 'radio_button_unchecked',
                             }}
                             tintColor={
-                                loan.returned || !canTick
-                                    ? theme.textSecondary
-                                    : theme.text
+                                loan.returned
+                                    ? theme.memberSage
+                                    : canTick
+                                      ? theme.textSecondary
+                                      : theme.textMuted
                             }
-                            size={22}
+                            size={20}
                         />
 
                         <View style={styles.rowTextColumn}>
                             <ThemedText
+                                type="small"
                                 themeColor={
-                                    loan.returned ? 'textSecondary' : 'text'
+                                    loan.returned ? 'textMuted' : 'text'
                                 }
                                 style={loan.returned && styles.strikethrough}>
                                 {loan.item}
                             </ThemedText>
-                            <ThemedText type="small" themeColor="textSecondary">
+                            <ThemedText
+                                type="labelSmall"
+                                themeColor="textMuted"
+                                style={styles.rowWho}>
                                 {counterpartyLabel(loan.direction)}{' '}
                                 {loan.counterparty} ·{' '}
                                 {loan.returned && loan.returnedOn
-                                    ? `back ${formatShortDateString(loan.returnedOn)}`
-                                    : formatDaysUntil(loan.day)}
+                                    ? `back ${formatCompactDateString(loan.returnedOn)}`
+                                    : `since ${formatCompactDateString(loan.day)}`}
                             </ThemedText>
                         </View>
                     </Pressable>
+
+                    {!loan.returned && (
+                        <View style={styles.rowAway}>
+                            <ThemedText type="figure">
+                                {-daysUntil(loan.day)}
+                            </ThemedText>
+                            <ThemedText
+                                type="labelSmall"
+                                themeColor="textMuted">
+                                days
+                            </ThemedText>
+                        </View>
+                    )}
 
                     {member && <MemberAvatar member={member} size={24} />}
                 </View>
@@ -291,18 +315,41 @@ function Loans() {
 
     const renderGroup = (which: LoanItem['direction'], group: LoanItem[]) =>
         group.length > 0 && (
-            <View key={which} style={styles.group}>
-                <ThemedText type="small" themeColor="textSecondary">
-                    {directionLabel(which)}
-                </ThemedText>
-                <View style={styles.list}>{group.map(renderRow)}</View>
-            </View>
+            <React.Fragment key={which}>
+                <View
+                    style={[
+                        styles.sectionHeader,
+                        { borderTopColor: `${theme.text}29` },
+                    ]}>
+                    <ThemedText type="label">
+                        {directionLabel(which)}
+                    </ThemedText>
+                    <ThemedText
+                        themeColor="textSecondary"
+                        style={styles.sectionCount}>
+                        {group.length}
+                    </ThemedText>
+                </View>
+                {group.map(renderRow)}
+            </React.Fragment>
         );
 
     return (
         <ThemedView style={styles.container}>
             <SafeAreaView style={styles.safeArea}>
-                <ScreenHeader title="Loaned Items" />
+                <ScreenHeader
+                    title="Loaned Items"
+                    subtitle={
+                        loading || back.length === 0
+                            ? undefined
+                            : `${back.length} already back`
+                    }
+                    figure={
+                        loading
+                            ? undefined
+                            : { value: `${out.length}`, label: 'Out' }
+                    }
+                />
 
                 {error && !modalVisible && (
                     <ThemedText
@@ -357,21 +404,17 @@ function Loans() {
                                             : 'expand_more',
                                     }}
                                     tintColor={theme.textSecondary}
-                                    size={14}
+                                    size={12}
                                 />
                                 <ThemedText
                                     themeColor="textSecondary"
-                                    type="small">
+                                    type="labelSmall">
                                     {showingReturned ? 'Hide' : 'Show'}{' '}
                                     {back.length} returned
                                 </ThemedText>
                             </Pressable>
 
-                            {showingReturned && (
-                                <View style={styles.list}>
-                                    {back.map(renderRow)}
-                                </View>
-                            )}
+                            {showingReturned && back.map(renderRow)}
                         </>
                     )}
                 </ScrollView>
@@ -387,17 +430,12 @@ function Loans() {
                                 { backgroundColor: theme.text },
                                 pressed && { opacity: 0.8 },
                             ]}>
-                            <SymbolView
-                                name={{ ios: 'plus', web: 'add' }}
-                                tintColor={theme.background}
-                                size={20}
-                            />
                             <ThemedText
                                 style={[
                                     styles.addButtonText,
                                     { color: theme.background },
                                 ]}>
-                                Add Loan
+                                Add loan
                             </ThemedText>
                         </Pressable>
                     </View>
@@ -680,20 +718,24 @@ const styles = StyleSheet.create({
         paddingBottom: Spacing.two,
     },
     emptyText: {
-        fontStyle: 'italic',
-        paddingVertical: Spacing.two,
+        paddingVertical: Spacing.three,
     },
 
     // The two groups
-    group: {
+    sectionHeader: {
+        flexDirection: 'row',
+        alignItems: 'baseline',
+        justifyContent: 'space-between',
         gap: Spacing.two,
-        paddingBottom: Spacing.four,
+        borderTopWidth: 1,
+        paddingTop: Spacing.three,
+        paddingBottom: Spacing.one,
     },
-    list: {
-        gap: Spacing.one,
+    sectionCount: {
+        fontSize: 11,
+        lineHeight: 16,
     },
     swipeableContainer: {
-        borderRadius: 14,
         overflow: 'hidden',
     },
     row: {
@@ -701,7 +743,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         gap: Spacing.three,
         paddingVertical: Spacing.three,
-        paddingHorizontal: Spacing.three,
+        borderBottomWidth: 1,
     },
     rowMain: {
         flex: 1,
@@ -711,7 +753,13 @@ const styles = StyleSheet.create({
     },
     rowTextColumn: {
         flex: 1,
-        gap: Spacing.half,
+        minWidth: 0,
+    },
+    rowWho: {
+        marginTop: Spacing.one,
+    },
+    rowAway: {
+        alignItems: 'flex-end',
     },
     strikethrough: {
         textDecorationLine: 'line-through',
@@ -720,7 +768,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         gap: Spacing.two,
-        paddingVertical: Spacing.three,
+        paddingVertical: Spacing.four,
     },
     rightActionsContainer: {
         flexDirection: 'row',
@@ -735,26 +783,27 @@ const styles = StyleSheet.create({
         gap: Spacing.half,
     },
     actionText: {
-        color: '#ffffff',
+        fontFamily: Fonts.sansSemiBold,
         fontSize: 11,
-        fontWeight: '600',
+        lineHeight: 15,
     },
 
     // Add button
     addButtonContainer: {
         paddingHorizontal: Spacing.four,
+        paddingTop: Spacing.three,
         paddingBottom: Spacing.three,
     },
     addButton: {
-        flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        gap: Spacing.two,
-        borderRadius: 14,
+        borderRadius: 12,
         paddingVertical: Spacing.three,
     },
     addButtonText: {
-        fontWeight: '600',
+        fontFamily: Fonts.sansSemiBold,
+        fontSize: 13.5,
+        lineHeight: 18,
     },
 
     // The add and edit form
