@@ -41,11 +41,20 @@ function relativeToday(): string {
 
 export const todayLabel = relativeToday();
 
-export function formatShortDateString(dateStr: string): string {
+/**
+ * `withYear` spells the day out in full, year included, and gives up the
+ * "Today" shorthand to do it. Lists of deadlines want it: the day itself is what
+ * the reader is looking for, and a bare weekday and month cannot be placed.
+ */
+export function formatShortDateString(
+    dateStr: string,
+    withYear = false
+): string {
     const [year, month, day] = dateStr.split('-').map(Number);
     const date = new Date(year, month - 1, day);
     const today = new Date();
     if (
+        !withYear &&
         date.getFullYear() === today.getFullYear() &&
         date.getMonth() === today.getMonth() &&
         date.getDate() === today.getDate()
@@ -56,8 +65,22 @@ export function formatShortDateString(dateStr: string): string {
     const monthDay = date.toLocaleDateString(undefined, {
         month: 'short',
         day: 'numeric',
+        ...(withYear && { year: 'numeric' }),
     });
     return `${weekday}, ${monthDay}`;
+}
+
+/** The month a `YYYY-MM-DD` day falls in, for comparing one against another. */
+export function monthOf(day: string): string {
+    return day.slice(0, 7);
+}
+
+/** The month a day falls in, named in the device's language. */
+export function monthName(day: string): string {
+    const [year, month] = day.split('-').map(Number);
+    return new Date(year, month - 1, 1).toLocaleDateString(undefined, {
+        month: 'long',
+    });
 }
 
 export function getDateRange(): string[] {

@@ -87,6 +87,37 @@ export function renewalRow(subscription: SubscriptionItem): DueRow {
     };
 }
 
+/**
+ * The day a settled payment was settled on. Older rows were marked paid before
+ * the day was recorded, so the day it was due stands in for them.
+ */
+export function settledOn(payment: PaymentItem): string {
+    return payment.paidOn ?? payment.dueOn;
+}
+
+/**
+ * What the family has actually paid in `month`, or null when no single figure
+ * would be true: nothing settled, or amounts in more than one currency. A
+ * currency is chosen per payment and nothing records a rate between two.
+ */
+export function paidInMonth(
+    payments: PaymentItem[],
+    month: string
+): { amount: number; currency: Currency } | null {
+    const settled = payments.filter(
+        (one) => one.paid && settledOn(one).startsWith(month)
+    );
+
+    const [first] = settled;
+    if (!first) return null;
+    if (settled.some((one) => one.currency !== first.currency)) return null;
+
+    return {
+        amount: settled.reduce((sum, one) => sum + one.amount, 0),
+        currency: first.currency,
+    };
+}
+
 /** Soonest first, so what is overdue rises to the top. */
 export function byDue(a: DueRow, b: DueRow): number {
     if (a.dueOn !== b.dueOn) return a.dueOn < b.dueOn ? -1 : 1;

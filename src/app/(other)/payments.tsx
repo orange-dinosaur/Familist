@@ -19,11 +19,19 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { CURRENCIES, type Currency } from '@/constants/currencies';
 import {
-    formatDaysUntil,
+    daysUntil,
     formatShortDateString,
     getRelativeDateString,
+    monthName,
+    monthOf,
 } from '@/constants/dates';
-import { MaxContentWidth, Spacing } from '@/constants/theme';
+import {
+    Colors,
+    Fonts,
+    MaxContentWidth,
+    Spacing,
+    type ThemeColor,
+} from '@/constants/theme';
 import { type PaymentItem } from '@/constants/types';
 import { useMembers } from '@/hooks/use-members';
 import { PaymentsProvider, usePayments } from '@/hooks/use-payments';
@@ -38,13 +46,28 @@ import {
     byDue,
     type DueRow,
     nextRenewalAfter,
+    paidInMonth,
     paymentRow,
     renewalRow,
+    settledOn,
 } from '@/utils/payment';
+
+/** How long before a deadline the row starts warning about it. */
+const DueSoonDays = 15;
+
+/**
+ * What the caption's colour says about a deadline, now that the date itself is
+ * spelled out rather than described.
+ */
+function dueTone(row: DueRow, todayStr: string): ThemeColor {
+    if (row.paid) return 'textMuted';
+    if (row.dueOn < todayStr) return 'priorityHigh';
+    return daysUntil(row.dueOn) <= DueSoonDays ? 'priorityMedium' : 'textMuted';
+}
 
 interface DueRowProps {
     row: DueRow;
-    overdue: boolean;
+    tone: ThemeColor;
     canManage: boolean;
     canTick: boolean;
     onTick: () => void;
@@ -56,7 +79,7 @@ interface DueRowProps {
 const PaymentRow = React.memo(
     ({
         row,
-        overdue,
+        tone,
         canManage,
         canTick,
         onTick,
@@ -124,10 +147,14 @@ const PaymentRow = React.memo(
                             }}>
                             <SymbolView
                                 name={{ ios: 'trash', web: 'delete' }}
-                                tintColor="#ffffff"
+                                tintColor={Colors.light.background}
                                 size={18}
                             />
-                            <ThemedText style={styles.actionText}>
+                            <ThemedText
+                                style={[
+                                    styles.actionText,
+                                    { color: Colors.light.background },
+                                ]}>
                                 Delete
                             </ThemedText>
                         </Pressable>
@@ -151,7 +178,7 @@ const PaymentRow = React.memo(
                 <View
                     style={[
                         styles.row,
-                        { backgroundColor: theme.backgroundElement },
+                        { borderBottomColor: `${theme.text}17` },
                     ]}>
                     <Pressable
                         onPress={onTick}
@@ -176,51 +203,30 @@ const PaymentRow = React.memo(
                                     ? theme.textSecondary
                                     : theme.text
                             }
-                            size={22}
+                            size={20}
                         />
 
                         <View style={styles.rowTextColumn}>
-                            <View style={styles.nameLine}>
-                                {row.emoji ? (
-                                    <ThemedText style={styles.emoji}>
-                                        {row.emoji}
-                                    </ThemedText>
-                                ) : null}
-                                <ThemedText
-                                    themeColor={
-                                        row.paid ? 'textSecondary' : 'text'
-                                    }
-                                    style={row.paid && styles.strikethrough}>
-                                    {row.name}
-                                </ThemedText>
-                            </View>
+                            <ThemedText type="small">
+                                {row.emoji
+                                    ? `${row.emoji} ${row.name}`
+                                    : row.name}
+                            </ThemedText>
                             <ThemedText
-                                type="small"
-                                style={{
-                                    color: overdue
-                                        ? theme.destructive
-                                        : theme.textSecondary,
-                                }}>
-                                {formatAmount(row.amount, row.currency)} ·{' '}
+                                themeColor={tone}
+                                style={styles.rowWhen}>
                                 {row.paid
-                                    ? formatShortDateString(row.dueOn)
-                                    : formatDaysUntil(row.dueOn)}
+                                    ? `Paid ${formatShortDateString(settledOn(row.payment!), true)}`
+                                    : `Due ${formatShortDateString(row.dueOn, true)}`}
+                                {row.subscription ? ' · renewal' : ''}
                             </ThemedText>
                         </View>
                     </Pressable>
 
-                    {row.subscription && (
-                        <SymbolView
-                            name={{
-                                ios: 'arrow.triangle.2.circlepath',
-                                web: 'autorenew',
-                            }}
-                            tintColor={theme.textSecondary}
-                            size={16}
-                        />
-                    )}
-
-                    {payer && <MemberAvatar member={payer} size={24} />}
+                    <ThemedText type="figure">
+                        {formatAmount(row.amount, row.currency)}
+                    </ThemedText>
+                    {payer && <MemberAvatar member={payer} size={22} />}
                 </View>
             </Swipeable>
         );
@@ -228,6 +234,61 @@ const PaymentRow = React.memo(
 );
 
 PaymentRow.displayName = 'PaymentRow';
+
+interface SectionHeadingProps {
+    label: string;
+    value: string;
+    /** Set together on a section that opens and closes. */
+    expanded?: boolean;
+    onPress?: () => void;
+}
+
+/** The count on an upcoming section, the total on a settled one. */
+function SectionHeading({
+    label,
+    value,
+    expanded,
+    onPress,
+}: SectionHeadingProps) {
+    const theme = useTheme();
+
+    const heading = [
+        styles.sectionHeader,
+        { borderTopColor: `${theme.text}29` },
+    ];
+    const content = (
+        <>
+            <View style={styles.sectionLabel}>
+                <ThemedText type="label">{label}</ThemedText>
+                {onPress && (
+                    <SymbolView
+                        name={{
+                            ios: expanded ? 'chevron.down' : 'chevron.right',
+                            web: expanded ? 'expand_less' : 'expand_more',
+                        }}
+                        tintColor={theme.textSecondary}
+                        size={12}
+                    />
+                )}
+            </View>
+            <ThemedText themeColor="textSecondary" style={styles.sectionCount}>
+                {value}
+            </ThemedText>
+        </>
+    );
+
+    if (!onPress) return <View style={heading}>{content}</View>;
+
+    return (
+        <Pressable
+            onPress={onPress}
+            accessibilityRole="button"
+            accessibilityState={{ expanded }}
+            style={({ pressed }) => [heading, pressed && { opacity: 0.6 }]}>
+            {content}
+        </Pressable>
+    );
+}
 
 function Payments() {
     const theme = useTheme();
@@ -251,8 +312,16 @@ function Payments() {
 
     const [modalVisible, setModalVisible] = useState(false);
     const [editing, setEditing] = useState<PaymentItem | null>(null);
-    const [showingPaid, setShowingPaid] = useState(false);
     const [datePickerVisible, setDatePickerVisible] = useState(false);
+    const [showingEarlier, setShowingEarlier] = useState(false);
+    /**
+     * The last tick and how to reverse it. Ticking a renewal moves the
+     * subscription's own date on, which nothing else can put back.
+     */
+    const [lastTick, setLastTick] = useState<{
+        label: string;
+        undo: () => void;
+    } | null>(null);
 
     const [name, setName] = useState('');
     const [amount, setAmount] = useState('');
@@ -269,10 +338,21 @@ function Payments() {
         ...payments.filter((one) => !one.paid).map(paymentRow),
         ...subscriptions.map(renewalRow),
     ].sort(byDue);
+
+    /** The settled section is this month's, which is what its total counts. */
+    const thisMonth = monthOf(todayStr);
     const settled = payments
-        .filter((one) => one.paid)
+        .filter((one) => one.paid && settledOn(one).startsWith(thisMonth))
         .map(paymentRow)
         .sort(byDue);
+    const paid = paidInMonth(payments, thisMonth);
+
+    /** Everything settled before this month, newest first, folded away. */
+    const earlier = payments
+        .filter((one) => one.paid && !settledOn(one).startsWith(thisMonth))
+        .map(paymentRow)
+        .sort(byDue)
+        .reverse();
 
     const openAddModal = () => {
         setEditing(null);
@@ -325,16 +405,26 @@ function Payments() {
      * payment is written: the next renewal is the row that takes its place.
      */
     const tick = (row: DueRow) => {
-        if (row.payment) return togglePaid(row.payment.id);
+        if (row.payment) {
+            const { id } = row.payment;
+            setLastTick({
+                label: `${row.name} marked ${row.paid ? 'unpaid' : 'paid'}`,
+                undo: () => togglePaid(id),
+            });
+            return togglePaid(id);
+        }
 
         const subscription = row.subscription!;
         const { id, ...rest } = subscription;
+        /** The date it moved off, so a mis-tap can put the renewal back. */
+        const was = subscription.nextRenewal;
+        setLastTick({
+            label: `${row.name} renewed`,
+            undo: () => editSubscription(id, { ...rest, nextRenewal: was }),
+        });
         return editSubscription(id, {
             ...rest,
-            nextRenewal: nextRenewalAfter(
-                subscription.nextRenewal,
-                subscription.cycle
-            ),
+            nextRenewal: nextRenewalAfter(was, subscription.cycle),
         });
     };
 
@@ -343,7 +433,7 @@ function Payments() {
             key={row.key}
             row={row}
             theme={theme}
-            overdue={!row.paid && row.dueOn < todayStr}
+            tone={dueTone(row, todayStr)}
             canManage={canManageContent}
             /** A renewal is a write to the subscription, which a checker may not make. */
             canTick={
@@ -360,7 +450,45 @@ function Payments() {
     return (
         <ThemedView style={styles.container}>
             <SafeAreaView style={styles.safeArea}>
-                <ScreenHeader title="Payments" />
+                <ScreenHeader
+                    title="Payments"
+                    subtitle={loading ? undefined : monthName(todayStr)}
+                    figure={
+                        paid
+                            ? {
+                                  value: formatAmount(
+                                      paid.amount,
+                                      paid.currency
+                                  ),
+                                  label: 'This month',
+                              }
+                            : undefined
+                    }
+                />
+
+                {lastTick && (
+                    <Pressable
+                        onPress={() => {
+                            lastTick.undo();
+                            setLastTick(null);
+                        }}
+                        accessibilityLabel={`Undo: ${lastTick.label}`}
+                        accessibilityRole="button"
+                        style={({ pressed }) => [
+                            styles.undoRow,
+                            { backgroundColor: `${theme.text}14` },
+                            pressed && { opacity: 0.6 },
+                        ]}>
+                        <ThemedText
+                            type="small"
+                            themeColor="textSecondary"
+                            style={styles.undoLabel}
+                            numberOfLines={1}>
+                            {lastTick.label}
+                        </ThemedText>
+                        <ThemedText type="label">Undo</ThemedText>
+                    </Pressable>
+                )}
 
                 {listError && !modalVisible && (
                     <ThemedText
@@ -377,55 +505,53 @@ function Payments() {
                     style={styles.scrollView}
                     contentContainerStyle={styles.scrollContent}
                     showsVerticalScrollIndicator={false}>
-                    {outstanding.length === 0 ? (
+                    {outstanding.length === 0 &&
+                    settled.length === 0 &&
+                    earlier.length === 0 ? (
                         <ThemedText
                             themeColor="textSecondary"
                             style={styles.emptyText}>
                             {loading ? '' : 'Nothing due.'}
                         </ThemedText>
                     ) : (
-                        <View style={styles.list}>
-                            {outstanding.map(renderRow)}
-                        </View>
-                    )}
-
-                    {/* Settled, out of the way but not out of reach. */}
-                    {settled.length > 0 && (
                         <>
-                            <Pressable
-                                onPress={() =>
-                                    setShowingPaid((shown) => !shown)
-                                }
-                                accessibilityRole="button"
-                                accessibilityState={{ expanded: showingPaid }}
-                                style={({ pressed }) => [
-                                    styles.showPaidRow,
-                                    pressed && { opacity: 0.6 },
-                                ]}>
-                                <SymbolView
-                                    name={{
-                                        ios: showingPaid
-                                            ? 'chevron.down'
-                                            : 'chevron.right',
-                                        web: showingPaid
-                                            ? 'expand_less'
-                                            : 'expand_more',
-                                    }}
-                                    tintColor={theme.textSecondary}
-                                    size={14}
-                                />
-                                <ThemedText
-                                    themeColor="textSecondary"
-                                    type="small">
-                                    {showingPaid ? 'Hide' : 'Show'}{' '}
-                                    {settled.length} paid
-                                </ThemedText>
-                            </Pressable>
-
-                            {showingPaid && (
-                                <View style={styles.list}>
+                            {outstanding.length > 0 && (
+                                <>
+                                    <SectionHeading
+                                        label="Upcoming"
+                                        value={`${outstanding.length}`}
+                                    />
+                                    {outstanding.map(renderRow)}
+                                </>
+                            )}
+                            {settled.length > 0 && (
+                                <>
+                                    <SectionHeading
+                                        label={`Paid in ${monthName(todayStr)}`}
+                                        value={
+                                            paid
+                                                ? formatAmount(
+                                                      paid.amount,
+                                                      paid.currency
+                                                  )
+                                                : `${settled.length}`
+                                        }
+                                    />
                                     {settled.map(renderRow)}
-                                </View>
+                                </>
+                            )}
+                            {earlier.length > 0 && (
+                                <>
+                                    <SectionHeading
+                                        label="Earlier"
+                                        value={`${earlier.length}`}
+                                        expanded={showingEarlier}
+                                        onPress={() =>
+                                            setShowingEarlier((open) => !open)
+                                        }
+                                    />
+                                    {showingEarlier && earlier.map(renderRow)}
+                                </>
                             )}
                         </>
                     )}
@@ -442,17 +568,12 @@ function Payments() {
                                 { backgroundColor: theme.text },
                                 pressed && { opacity: 0.8 },
                             ]}>
-                            <SymbolView
-                                name={{ ios: 'plus', web: 'add' }}
-                                tintColor={theme.background}
-                                size={20}
-                            />
                             <ThemedText
                                 style={[
                                     styles.addButtonText,
                                     { color: theme.background },
                                 ]}>
-                                Add Payment
+                                Add payment
                             </ThemedText>
                         </Pressable>
                     </View>
@@ -736,25 +857,52 @@ const styles = StyleSheet.create({
         paddingHorizontal: Spacing.four,
         paddingBottom: Spacing.two,
     },
-    emptyText: {
-        fontStyle: 'italic',
+    undoRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: Spacing.three,
+        marginHorizontal: Spacing.four,
+        marginBottom: Spacing.two,
+        borderRadius: 12,
         paddingVertical: Spacing.two,
+        paddingHorizontal: Spacing.three,
+    },
+    undoLabel: {
+        flex: 1,
+    },
+    emptyText: {
+        paddingVertical: Spacing.three,
+    },
+    sectionHeader: {
+        flexDirection: 'row',
+        alignItems: 'baseline',
+        justifyContent: 'space-between',
+        gap: Spacing.two,
+        borderTopWidth: 1,
+        paddingTop: Spacing.three,
+        paddingBottom: Spacing.two,
+    },
+    sectionLabel: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: Spacing.two,
+    },
+    sectionCount: {
+        fontSize: 11,
+        lineHeight: 16,
     },
 
     // The list
-    list: {
-        gap: Spacing.one,
-    },
     swipeableContainer: {
-        borderRadius: 14,
         overflow: 'hidden',
     },
     row: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: Spacing.two,
+        gap: Spacing.three,
         paddingVertical: Spacing.three,
-        paddingHorizontal: Spacing.three,
+        borderBottomWidth: 1,
     },
     rowMain: {
         flex: 1,
@@ -764,25 +912,12 @@ const styles = StyleSheet.create({
     },
     rowTextColumn: {
         flex: 1,
-        gap: Spacing.half,
     },
-    nameLine: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: Spacing.two,
-    },
-    emoji: {
-        fontSize: 18,
-        lineHeight: 22,
-    },
-    strikethrough: {
-        textDecorationLine: 'line-through',
-    },
-    showPaidRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: Spacing.two,
-        paddingVertical: Spacing.three,
+    rowWhen: {
+        fontFamily: Fonts.sansMedium,
+        fontSize: 11,
+        lineHeight: 15,
+        marginTop: Spacing.one,
     },
     rightActionsContainer: {
         flexDirection: 'row',
@@ -797,26 +932,27 @@ const styles = StyleSheet.create({
         gap: Spacing.half,
     },
     actionText: {
-        color: '#ffffff',
+        fontFamily: Fonts.sansSemiBold,
         fontSize: 11,
-        fontWeight: '600',
+        lineHeight: 15,
     },
 
     // Add button
     addButtonContainer: {
         paddingHorizontal: Spacing.four,
+        paddingTop: Spacing.three,
         paddingBottom: Spacing.three,
     },
     addButton: {
-        flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        gap: Spacing.two,
-        borderRadius: 14,
+        borderRadius: 12,
         paddingVertical: Spacing.three,
     },
     addButtonText: {
-        fontWeight: '600',
+        fontFamily: Fonts.sansSemiBold,
+        fontSize: 13.5,
+        lineHeight: 18,
     },
 
     // The add and edit form

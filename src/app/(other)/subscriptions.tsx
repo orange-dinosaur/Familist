@@ -22,6 +22,7 @@ import {
     formatDaysUntil,
     formatShortDateString,
     getRelativeDateString,
+    monthOf,
 } from '@/constants/dates';
 import { MAX_EMOJI_LENGTH } from '@/constants/limits';
 import { Colors, Fonts, MaxContentWidth, Spacing } from '@/constants/theme';
@@ -185,11 +186,6 @@ const SubscriptionRow = React.memo(
 );
 
 SubscriptionRow.displayName = 'SubscriptionRow';
-
-/** The month a `YYYY-MM-DD` day falls in, for comparing one against another. */
-function monthOf(day: string): string {
-    return day.slice(0, 7);
-}
 
 function SectionHeading({ label, count }: { label: string; count: number }) {
     const theme = useTheme();

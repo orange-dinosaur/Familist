@@ -11,6 +11,7 @@ import {
     formatDaysUntil,
     formatShortDateString,
     getRelativeDateString,
+    monthOf,
 } from '@/constants/dates';
 import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
 import { ActivitiesProvider, useActivities } from '@/hooks/use-activities';
@@ -35,11 +36,6 @@ interface HubEntry {
     state: string | null;
     /** Figures wait for the collection rather than showing a zero. */
     loading: boolean;
-}
-
-/** The month a `YYYY-MM-DD` day falls in, for comparing one against another. */
-function monthOf(day: string): string {
-    return day.slice(0, 7);
 }
 
 function useHubEntries(): HubEntry[] {
