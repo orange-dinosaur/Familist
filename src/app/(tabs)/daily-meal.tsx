@@ -260,6 +260,7 @@ export default function DailyMealScreen() {
                                     <ThemedText
                                         type="label"
                                         themeColor="textSecondary"
+                                        numberOfLines={1}
                                         style={styles.mealTime}>
                                         {timeLabel[time]}
                                     </ThemedText>
@@ -690,13 +691,14 @@ const styles = StyleSheet.create({
     },
     mealRow: {
         flexDirection: 'row',
-        alignItems: 'flex-start',
+        alignItems: 'baseline',
         gap: Spacing.three,
         paddingVertical: Spacing.three,
         borderBottomWidth: 1,
     },
     mealTime: {
-        width: 64,
+        /** Breakfast is the longest, and the label tier tracks at 1.6. */
+        width: 76,
     },
     mealName: {
         flex: 1,
