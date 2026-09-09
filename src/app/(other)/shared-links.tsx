@@ -17,8 +17,9 @@ import { MemberAvatar } from '@/components/member-avatar';
 import { ScreenHeader } from '@/components/screen-header';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { dayOf, daysUntil, formatCompactDateString } from '@/constants/dates';
 import { MAX_URL_LENGTH } from '@/constants/limits';
-import { MaxContentWidth, Spacing } from '@/constants/theme';
+import { Colors, Fonts, MaxContentWidth, Spacing } from '@/constants/theme';
 import { type SharedLinkItem } from '@/constants/types';
 import { useFamily } from '@/hooks/use-family';
 import { useMembers } from '@/hooks/use-members';
@@ -106,10 +107,14 @@ const SharedLinkRow = React.memo(
                             }}>
                             <SymbolView
                                 name={{ ios: 'trash', web: 'delete' }}
-                                tintColor="#ffffff"
+                                tintColor={Colors.light.background}
                                 size={18}
                             />
-                            <ThemedText style={styles.actionText}>
+                            <ThemedText
+                                style={[
+                                    styles.actionText,
+                                    { color: Colors.light.background },
+                                ]}>
                                 Delete
                             </ThemedText>
                         </Pressable>
@@ -133,26 +138,34 @@ const SharedLinkRow = React.memo(
                     accessibilityRole="link"
                     style={({ pressed }) => [
                         styles.row,
-                        { backgroundColor: theme.backgroundElement },
-                        pressed && { opacity: 0.8 },
+                        { borderBottomColor: `${theme.text}17` },
+                        pressed && { opacity: 0.6 },
                     ]}>
-                    <SymbolView
-                        name={{ ios: 'link', web: 'link' }}
-                        tintColor={theme.textSecondary}
-                        size={22}
-                    />
-
                     <View style={styles.rowTextColumn}>
-                        <ThemedText>{sharedLink.title}</ThemedText>
+                        <ThemedText type="small">{sharedLink.title}</ThemedText>
                         <ThemedText
-                            type="small"
-                            themeColor="textSecondary"
+                            style={[styles.host, { color: theme.link }]}
                             numberOfLines={1}>
-                            {sharedLink.note ?? linkHost(sharedLink.url)}
+                            {linkHost(sharedLink.url)}
                         </ThemedText>
+                        {sharedLink.note && (
+                            <ThemedText
+                                type="note"
+                                themeColor="textMuted"
+                                style={styles.note}>
+                                {sharedLink.note}
+                            </ThemedText>
+                        )}
                     </View>
 
-                    {keeper && <MemberAvatar member={keeper} size={24} />}
+                    <View style={styles.rowAside}>
+                        {keeper && <MemberAvatar member={keeper} size={24} />}
+                        <ThemedText type="labelSmall" themeColor="textMuted">
+                            {formatCompactDateString(
+                                dayOf(sharedLink.createdAt)
+                            )}
+                        </ThemedText>
+                    </View>
                 </Pressable>
             </Swipeable>
         );
@@ -160,6 +173,30 @@ const SharedLinkRow = React.memo(
 );
 
 SharedLinkRow.displayName = 'SharedLinkRow';
+
+/** Where the list divides: what somebody dropped in this week, and the pile. */
+const ThisWeekDays = 7;
+
+function keptThisWeek(sharedLink: SharedLinkItem): boolean {
+    return -daysUntil(dayOf(sharedLink.createdAt)) < ThisWeekDays;
+}
+
+function SectionHeading({ label, count }: { label: string; count: number }) {
+    const theme = useTheme();
+
+    return (
+        <View
+            style={[
+                styles.sectionHeader,
+                { borderTopColor: `${theme.text}29` },
+            ]}>
+            <ThemedText type="label">{label}</ThemedText>
+            <ThemedText themeColor="textSecondary" style={styles.sectionCount}>
+                {count}
+            </ThemedText>
+        </View>
+    );
+}
 
 function SharedLinks() {
     const theme = useTheme();
@@ -185,6 +222,8 @@ function SharedLinks() {
     const [createdBy, setCreatedBy] = useState<string | undefined>(undefined);
 
     const listed = [...sharedLinks].sort(byNewest);
+    const thisWeek = listed.filter(keptThisWeek);
+    const earlier = listed.filter((one) => !keptThisWeek(one));
     const complete = title.trim().length > 0 && url.trim().length > 0;
 
     const openAddModal = () => {
@@ -229,12 +268,29 @@ function SharedLinks() {
         if (saved) setModalVisible(false);
     };
 
+    const renderRow = (sharedLink: SharedLinkItem) => (
+        <SharedLinkRow
+            key={sharedLink.id}
+            sharedLink={sharedLink}
+            theme={theme}
+            canManage={canManageContent}
+            onOpen={() => Linking.openURL(sharedLink.url)}
+            onEdit={() => openEditModal(sharedLink)}
+            onDelete={() => deleteSharedLink(sharedLink.id)}
+        />
+    );
+
     return (
         <ThemedView style={styles.container}>
             <SafeAreaView style={styles.safeArea}>
                 <ScreenHeader
                     title="Shared Links"
                     subtitle={loading ? undefined : 'Newest first'}
+                    figure={
+                        loading
+                            ? undefined
+                            : { value: `${listed.length}`, label: 'Kept' }
+                    }
                 />
 
                 {error && !modalVisible && (
@@ -259,23 +315,26 @@ function SharedLinks() {
                             {loading ? '' : 'No links kept yet.'}
                         </ThemedText>
                     ) : (
-                        <View style={styles.list}>
-                            {listed.map((sharedLink) => (
-                                <SharedLinkRow
-                                    key={sharedLink.id}
-                                    sharedLink={sharedLink}
-                                    theme={theme}
-                                    canManage={canManageContent}
-                                    onOpen={() =>
-                                        Linking.openURL(sharedLink.url)
-                                    }
-                                    onEdit={() => openEditModal(sharedLink)}
-                                    onDelete={() =>
-                                        deleteSharedLink(sharedLink.id)
-                                    }
-                                />
-                            ))}
-                        </View>
+                        <>
+                            {thisWeek.length > 0 && (
+                                <>
+                                    <SectionHeading
+                                        label="This week"
+                                        count={thisWeek.length}
+                                    />
+                                    {thisWeek.map(renderRow)}
+                                </>
+                            )}
+                            {earlier.length > 0 && (
+                                <>
+                                    <SectionHeading
+                                        label="Earlier"
+                                        count={earlier.length}
+                                    />
+                                    {earlier.map(renderRow)}
+                                </>
+                            )}
+                        </>
                     )}
                 </ScrollView>
 
@@ -290,17 +349,12 @@ function SharedLinks() {
                                 { backgroundColor: theme.text },
                                 pressed && { opacity: 0.8 },
                             ]}>
-                            <SymbolView
-                                name={{ ios: 'plus', web: 'add' }}
-                                tintColor={theme.background}
-                                size={20}
-                            />
                             <ThemedText
                                 style={[
                                     styles.addButtonText,
                                     { color: theme.background },
                                 ]}>
-                                Add Link
+                                Add link
                             </ThemedText>
                         </Pressable>
                     </View>
@@ -531,28 +585,49 @@ const styles = StyleSheet.create({
         paddingBottom: Spacing.two,
     },
     emptyText: {
-        fontStyle: 'italic',
-        paddingVertical: Spacing.two,
+        paddingVertical: Spacing.three,
+    },
+    sectionHeader: {
+        flexDirection: 'row',
+        alignItems: 'baseline',
+        justifyContent: 'space-between',
+        gap: Spacing.two,
+        borderTopWidth: 1,
+        paddingTop: Spacing.three,
+        paddingBottom: Spacing.one,
+    },
+    sectionCount: {
+        fontSize: 11,
+        lineHeight: 16,
     },
 
     // The list
-    list: {
-        gap: Spacing.one,
-    },
     swipeableContainer: {
-        borderRadius: 14,
         overflow: 'hidden',
     },
     row: {
         flexDirection: 'row',
-        alignItems: 'center',
+        alignItems: 'flex-start',
         gap: Spacing.three,
         paddingVertical: Spacing.three,
-        paddingHorizontal: Spacing.three,
+        borderBottomWidth: 1,
     },
     rowTextColumn: {
         flex: 1,
-        gap: Spacing.half,
+        minWidth: 0,
+    },
+    host: {
+        fontFamily: Fonts.sansMedium,
+        fontSize: 11.5,
+        lineHeight: 15,
+        marginTop: Spacing.one,
+    },
+    note: {
+        marginTop: Spacing.one,
+    },
+    rowAside: {
+        alignItems: 'flex-end',
+        gap: Spacing.two,
     },
     rightActionsContainer: {
         flexDirection: 'row',
@@ -567,26 +642,27 @@ const styles = StyleSheet.create({
         gap: Spacing.half,
     },
     actionText: {
-        color: '#ffffff',
+        fontFamily: Fonts.sansSemiBold,
         fontSize: 11,
-        fontWeight: '600',
+        lineHeight: 15,
     },
 
     // Add button
     addButtonContainer: {
         paddingHorizontal: Spacing.four,
+        paddingTop: Spacing.three,
         paddingBottom: Spacing.three,
     },
     addButton: {
-        flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        gap: Spacing.two,
-        borderRadius: 14,
+        borderRadius: 12,
         paddingVertical: Spacing.three,
     },
     addButtonText: {
-        fontWeight: '600',
+        fontFamily: Fonts.sansSemiBold,
+        fontSize: 13.5,
+        lineHeight: 18,
     },
 
     // The add and edit form

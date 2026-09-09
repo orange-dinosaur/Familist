@@ -70,6 +70,28 @@ export function formatShortDateString(
     return `${weekday}, ${monthDay}`;
 }
 
+/**
+ * The calendar day a stored timestamp falls on, on the device's clock. The
+ * `date` columns are already day keys; the `timestamp` ones are not, and reading
+ * the first ten characters of one would give UTC's day rather than the family's.
+ */
+export function dayOf(timestamp: string): string {
+    return formatDateString(new Date(timestamp));
+}
+
+/**
+ * The day, its month and its year, with no weekday. For places too narrow for
+ * the full form that still must not leave the year unsaid.
+ */
+export function formatCompactDateString(dateStr: string): string {
+    const [year, month, day] = dateStr.split('-').map(Number);
+    return new Date(year, month - 1, day).toLocaleDateString(undefined, {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+    });
+}
+
 /** The month a `YYYY-MM-DD` day falls in, for comparing one against another. */
 export function monthOf(day: string): string {
     return day.slice(0, 7);
