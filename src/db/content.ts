@@ -22,6 +22,7 @@ import {
     sharedLink,
     subscription,
     todo,
+    userPreference,
 } from '@/db/schema';
 import { CURRENCIES, type Currency } from '@/constants/currencies';
 import {
@@ -30,6 +31,7 @@ import {
     MAX_URL_LENGTH,
 } from '@/constants/limits';
 import {
+    type Appearance,
     type LoanItem,
     type MealItem,
     type SubscriptionItem,
@@ -57,6 +59,8 @@ export const SUBSCRIPTION_CYCLES: SubscriptionItem['cycle'][] = [
 ];
 
 export const LOAN_DIRECTIONS: LoanItem['direction'][] = ['lent', 'borrowed'];
+
+export const APPEARANCES: Appearance[] = ['system', 'light', 'dark'];
 
 /**
  * What the `integer` column itself holds. Bounding the amount here keeps an
@@ -169,6 +173,14 @@ export const LOAN_COLUMNS = {
     returnedOn: loan.returnedOn,
     updatedAt: loan.updatedAt,
     deletedAt: loan.deletedAt,
+};
+
+/**
+ * Preferences are not synced content, so this carries no reconciliation
+ * columns: the client asks for the value and is told it, or sets it.
+ */
+export const PREFERENCE_COLUMNS = {
+    appearance: userPreference.appearance,
 };
 
 /**
@@ -338,6 +350,19 @@ export function cycleError(value: unknown): string | null {
         !SUBSCRIPTION_CYCLES.includes(value as SubscriptionItem['cycle'])
     ) {
         return 'Unknown cycle';
+    }
+    return null;
+}
+
+export function appearanceError(value: unknown): string | null {
+    if (value === undefined || value === null) {
+        return 'An appearance is required';
+    }
+    if (
+        typeof value !== 'string' ||
+        !APPEARANCES.includes(value as Appearance)
+    ) {
+        return 'Unknown appearance';
     }
     return null;
 }

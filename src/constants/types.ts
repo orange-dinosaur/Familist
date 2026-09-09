@@ -11,6 +11,12 @@ export interface PlatformSymbol {
     web: AndroidSymbol;
 }
 
+/**
+ * What a person has chosen the app to look like. Theirs and not the family's,
+ * so it travels on its own rather than with the synced content.
+ */
+export type Appearance = 'system' | 'light' | 'dark';
+
 export interface MealItem {
     id: string;
     name: string;
