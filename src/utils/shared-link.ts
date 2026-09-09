@@ -11,6 +11,16 @@ export function byTitle(a: SharedLinkItem, b: SharedLinkItem): number {
 }
 
 /**
+ * Newest first, which is how a family reads a pile of links: the one somebody
+ * dropped in this morning is the one being looked for. Two kept in the same
+ * instant fall back to the title, so the order never wobbles between renders.
+ */
+export function byNewest(a: SharedLinkItem, b: SharedLinkItem): number {
+    if (a.createdAt !== b.createdAt) return a.createdAt > b.createdAt ? -1 : 1;
+    return a.title.localeCompare(b.title);
+}
+
+/**
  * The host, so a row says where the link goes without showing the query
  * string. Anything `URL` cannot parse is shown as it was typed - the route
  * refuses those, so this only happens while one is being written.

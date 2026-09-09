@@ -12,8 +12,11 @@ const SHARED_LINKS = {
     many: 'sharedLinks',
 };
 
-/** A write takes the whole record, the way the other Other collections do. */
-export type SharedLinkInput = Omit<SharedLinkItem, 'id'>;
+/**
+ * A write takes the whole record, the way the other Other collections do, minus
+ * the day it was kept: that is the store's to stamp and nobody's to edit.
+ */
+export type SharedLinkInput = Omit<SharedLinkItem, 'id' | 'createdAt'>;
 
 interface SharedLinksContextValue {
     sharedLinks: SharedLinkItem[];
@@ -55,7 +58,12 @@ export function SharedLinksProvider({
     const addSharedLink = useCallback(
         (input: SharedLinkInput) =>
             write('Could not add that link.', (store) =>
-                store.create({ ...input, createdBy: input.createdBy ?? null })
+                store.create({
+                    ...input,
+                    createdBy: input.createdBy ?? null,
+                    /** The server stamps its own, which sync then brings back. */
+                    createdAt: new Date().toISOString(),
+                })
             ),
         [write]
     );

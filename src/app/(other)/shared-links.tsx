@@ -26,7 +26,7 @@ import { usePermissions } from '@/hooks/use-permissions';
 import { SharedLinksProvider, useSharedLinks } from '@/hooks/use-shared-links';
 import { useTheme } from '@/hooks/use-theme';
 
-import { byTitle, linkHost } from '@/utils/shared-link';
+import { byNewest, linkHost } from '@/utils/shared-link';
 
 interface SharedLinkRowProps {
     sharedLink: SharedLinkItem;
@@ -184,7 +184,7 @@ function SharedLinks() {
     const [note, setNote] = useState('');
     const [createdBy, setCreatedBy] = useState<string | undefined>(undefined);
 
-    const listed = [...sharedLinks].sort(byTitle);
+    const listed = [...sharedLinks].sort(byNewest);
     const complete = title.trim().length > 0 && url.trim().length > 0;
 
     const openAddModal = () => {
@@ -232,7 +232,10 @@ function SharedLinks() {
     return (
         <ThemedView style={styles.container}>
             <SafeAreaView style={styles.safeArea}>
-                <ScreenHeader title="Shared Links" />
+                <ScreenHeader
+                    title="Shared Links"
+                    subtitle={loading ? undefined : 'Newest first'}
+                />
 
                 {error && !modalVisible && (
                     <ThemedText

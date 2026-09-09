@@ -113,6 +113,8 @@ export interface SharedLinkItem {
     note: string | null;
     /** Null is how the server says nobody, and how it is told so. */
     createdBy?: string | null;
+    /** When it was kept, which is the order the family reads them in. */
+    createdAt: string;
 }
 
 /**

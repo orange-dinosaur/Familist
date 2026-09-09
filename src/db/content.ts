@@ -153,6 +153,7 @@ export const SHARED_LINK_COLUMNS = {
     url: sharedLink.url,
     note: sharedLink.note,
     createdBy: sharedLink.createdBy,
+    createdAt: sharedLink.createdAt,
     updatedAt: sharedLink.updatedAt,
     deletedAt: sharedLink.deletedAt,
 };
