@@ -31,6 +31,7 @@ import {
     MAX_URL_LENGTH,
 } from '@/constants/limits';
 import {
+    APPEARANCES,
     type Appearance,
     type LoanItem,
     type MealItem,
@@ -59,8 +60,6 @@ export const SUBSCRIPTION_CYCLES: SubscriptionItem['cycle'][] = [
 ];
 
 export const LOAN_DIRECTIONS: LoanItem['direction'][] = ['lent', 'borrowed'];
-
-export const APPEARANCES: Appearance[] = ['system', 'light', 'dark'];
 
 /**
  * What the `integer` column itself holds. Bounding the amount here keeps an

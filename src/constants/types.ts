@@ -17,6 +17,8 @@ export interface PlatformSymbol {
  */
 export type Appearance = 'system' | 'light' | 'dark';
 
+export const APPEARANCES: Appearance[] = ['system', 'light', 'dark'];
+
 export interface MealItem {
     id: string;
     name: string;
