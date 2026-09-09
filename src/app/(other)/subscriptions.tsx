@@ -24,7 +24,7 @@ import {
     getRelativeDateString,
 } from '@/constants/dates';
 import { MAX_EMOJI_LENGTH } from '@/constants/limits';
-import { MaxContentWidth, Spacing } from '@/constants/theme';
+import { Colors, Fonts, MaxContentWidth, Spacing } from '@/constants/theme';
 import { type SubscriptionItem } from '@/constants/types';
 import { useMembers } from '@/hooks/use-members';
 import { useTheme } from '@/hooks/use-theme';
@@ -38,6 +38,7 @@ import { formatAmount, parseAmount } from '@/utils/money';
 import {
     byRenewal,
     cycleLabel,
+    monthlyTotal,
     SUBSCRIPTION_CYCLES,
 } from '@/utils/subscription';
 
@@ -91,11 +92,10 @@ const SubscriptionRow = React.memo(
                                 size={18}
                             />
                             <ThemedText
-                                style={{
-                                    color: theme.text,
-                                    fontSize: 11,
-                                    fontWeight: '600',
-                                }}>
+                                style={[
+                                    styles.actionText,
+                                    { color: theme.text },
+                                ]}>
                                 Edit
                             </ThemedText>
                         </Pressable>
@@ -117,10 +117,14 @@ const SubscriptionRow = React.memo(
                             }}>
                             <SymbolView
                                 name={{ ios: 'trash', web: 'delete' }}
-                                tintColor="#ffffff"
+                                tintColor={Colors.light.background}
                                 size={18}
                             />
-                            <ThemedText style={styles.actionText}>
+                            <ThemedText
+                                style={[
+                                    styles.actionText,
+                                    { color: Colors.light.background },
+                                ]}>
                                 Delete
                             </ThemedText>
                         </Pressable>
@@ -143,46 +147,37 @@ const SubscriptionRow = React.memo(
                 <View
                     style={[
                         styles.row,
-                        { backgroundColor: theme.backgroundElement },
+                        { borderBottomColor: `${theme.text}17` },
                     ]}>
-                    {subscription.emoji ? (
-                        <ThemedText style={styles.emoji}>
-                            {subscription.emoji}
-                        </ThemedText>
-                    ) : (
-                        <SymbolView
-                            name={{
-                                ios: 'creditcard.fill',
-                                web: 'credit_card',
-                            }}
-                            tintColor={theme.textSecondary}
-                            size={22}
-                        />
-                    )}
-
                     <View style={styles.rowTextColumn}>
-                        <ThemedText>{subscription.name}</ThemedText>
-                        <ThemedText type="small" themeColor="textSecondary">
-                            {formatAmount(
-                                subscription.amount,
-                                subscription.currency
-                            )}{' '}
-                            · {cycleLabel(subscription.cycle)}
+                        <ThemedText type="small">
+                            {subscription.emoji
+                                ? `${subscription.emoji} ${subscription.name}`
+                                : subscription.name}
+                        </ThemedText>
+                        <ThemedText
+                            style={[
+                                styles.rowCycle,
+                                {
+                                    color: overdue
+                                        ? theme.priorityHigh
+                                        : theme.textMuted,
+                                },
+                            ]}>
+                            {cycleLabel(subscription.cycle)} ·{' '}
+                            {overdue
+                                ? due
+                                : `renews ${formatShortDateString(subscription.nextRenewal)}`}
                         </ThemedText>
                     </View>
 
-                    <View style={styles.rowEnd}>
-                        <ThemedText
-                            type="small"
-                            style={{
-                                color: overdue
-                                    ? theme.destructive
-                                    : theme.textSecondary,
-                            }}>
-                            {due}
-                        </ThemedText>
-                        {payer && <MemberAvatar member={payer} size={24} />}
-                    </View>
+                    <ThemedText type="figure">
+                        {formatAmount(
+                            subscription.amount,
+                            subscription.currency
+                        )}
+                    </ThemedText>
+                    {payer && <MemberAvatar member={payer} size={22} />}
                 </View>
             </Swipeable>
         );
@@ -190,6 +185,28 @@ const SubscriptionRow = React.memo(
 );
 
 SubscriptionRow.displayName = 'SubscriptionRow';
+
+/** The month a `YYYY-MM-DD` day falls in, for comparing one against another. */
+function monthOf(day: string): string {
+    return day.slice(0, 7);
+}
+
+function SectionHeading({ label, count }: { label: string; count: number }) {
+    const theme = useTheme();
+
+    return (
+        <View
+            style={[
+                styles.sectionHeader,
+                { borderTopColor: `${theme.text}29` },
+            ]}>
+            <ThemedText type="label">{label}</ThemedText>
+            <ThemedText themeColor="textSecondary" style={styles.sectionCount}>
+                {count}
+            </ThemedText>
+        </View>
+    );
+}
 
 function Subscriptions() {
     const theme = useTheme();
@@ -218,6 +235,11 @@ function Subscriptions() {
     const [payerId, setPayerId] = useState<string | undefined>(undefined);
 
     const listed = [...subscriptions].sort(byRenewal);
+    /** Anything not yet charged this month, overdue renewals included. */
+    const thisMonth = monthOf(getRelativeDateString(0));
+    const soon = listed.filter((one) => monthOf(one.nextRenewal) <= thisMonth);
+    const later = listed.filter((one) => monthOf(one.nextRenewal) > thisMonth);
+    const total = monthlyTotal(subscriptions);
     const minorUnits = parseAmount(amount);
     const complete = name.trim().length > 0 && minorUnits !== null;
 
@@ -273,10 +295,37 @@ function Subscriptions() {
         if (saved) setModalVisible(false);
     };
 
+    const renderRow = (subscription: SubscriptionItem) => (
+        <SubscriptionRow
+            key={subscription.id}
+            subscription={subscription}
+            theme={theme}
+            canManage={canManageContent}
+            onEdit={() => openEditModal(subscription)}
+            onDelete={() => deleteSubscription(subscription.id)}
+        />
+    );
+
     return (
         <ThemedView style={styles.container}>
             <SafeAreaView style={styles.safeArea}>
-                <ScreenHeader title="Subscriptions" />
+                <ScreenHeader
+                    title="Subscriptions"
+                    subtitle={
+                        loading ? undefined : `${subscriptions.length} active`
+                    }
+                    figure={
+                        total
+                            ? {
+                                  value: formatAmount(
+                                      total.amount,
+                                      total.currency
+                                  ),
+                                  label: 'Per month',
+                              }
+                            : undefined
+                    }
+                />
 
                 {error && !modalVisible && (
                     <ThemedText
@@ -300,20 +349,26 @@ function Subscriptions() {
                             {loading ? '' : 'Nothing to renew yet.'}
                         </ThemedText>
                     ) : (
-                        <View style={styles.list}>
-                            {listed.map((subscription) => (
-                                <SubscriptionRow
-                                    key={subscription.id}
-                                    subscription={subscription}
-                                    theme={theme}
-                                    canManage={canManageContent}
-                                    onEdit={() => openEditModal(subscription)}
-                                    onDelete={() =>
-                                        deleteSubscription(subscription.id)
-                                    }
-                                />
-                            ))}
-                        </View>
+                        <>
+                            {soon.length > 0 && (
+                                <>
+                                    <SectionHeading
+                                        label="Renewing this month"
+                                        count={soon.length}
+                                    />
+                                    {soon.map(renderRow)}
+                                </>
+                            )}
+                            {later.length > 0 && (
+                                <>
+                                    <SectionHeading
+                                        label="Later"
+                                        count={later.length}
+                                    />
+                                    {later.map(renderRow)}
+                                </>
+                            )}
+                        </>
                     )}
                 </ScrollView>
 
@@ -328,17 +383,12 @@ function Subscriptions() {
                                 { backgroundColor: theme.text },
                                 pressed && { opacity: 0.8 },
                             ]}>
-                            <SymbolView
-                                name={{ ios: 'plus', web: 'add' }}
-                                tintColor={theme.background}
-                                size={20}
-                            />
                             <ThemedText
                                 style={[
                                     styles.addButtonText,
                                     { color: theme.background },
                                 ]}>
-                                Add Subscription
+                                Add subscription
                             </ThemedText>
                         </Pressable>
                     </View>
@@ -678,16 +728,24 @@ const styles = StyleSheet.create({
         paddingBottom: Spacing.two,
     },
     emptyText: {
-        fontStyle: 'italic',
-        paddingVertical: Spacing.two,
+        paddingVertical: Spacing.three,
+    },
+    sectionHeader: {
+        flexDirection: 'row',
+        alignItems: 'baseline',
+        justifyContent: 'space-between',
+        gap: Spacing.two,
+        borderTopWidth: 1,
+        paddingTop: Spacing.three,
+        paddingBottom: Spacing.two,
+    },
+    sectionCount: {
+        fontSize: 11,
+        lineHeight: 16,
     },
 
     // The list
-    list: {
-        gap: Spacing.one,
-    },
     swipeableContainer: {
-        borderRadius: 14,
         overflow: 'hidden',
     },
     row: {
@@ -695,19 +753,16 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         gap: Spacing.three,
         paddingVertical: Spacing.three,
-        paddingHorizontal: Spacing.three,
-    },
-    emoji: {
-        fontSize: 22,
-        lineHeight: 26,
+        borderBottomWidth: 1,
     },
     rowTextColumn: {
         flex: 1,
-        gap: Spacing.half,
     },
-    rowEnd: {
-        alignItems: 'flex-end',
-        gap: Spacing.one,
+    rowCycle: {
+        fontFamily: Fonts.sansMedium,
+        fontSize: 11,
+        lineHeight: 15,
+        marginTop: Spacing.one,
     },
     rightActionsContainer: {
         flexDirection: 'row',
@@ -722,26 +777,27 @@ const styles = StyleSheet.create({
         gap: Spacing.half,
     },
     actionText: {
-        color: '#ffffff',
+        fontFamily: Fonts.sansSemiBold,
         fontSize: 11,
-        fontWeight: '600',
+        lineHeight: 15,
     },
 
     // Add button
     addButtonContainer: {
         paddingHorizontal: Spacing.four,
+        paddingTop: Spacing.three,
         paddingBottom: Spacing.three,
     },
     addButton: {
-        flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        gap: Spacing.two,
-        borderRadius: 14,
+        borderRadius: 12,
         paddingVertical: Spacing.three,
     },
     addButtonText: {
-        fontWeight: '600',
+        fontFamily: Fonts.sansSemiBold,
+        fontSize: 13.5,
+        lineHeight: 18,
     },
 
     // The add and edit form
