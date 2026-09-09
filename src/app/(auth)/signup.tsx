@@ -1,3 +1,4 @@
+import { Image } from 'expo-image';
 import { Link } from 'expo-router';
 import React, { useState } from 'react';
 import {
@@ -12,11 +13,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { authClient, verificationCallbackURL } from '@/auth/client';
-import { MaxContentWidth, Spacing } from '@/constants/theme';
+import { Fonts, MaxContentWidth, Spacing } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useTheme } from '@/hooks/use-theme';
 
 export default function SignupScreen() {
     const theme = useTheme();
+    const scheme = useColorScheme();
 
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
@@ -74,6 +77,19 @@ export default function SignupScreen() {
         setResent(true);
     };
 
+    const lockup = (
+        <Image
+            source={
+                scheme === 'dark'
+                    ? require('@/assets/images/familist-lockup-verde.svg')
+                    : require('@/assets/images/familist-lockup-chiaro.svg')
+            }
+            style={styles.lockup}
+            contentFit="contain"
+            accessibilityLabel="FamiList"
+        />
+    );
+
     /**
      * Sign-up reports success whether or not the mail actually went out, so
      * this screen offers to send it again rather than promising it arrived.
@@ -83,11 +99,20 @@ export default function SignupScreen() {
             <ThemedView style={styles.container}>
                 <SafeAreaView style={styles.safeArea}>
                     <View style={styles.content}>
-                        <ThemedText type="subtitle">One more step</ThemedText>
-                        <ThemedText type="small" themeColor="textSecondary">
-                            We sent a verification link to {email.trim()}. Open
-                            it to finish setting up your account, then sign in.
-                        </ThemedText>
+                        <View style={styles.head}>
+                            {lockup}
+                            <ThemedText type="heading" style={styles.tagline}>
+                                One more step
+                            </ThemedText>
+                        </View>
+
+                        <View style={styles.message}>
+                            <ThemedText type="small" themeColor="textSecondary">
+                                We sent a verification link to {email.trim()}.
+                                Open it to finish setting up your account, then
+                                sign in.
+                            </ThemedText>
+                        </View>
 
                         {error && (
                             <ThemedText
@@ -99,26 +124,52 @@ export default function SignupScreen() {
 
                         {resent ? (
                             <ThemedText type="small" themeColor="textSecondary">
-                                Sent again.
+                                Sent again. Check your inbox.
                             </ThemedText>
                         ) : (
                             <Pressable
                                 onPress={resendVerification}
                                 accessibilityLabel="Resend the verification email"
-                                accessibilityRole="button">
-                                <ThemedText type="linkPrimary">
-                                    Nothing arrived? Send it again
-                                </ThemedText>
+                                accessibilityRole="button"
+                                style={({ pressed }) => [
+                                    styles.submitButton,
+                                    {
+                                        backgroundColor: pending
+                                            ? theme.backgroundElement
+                                            : theme.text,
+                                    },
+                                    pressed && { opacity: 0.8 },
+                                ]}>
+                                {pending ? (
+                                    <ActivityIndicator
+                                        color={theme.textSecondary}
+                                    />
+                                ) : (
+                                    <ThemedText
+                                        type="smallBold"
+                                        style={{ color: theme.background }}>
+                                        Send it again
+                                    </ThemedText>
+                                )}
                             </Pressable>
                         )}
 
-                        <View style={styles.footer}>
+                        <View style={styles.spacer} />
+
+                        <View
+                            style={[
+                                styles.footer,
+                                { borderTopColor: `${theme.text}24` },
+                            ]}>
+                            <ThemedText type="small" themeColor="textSecondary">
+                                Already verified?
+                            </ThemedText>
                             <Link href="/login" asChild>
                                 <Pressable
                                     accessibilityLabel="Go to sign in"
                                     accessibilityRole="button">
-                                    <ThemedText type="linkPrimary">
-                                        Back to sign in
+                                    <ThemedText type="smallBold">
+                                        Sign in
                                     </ThemedText>
                                 </Pressable>
                             </Link>
@@ -133,73 +184,85 @@ export default function SignupScreen() {
         <ThemedView style={styles.container}>
             <SafeAreaView style={styles.safeArea}>
                 <View style={styles.content}>
-                    <ThemedText type="subtitle">Create an account</ThemedText>
-                    <ThemedText type="small" themeColor="textSecondary">
-                        Your family&apos;s meals, chores and lists in one place.
-                    </ThemedText>
+                    <View style={styles.head}>
+                        {lockup}
+                        <ThemedText type="heading" style={styles.tagline}>
+                            Your family&apos;s meals, chores and lists in one
+                            place.
+                        </ThemedText>
+                    </View>
 
                     <View style={styles.form}>
-                        <ThemedText type="default" style={styles.label}>
-                            Name
-                        </ThemedText>
-                        <TextInput
+                        <View
                             style={[
-                                styles.textInput,
-                                {
-                                    backgroundColor: theme.backgroundElement,
-                                    color: theme.text,
-                                },
-                            ]}
-                            placeholder="How your family sees you"
-                            placeholderTextColor={theme.textSecondary}
-                            value={name}
-                            onChangeText={setName}
-                            autoComplete="name"
-                            accessibilityLabel="Name"
-                        />
+                                styles.field,
+                                { borderBottomColor: `${theme.text}24` },
+                            ]}>
+                            <ThemedText type="label" themeColor="textSecondary">
+                                Name
+                            </ThemedText>
+                            <TextInput
+                                style={[
+                                    styles.textInput,
+                                    { color: theme.text },
+                                ]}
+                                placeholder="How your family sees you"
+                                placeholderTextColor={theme.textMuted}
+                                value={name}
+                                onChangeText={setName}
+                                autoComplete="name"
+                                accessibilityLabel="Name"
+                            />
+                        </View>
 
-                        <ThemedText type="default" style={styles.label}>
-                            Email
-                        </ThemedText>
-                        <TextInput
+                        <View
                             style={[
-                                styles.textInput,
-                                {
-                                    backgroundColor: theme.backgroundElement,
-                                    color: theme.text,
-                                },
-                            ]}
-                            placeholder="you@example.com"
-                            placeholderTextColor={theme.textSecondary}
-                            value={email}
-                            onChangeText={setEmail}
-                            autoCapitalize="none"
-                            autoComplete="email"
-                            keyboardType="email-address"
-                            accessibilityLabel="Email"
-                        />
+                                styles.field,
+                                { borderBottomColor: `${theme.text}24` },
+                            ]}>
+                            <ThemedText type="label" themeColor="textSecondary">
+                                Email
+                            </ThemedText>
+                            <TextInput
+                                style={[
+                                    styles.textInput,
+                                    { color: theme.text },
+                                ]}
+                                placeholder="you@example.com"
+                                placeholderTextColor={theme.textMuted}
+                                value={email}
+                                onChangeText={setEmail}
+                                autoCapitalize="none"
+                                autoComplete="email"
+                                keyboardType="email-address"
+                                accessibilityLabel="Email"
+                            />
+                        </View>
 
-                        <ThemedText type="default" style={styles.label}>
-                            Password
-                        </ThemedText>
-                        <TextInput
+                        <View
                             style={[
-                                styles.textInput,
-                                {
-                                    backgroundColor: theme.backgroundElement,
-                                    color: theme.text,
-                                },
-                            ]}
-                            placeholder="At least 8 characters"
-                            placeholderTextColor={theme.textSecondary}
-                            value={password}
-                            onChangeText={setPassword}
-                            autoCapitalize="none"
-                            autoComplete="new-password"
-                            secureTextEntry
-                            onSubmitEditing={signUp}
-                            accessibilityLabel="Password"
-                        />
+                                styles.field,
+                                { borderBottomColor: `${theme.text}24` },
+                            ]}>
+                            <ThemedText type="label" themeColor="textSecondary">
+                                Password
+                            </ThemedText>
+                            <TextInput
+                                style={[
+                                    styles.textInput,
+                                    { color: theme.text },
+                                ]}
+                                placeholder="At least 8 characters"
+                                placeholderTextColor={theme.textMuted}
+                                value={password}
+                                onChangeText={setPassword}
+                                autoCapitalize="none"
+                                autoComplete="new-password"
+                                secureTextEntry
+                                onSubmitEditing={signUp}
+                                accessibilityLabel="Password"
+                            />
+                        </View>
                     </View>
 
                     {error && (
@@ -229,20 +292,24 @@ export default function SignupScreen() {
                             <ActivityIndicator color={theme.textSecondary} />
                         ) : (
                             <ThemedText
-                                style={[
-                                    styles.submitButtonText,
-                                    {
-                                        color: canSubmit
-                                            ? theme.background
-                                            : theme.textSecondary,
-                                    },
-                                ]}>
+                                type="smallBold"
+                                style={{
+                                    color: canSubmit
+                                        ? theme.background
+                                        : theme.textSecondary,
+                                }}>
                                 Create account
                             </ThemedText>
                         )}
                     </Pressable>
 
-                    <View style={styles.footer}>
+                    <View style={styles.spacer} />
+
+                    <View
+                        style={[
+                            styles.footer,
+                            { borderTopColor: `${theme.text}24` },
+                        ]}>
                         <ThemedText type="small" themeColor="textSecondary">
                             Already have an account?
                         </ThemedText>
@@ -250,7 +317,7 @@ export default function SignupScreen() {
                             <Pressable
                                 accessibilityLabel="Go to sign in"
                                 accessibilityRole="button">
-                                <ThemedText type="linkPrimary">
+                                <ThemedText type="smallBold">
                                     Sign in
                                 </ThemedText>
                             </Pressable>
@@ -274,38 +341,55 @@ const styles = StyleSheet.create({
     },
     content: {
         flex: 1,
-        justifyContent: 'center',
         paddingHorizontal: Spacing.four,
         gap: Spacing.two,
     },
-    form: {
-        gap: Spacing.two,
-        paddingTop: Spacing.three,
+    head: {
+        paddingTop: Spacing.five,
+        gap: Spacing.four,
     },
-    label: {
-        fontWeight: '600',
+    /** The lockup's artwork is 168 by 37, and it is drawn at its own size. */
+    lockup: {
+        width: 168,
+        height: 37,
+    },
+    tagline: {
+        maxWidth: 250,
+    },
+    message: {
+        paddingTop: Spacing.five,
+    },
+    form: {
+        paddingTop: Spacing.five,
+    },
+    field: {
+        gap: Spacing.two,
+        paddingBottom: Spacing.two,
+        marginBottom: Spacing.four,
+        borderBottomWidth: 1,
     },
     textInput: {
-        height: 48,
-        borderRadius: 12,
-        paddingHorizontal: Spacing.three,
+        fontFamily: Fonts.sansMedium,
         fontSize: 16,
+        paddingVertical: Spacing.one,
     },
     submitButton: {
         alignItems: 'center',
         justifyContent: 'center',
-        borderRadius: 14,
+        borderRadius: 12,
         padding: Spacing.three,
         marginTop: Spacing.two,
     },
-    submitButtonText: {
-        fontSize: 16,
-        fontWeight: '600',
+    spacer: {
+        flex: 1,
     },
     footer: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
         gap: Spacing.two,
+        paddingTop: Spacing.four,
+        paddingBottom: Spacing.three,
+        borderTopWidth: 1,
     },
 });
