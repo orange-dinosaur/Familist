@@ -3,8 +3,10 @@ import {
     DefaultTheme,
     ThemeProvider,
 } from '@react-navigation/native';
+import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
-import React from 'react';
+import * as SplashScreen from 'expo-splash-screen';
+import React, { useEffect } from 'react';
 import { useColorScheme } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
@@ -26,8 +28,29 @@ function Guarded({ children }: { children: React.ReactNode }) {
     return children;
 }
 
+/**
+ * Held until the faces are ready, so nothing is ever painted in the system
+ * font and then reflowed.
+ */
+SplashScreen.preventAutoHideAsync();
+
 export default function RootLayout() {
     const colorScheme = useColorScheme();
+    const [fontsLoaded] = useFonts({
+        'Newsreader-Regular': require('@/assets/fonts/Newsreader-Regular.ttf'),
+        'Newsreader-Italic': require('@/assets/fonts/Newsreader-Italic.ttf'),
+        'Newsreader-SemiBold': require('@/assets/fonts/Newsreader-SemiBold.ttf'),
+        'SplineSans-Regular': require('@/assets/fonts/SplineSans-Regular.ttf'),
+        'SplineSans-Medium': require('@/assets/fonts/SplineSans-Medium.ttf'),
+        'SplineSans-SemiBold': require('@/assets/fonts/SplineSans-SemiBold.ttf'),
+        'SplineSans-Bold': require('@/assets/fonts/SplineSans-Bold.ttf'),
+    });
+
+    useEffect(() => {
+        if (fontsLoaded) SplashScreen.hideAsync();
+    }, [fontsLoaded]);
+
+    if (!fontsLoaded) return null;
 
     return (
         <GestureHandlerRootView style={{ flex: 1 }}>

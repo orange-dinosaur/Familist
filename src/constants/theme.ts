@@ -50,30 +50,29 @@ export type MemberColor =
     | 'memberPlum'
     | 'memberSlate';
 
-export const Fonts = Platform.select({
-    ios: {
-        /** iOS `UIFontDescriptorSystemDesignDefault` */
-        sans: 'system-ui',
-        /** iOS `UIFontDescriptorSystemDesignSerif` */
-        serif: 'ui-serif',
-        /** iOS `UIFontDescriptorSystemDesignRounded` */
-        rounded: 'ui-rounded',
-        /** iOS `UIFontDescriptorSystemDesignMonospaced` */
-        mono: 'ui-monospace',
-    },
-    default: {
-        sans: 'normal',
-        serif: 'serif',
-        rounded: 'normal',
-        mono: 'monospace',
-    },
-    web: {
-        sans: 'var(--font-display)',
-        serif: 'var(--font-serif)',
-        rounded: 'var(--font-rounded)',
-        mono: 'var(--font-mono)',
-    },
-});
+/**
+ * Each weight is its own family, because that is the only thing React Native
+ * reads reliably on every platform - `fontWeight` against a single family is
+ * honoured on iOS and ignored on Android.
+ *
+ * The monospace is deliberately not bundled: it carries the small-caps section
+ * labels, and there the platform's own is the right one.
+ */
+export const Fonts = {
+    sans: 'SplineSans-Regular',
+    sansMedium: 'SplineSans-Medium',
+    sansSemiBold: 'SplineSans-SemiBold',
+    sansBold: 'SplineSans-Bold',
+    serif: 'Newsreader-Regular',
+    serifItalic: 'Newsreader-Italic',
+    serifSemiBold: 'Newsreader-SemiBold',
+    mono:
+        Platform.select({
+            ios: 'ui-monospace',
+            default: 'monospace',
+            web: 'var(--font-mono)',
+        }) ?? 'monospace',
+} as const;
 
 export const Spacing = {
     half: 2,
