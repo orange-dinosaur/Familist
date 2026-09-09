@@ -120,6 +120,13 @@
       "when": 1788337267005,
       "tag": "0016_perpetual_supreme_intelligence",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1788968522435,
+      "tag": "0017_familiar_wrecking_crew",
+      "breakpoints": true
     }
   ]
 }

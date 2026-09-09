@@ -129,6 +129,26 @@ export const userAvatar = pgTable('user_avatar', {
         .notNull(),
 });
 
+export const appearance = pgEnum('appearance', ['system', 'light', 'dark']);
+
+/**
+ * What a person has chosen the app to look like. Theirs, not the family's:
+ * one row per user, so the same household can disagree about dark mode.
+ */
+export const userPreference = pgTable('user_preference', {
+    id: text('id').primaryKey(),
+    userId: text('user_id')
+        .notNull()
+        .unique()
+        .references(() => user.id, { onDelete: 'cascade' }),
+    appearance: appearance('appearance').default('system').notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at')
+        .defaultNow()
+        .$onUpdate(() => new Date())
+        .notNull(),
+});
+
 // ─── Family ─────────────────────────────────────────────────────────────
 
 export const memberRole = pgEnum('member_role', ['owner', 'editor', 'checker']);
