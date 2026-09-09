@@ -1,4 +1,3 @@
-import { Image } from 'expo-image';
 import { SymbolView } from 'expo-symbols';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
@@ -17,19 +16,21 @@ import { useChores } from '@/hooks/use-chores';
 import { useMeals } from '@/hooks/use-meals';
 import { useMembers } from '@/hooks/use-members';
 import { usePermissions } from '@/hooks/use-permissions';
-import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useTheme } from '@/hooks/use-theme';
 import { useTodos } from '@/hooks/use-todos';
 import { byUrgency } from '@/utils/todo';
 
-function getFormattedDate(): string {
+/** The day names the screen; the date sits under it. */
+function today(): { weekday: string; date: string } {
     const now = new Date();
-    return now.toLocaleDateString(undefined, {
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-    });
+    return {
+        weekday: now.toLocaleDateString(undefined, { weekday: 'long' }),
+        date: now.toLocaleDateString(undefined, {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+        }),
+    };
 }
 
 const priorityColors = {
@@ -40,7 +41,6 @@ const priorityColors = {
 
 export default function HomeScreen() {
     const theme = useTheme();
-    const scheme = useColorScheme();
     const router = useRouter();
     const { members } = useMembers();
     const { meals, loading: mealsLoading } = useMeals();
@@ -101,11 +101,11 @@ export default function HomeScreen() {
     const sortedMeals = [...todayMeals].sort(
         (a, b) => (timeOrder[a.time] ?? 4) - (timeOrder[b.time] ?? 4)
     );
-    const mealPreviewItems = sortedMeals
-        .slice(0, 3)
-        .map((m) => `${timeLabel[m.time]}: ${m.name}`);
-    const remainingMeals = todayMeals.length - mealPreviewItems.length;
+    const shownMeals = mealsExpanded ? sortedMeals : sortedMeals.slice(0, 3);
+    const remainingMeals = todayMeals.length - shownMeals.length;
     const remainingChores = openChores.length - 3;
+
+    const { weekday, date } = today();
 
     const hiddenMealsCount = !mealsExpanded ? Math.max(0, remainingMeals) : 0;
     const hiddenChoresCount = !choresExpanded
@@ -120,59 +120,50 @@ export default function HomeScreen() {
             <SafeAreaView style={styles.safeArea}>
                 <FamilyBar />
 
-                {/* Header */}
                 <View style={styles.header}>
-                    {/*
-                     * The kit's two horizontal lockups are the same mark in
-                     * inks for opposite grounds: the green one is drawn in
-                     * cream and reads on the dark background, the light one
-                     * in green and brown and reads on the cream.
-                     */}
-                    <Image
-                        source={
-                            scheme === 'dark'
-                                ? require('@/assets/images/familist-lockup-verde.svg')
-                                : require('@/assets/images/familist-lockup-chiaro.svg')
-                        }
-                        style={styles.lockup}
-                        contentFit="contain"
-                        accessibilityLabel="FamiList"
-                    />
-
-                    {/* Date and day of the week */}
-                    <ThemedText
-                        themeColor="textSecondary"
-                        style={styles.dateText}>
-                        {getFormattedDate()}
-                    </ThemedText>
-
-                    {/* Two collections, one line; chores win if both spoke. */}
-                    {(choresError ?? todosError) && (
+                    <View style={styles.headerDay}>
+                        <ThemedText type="title">{weekday}</ThemedText>
                         <ThemedText
-                            type="small"
-                            style={{ color: theme.destructive }}>
-                            {choresError ?? todosError}
+                            themeColor="textSecondary"
+                            style={styles.dateText}>
+                            {date}
                         </ThemedText>
-                    )}
+                    </View>
+                    <View style={styles.headerFigure}>
+                        <ThemedText type="figureLarge" themeColor="memberSage">
+                            {openChores.length + openTodos.length}
+                        </ThemedText>
+                        <ThemedText type="label" themeColor="textSecondary">
+                            Open
+                        </ThemedText>
+                    </View>
                 </View>
+
+                {/* Two collections, one line; chores win if both spoke. */}
+                {(choresError ?? todosError) && (
+                    <ThemedText
+                        type="small"
+                        style={[styles.error, { color: theme.destructive }]}>
+                        {choresError ?? todosError}
+                    </ThemedText>
+                )}
 
                 <ScrollView
                     style={styles.scrollView}
                     contentContainerStyle={styles.scrollContent}
                     showsVerticalScrollIndicator={false}>
-                    {/* ─── Daily Meal Card ─── */}
                     <View
                         style={[
-                            styles.card,
-                            { backgroundColor: theme.backgroundElement },
+                            styles.section,
+                            { borderTopColor: `${theme.text}29` },
                         ]}>
-                        <View style={styles.cardContent}>
-                            <View style={styles.cardHeaderRow}>
+                        <View style={styles.sectionContent}>
+                            <View style={styles.sectionHeader}>
                                 <Pressable
                                     onPress={() =>
                                         setMealsExpanded(!mealsExpanded)
                                     }
-                                    style={styles.cardHeaderLeft}>
+                                    style={styles.sectionHeaderLeft}>
                                     <SymbolView
                                         name={{
                                             ios: mealsExpanded
@@ -183,102 +174,55 @@ export default function HomeScreen() {
                                                 : 'expand_more',
                                         }}
                                         tintColor={theme.textSecondary}
-                                        size={16}
+                                        size={12}
                                     />
-                                    <ThemedText
-                                        type="default"
-                                        style={styles.cardTitle}>
-                                        Daily Meal
-                                    </ThemedText>
+                                    <ThemedText type="label">Meals</ThemedText>
                                 </Pressable>
                                 <Pressable
                                     onPress={() =>
                                         router.navigate('/daily-meal')
                                     }
-                                    style={styles.cardArrowButton}>
+                                    style={styles.sectionLink}>
+                                    <ThemedText
+                                        themeColor="textSecondary"
+                                        style={styles.sectionCount}>
+                                        {todayMeals.length} planned
+                                    </ThemedText>
                                     <SymbolView
                                         name={{
-                                            ios: 'arrow.up.right.circle.fill',
-                                            web: 'open_in_new',
+                                            ios: 'chevron.right',
+                                            web: 'chevron_right',
                                         }}
                                         tintColor={theme.textSecondary}
-                                        size={20}
+                                        size={12}
                                     />
                                 </Pressable>
                             </View>
-                            <View style={styles.cardPreview}>
-                                {mealsExpanded ? (
-                                    hasMeals ? (
-                                        <View style={styles.expandedMealsList}>
-                                            {todayMeals.map((item, i) => (
-                                                <View
-                                                    key={i}
-                                                    style={
-                                                        styles.expandedMealRow
-                                                    }>
-                                                    <ThemedText
-                                                        type="small"
-                                                        style={
-                                                            styles.expandedMealTime
-                                                        }>
-                                                        {item.time
-                                                            .charAt(0)
-                                                            .toUpperCase() +
-                                                            item.time.slice(1)}
-                                                        :
-                                                    </ThemedText>
-                                                    <ThemedText
-                                                        type="small"
-                                                        style={
-                                                            styles.expandedMealName
-                                                        }>
-                                                        {item.name}
-                                                    </ThemedText>
-                                                </View>
-                                            ))}
-                                        </View>
-                                    ) : (
-                                        <ThemedText
-                                            themeColor="textSecondary"
-                                            type="small">
-                                            {mealsLoading
-                                                ? ''
-                                                : 'No meals planned yet'}
-                                        </ThemedText>
-                                    )
-                                ) : hasMeals ? (
+                            <View style={styles.rows}>
+                                {hasMeals ? (
                                     <>
-                                        {mealPreviewItems.map((item, i) => (
-                                            <ThemedText
-                                                key={i}
-                                                themeColor="textSecondary"
-                                                type="small"
-                                                numberOfLines={1}>
-                                                {item}
-                                            </ThemedText>
-                                        ))}
-                                        {hiddenMealsCount > 0 && (
-                                            <View
-                                                style={styles.subtleHiddenClue}>
-                                                <SymbolView
-                                                    name={{
-                                                        ios: 'eye.slash',
-                                                        web: 'visibility_off',
-                                                    }}
-                                                    tintColor={
-                                                        theme.textSecondary
-                                                    }
-                                                    size={12}
-                                                />
+                                        {shownMeals.map((item, i) => (
+                                            <View key={i} style={styles.row}>
                                                 <ThemedText
+                                                    type="label"
                                                     themeColor="textSecondary"
+                                                    style={styles.mealTime}>
+                                                    {timeLabel[item.time]}
+                                                </ThemedText>
+                                                <ThemedText
                                                     type="small"
-                                                    style={{
-                                                        fontStyle: 'italic',
-                                                    }}>
-                                                    +{hiddenMealsCount} more
+                                                    style={styles.rowLabel}>
+                                                    {item.name}
                                                 </ThemedText>
                                             </View>
+                                        ))}
+                                        {hiddenMealsCount > 0 && (
+                                            <ThemedText
+                                                type="note"
+                                                themeColor="textMuted"
+                                                style={styles.moreClue}>
+                                                +{hiddenMealsCount} more
+                                            </ThemedText>
                                         )}
                                     </>
                                 ) : (
@@ -294,19 +238,18 @@ export default function HomeScreen() {
                         </View>
                     </View>
 
-                    {/* ─── Daily Chores Card ─── */}
                     <View
                         style={[
-                            styles.card,
-                            { backgroundColor: theme.backgroundElement },
+                            styles.section,
+                            { borderTopColor: `${theme.text}29` },
                         ]}>
-                        <View style={styles.cardContent}>
-                            <View style={styles.cardHeaderRow}>
+                        <View style={styles.sectionContent}>
+                            <View style={styles.sectionHeader}>
                                 <Pressable
                                     onPress={() =>
                                         setChoresExpanded(!choresExpanded)
                                     }
-                                    style={styles.cardHeaderLeft}>
+                                    style={styles.sectionHeaderLeft}>
                                     <SymbolView
                                         name={{
                                             ios: choresExpanded
@@ -317,33 +260,35 @@ export default function HomeScreen() {
                                                 : 'expand_more',
                                         }}
                                         tintColor={theme.textSecondary}
-                                        size={16}
+                                        size={12}
                                     />
-                                    <ThemedText
-                                        type="default"
-                                        style={styles.cardTitle}>
-                                        Daily Chores
-                                    </ThemedText>
+                                    <ThemedText type="label">Chores</ThemedText>
                                 </Pressable>
                                 <Pressable
                                     onPress={() =>
                                         router.navigate('/daily-chores')
                                     }
-                                    style={styles.cardArrowButton}>
+                                    style={styles.sectionLink}>
+                                    <ThemedText
+                                        themeColor="textSecondary"
+                                        style={styles.sectionCount}>
+                                        {todayChores.length - openChores.length}{' '}
+                                        of {todayChores.length} done
+                                    </ThemedText>
                                     <SymbolView
                                         name={{
-                                            ios: 'arrow.up.right.circle.fill',
-                                            web: 'open_in_new',
+                                            ios: 'chevron.right',
+                                            web: 'chevron_right',
                                         }}
                                         tintColor={theme.textSecondary}
-                                        size={20}
+                                        size={12}
                                     />
                                 </Pressable>
                             </View>
-                            <View style={styles.cardPreview}>
+                            <View style={styles.rows}>
                                 {choresExpanded ? (
                                     openChores.length > 0 ? (
-                                        <View style={styles.expandedList}>
+                                        <View>
                                             {openChores.map((item) => {
                                                 const assignee = members.find(
                                                     (u) =>
@@ -360,9 +305,7 @@ export default function HomeScreen() {
                                                                 item.assigneeId
                                                             )
                                                         }
-                                                        style={
-                                                            styles.expandedCheckItem
-                                                        }>
+                                                        style={styles.row}>
                                                         <SymbolView
                                                             name={{
                                                                 ios: item.done
@@ -390,7 +333,7 @@ export default function HomeScreen() {
                                                             }
                                                             type="small"
                                                             style={[
-                                                                styles.todoLabel,
+                                                                styles.rowLabel,
                                                                 item.done &&
                                                                     styles.strikethrough,
                                                             ]}>
@@ -436,7 +379,7 @@ export default function HomeScreen() {
                                                             item.assigneeId
                                                         )
                                                     }
-                                                    style={styles.checkItem}>
+                                                    style={styles.row}>
                                                     <SymbolView
                                                         name={{
                                                             ios: item.done
@@ -465,7 +408,7 @@ export default function HomeScreen() {
                                                         type="small"
                                                         numberOfLines={1}
                                                         style={[
-                                                            styles.todoLabel,
+                                                            styles.rowLabel,
                                                             item.done &&
                                                                 styles.strikethrough,
                                                         ]}>
@@ -483,30 +426,12 @@ export default function HomeScreen() {
                                             );
                                         })}
                                         {hiddenChoresCount > 0 && (
-                                            <View
-                                                style={[
-                                                    styles.subtleHiddenClue,
-                                                    { marginLeft: 24 },
-                                                ]}>
-                                                <SymbolView
-                                                    name={{
-                                                        ios: 'eye.slash',
-                                                        web: 'visibility_off',
-                                                    }}
-                                                    tintColor={
-                                                        theme.textSecondary
-                                                    }
-                                                    size={12}
-                                                />
-                                                <ThemedText
-                                                    themeColor="textSecondary"
-                                                    type="small"
-                                                    style={{
-                                                        fontStyle: 'italic',
-                                                    }}>
-                                                    +{hiddenChoresCount} more
-                                                </ThemedText>
-                                            </View>
+                                            <ThemedText
+                                                type="note"
+                                                themeColor="textMuted"
+                                                style={styles.moreClue}>
+                                                +{hiddenChoresCount} more
+                                            </ThemedText>
                                         )}
                                     </>
                                 ) : (
@@ -520,19 +445,18 @@ export default function HomeScreen() {
                         </View>
                     </View>
 
-                    {/* ─── To-Do Card ─── */}
                     <View
                         style={[
-                            styles.card,
-                            { backgroundColor: theme.backgroundElement },
+                            styles.section,
+                            { borderTopColor: `${theme.text}29` },
                         ]}>
-                        <View style={styles.cardContent}>
-                            <View style={styles.cardHeaderRow}>
+                        <View style={styles.sectionContent}>
+                            <View style={styles.sectionHeader}>
                                 <Pressable
                                     onPress={() =>
                                         setTodosExpanded(!todosExpanded)
                                     }
-                                    style={styles.cardHeaderLeft}>
+                                    style={styles.sectionHeaderLeft}>
                                     <SymbolView
                                         name={{
                                             ios: todosExpanded
@@ -543,31 +467,32 @@ export default function HomeScreen() {
                                                 : 'expand_more',
                                         }}
                                         tintColor={theme.textSecondary}
-                                        size={16}
+                                        size={12}
                                     />
-                                    <ThemedText
-                                        type="default"
-                                        style={styles.cardTitle}>
-                                        To-Do
-                                    </ThemedText>
+                                    <ThemedText type="label">To-do</ThemedText>
                                 </Pressable>
                                 <Pressable
                                     onPress={() => router.navigate('/todo')}
-                                    style={styles.cardArrowButton}>
+                                    style={styles.sectionLink}>
+                                    <ThemedText
+                                        themeColor="textSecondary"
+                                        style={styles.sectionCount}>
+                                        {openTodos.length} open
+                                    </ThemedText>
                                     <SymbolView
                                         name={{
-                                            ios: 'arrow.up.right.circle.fill',
-                                            web: 'open_in_new',
+                                            ios: 'chevron.right',
+                                            web: 'chevron_right',
                                         }}
                                         tintColor={theme.textSecondary}
-                                        size={20}
+                                        size={12}
                                     />
                                 </Pressable>
                             </View>
-                            <View style={styles.cardPreview}>
+                            <View style={styles.rows}>
                                 {todosExpanded ? (
                                     openTodos.length > 0 ? (
-                                        <View style={styles.expandedList}>
+                                        <View>
                                             {openTodos.map((item) => {
                                                 const assignee = members.find(
                                                     (u) =>
@@ -584,9 +509,7 @@ export default function HomeScreen() {
                                                                 item.assigneeId
                                                             )
                                                         }
-                                                        style={
-                                                            styles.expandedCheckItem
-                                                        }>
+                                                        style={styles.row}>
                                                         <SymbolView
                                                             name={{
                                                                 ios: item.done
@@ -608,7 +531,7 @@ export default function HomeScreen() {
                                                         />
                                                         <View
                                                             style={[
-                                                                styles.priorityDot,
+                                                                styles.priorityBar,
                                                                 {
                                                                     backgroundColor:
                                                                         theme[
@@ -628,7 +551,7 @@ export default function HomeScreen() {
                                                             }
                                                             type="small"
                                                             style={[
-                                                                styles.todoLabel,
+                                                                styles.rowLabel,
                                                                 item.done &&
                                                                     styles.strikethrough,
                                                             ]}>
@@ -672,7 +595,7 @@ export default function HomeScreen() {
                                                             item.assigneeId
                                                         )
                                                     }
-                                                    style={styles.checkItem}>
+                                                    style={styles.row}>
                                                     <SymbolView
                                                         name={{
                                                             ios: 'circle',
@@ -689,7 +612,7 @@ export default function HomeScreen() {
                                                     />
                                                     <View
                                                         style={[
-                                                            styles.priorityDot,
+                                                            styles.priorityBar,
                                                             {
                                                                 backgroundColor:
                                                                     theme[
@@ -704,9 +627,7 @@ export default function HomeScreen() {
                                                     <ThemedText
                                                         type="small"
                                                         numberOfLines={1}
-                                                        style={
-                                                            styles.todoLabel
-                                                        }>
+                                                        style={styles.rowLabel}>
                                                         {item.label}
                                                     </ThemedText>
                                                     {assignee && (
@@ -719,30 +640,12 @@ export default function HomeScreen() {
                                             );
                                         })}
                                         {hiddenTodosCount > 0 && (
-                                            <View
-                                                style={[
-                                                    styles.subtleHiddenClue,
-                                                    { marginLeft: 40 },
-                                                ]}>
-                                                <SymbolView
-                                                    name={{
-                                                        ios: 'eye.slash',
-                                                        web: 'visibility_off',
-                                                    }}
-                                                    tintColor={
-                                                        theme.textSecondary
-                                                    }
-                                                    size={12}
-                                                />
-                                                <ThemedText
-                                                    themeColor="textSecondary"
-                                                    type="small"
-                                                    style={{
-                                                        fontStyle: 'italic',
-                                                    }}>
-                                                    +{hiddenTodosCount} more
-                                                </ThemedText>
-                                            </View>
+                                            <ThemedText
+                                                type="note"
+                                                themeColor="textMuted"
+                                                style={styles.moreClue}>
+                                                +{hiddenTodosCount} more
+                                            </ThemedText>
                                         )}
                                     </>
                                 ) : (
@@ -753,35 +656,17 @@ export default function HomeScreen() {
                                             No active tasks
                                         </ThemedText>
                                         {hiddenTodosCount > 0 && (
-                                            <View
-                                                style={[
-                                                    styles.subtleHiddenClue,
-                                                    { marginLeft: 0 },
-                                                ]}>
-                                                <SymbolView
-                                                    name={{
-                                                        ios: 'eye.slash',
-                                                        web: 'visibility_off',
-                                                    }}
-                                                    tintColor={
-                                                        theme.textSecondary
-                                                    }
-                                                    size={12}
-                                                />
-                                                <ThemedText
-                                                    themeColor="textSecondary"
-                                                    type="small"
-                                                    style={{
-                                                        fontStyle: 'italic',
-                                                    }}>
-                                                    +{hiddenTodosCount}{' '}
-                                                    completed task
-                                                    {hiddenTodosCount > 1
-                                                        ? 's'
-                                                        : ''}{' '}
-                                                    hidden
-                                                </ThemedText>
-                                            </View>
+                                            <ThemedText
+                                                type="note"
+                                                themeColor="textMuted"
+                                                style={styles.moreClue}>
+                                                +{hiddenTodosCount} completed
+                                                task
+                                                {hiddenTodosCount > 1
+                                                    ? 's'
+                                                    : ''}{' '}
+                                                hidden
+                                            </ThemedText>
                                         )}
                                     </View>
                                 )}
@@ -809,108 +694,88 @@ const styles = StyleSheet.create({
     },
     scrollContent: {
         paddingHorizontal: Spacing.four,
-        paddingBottom: BottomTabInset + Spacing.six,
+        paddingBottom: BottomTabInset + Spacing.three,
         gap: Spacing.three,
     },
     header: {
-        paddingTop: Spacing.two,
+        flexDirection: 'row',
+        alignItems: 'flex-end',
+        justifyContent: 'space-between',
+        gap: Spacing.three,
+        paddingTop: Spacing.three,
         paddingHorizontal: Spacing.four,
-        paddingBottom: Spacing.three,
-        gap: Spacing.one,
-        marginBottom: Spacing.two,
+        paddingBottom: Spacing.four,
     },
-    /** The lockup's viewBox is 533.72x117.6, so the height follows the width. */
-    lockup: {
-        width: 200,
-        height: 200 / 4.533,
-        alignSelf: 'flex-start',
+    headerDay: {
+        flex: 1,
+    },
+    headerFigure: {
+        alignItems: 'flex-end',
+        paddingBottom: Spacing.half,
     },
     dateText: {
-        marginTop: 0,
+        marginTop: Spacing.two,
+        fontSize: 13,
+        lineHeight: 18,
     },
-    /* ── Section cards ── */
-    card: {
-        borderRadius: 16,
-        padding: Spacing.three,
-        flexDirection: 'row',
-        alignItems: 'stretch',
-        gap: Spacing.three,
+    error: {
+        paddingHorizontal: Spacing.four,
+        paddingBottom: Spacing.two,
     },
-    cardContent: {
-        flex: 1,
+    /* ── Sections ── */
+    section: {
+        borderTopWidth: 1,
+        paddingTop: Spacing.three,
+    },
+    sectionContent: {
         gap: Spacing.two,
     },
-    cardTitle: {
-        fontSize: 18,
-        fontWeight: '600',
-        lineHeight: 24,
+    sectionHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: Spacing.two,
     },
-    cardPreview: {
-        gap: Spacing.one,
-    },
-    checkItem: {
+    sectionHeaderLeft: {
         flexDirection: 'row',
         alignItems: 'center',
         gap: Spacing.two,
+        flex: 1,
     },
-    priorityDot: {
-        width: 8,
-        height: 8,
-        borderRadius: 4,
+    sectionLink: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: Spacing.one,
+    },
+    sectionCount: {
+        fontSize: 11,
+        lineHeight: 16,
+    },
+    /* ── Rows ── */
+    rows: {
+        paddingTop: Spacing.half,
+    },
+    row: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: Spacing.three,
+        paddingVertical: Spacing.two,
+    },
+    rowLabel: {
+        flex: 1,
+    },
+    mealTime: {
+        width: 62,
+    },
+    priorityBar: {
+        width: 3,
+        height: 16,
     },
     strikethrough: {
         textDecorationLine: 'line-through',
     },
-    /* ── Bottom row ── */
-    cardHeaderRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        marginBottom: Spacing.one,
-    },
-    cardHeaderLeft: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: Spacing.two,
-        flex: 1,
-    },
-    cardArrowButton: {
-        padding: Spacing.one,
-    },
-    expandedMealsList: {
-        gap: Spacing.two,
-        marginTop: Spacing.one,
-    },
-    expandedMealRow: {
-        flexDirection: 'row',
-        gap: Spacing.two,
-        alignItems: 'center',
-    },
-    expandedMealTime: {
-        fontWeight: '600',
-        width: 80,
-    },
-    expandedMealName: {
-        flex: 1,
-    },
-    expandedList: {
-        gap: Spacing.two,
-        marginTop: Spacing.one,
-    },
-    expandedCheckItem: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: Spacing.three,
-        paddingVertical: Spacing.half,
-    },
-    todoLabel: {
-        flex: 1,
-    },
-    // Assignee styling
-    subtleHiddenClue: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: Spacing.one,
-        marginTop: Spacing.one,
+    moreClue: {
+        paddingTop: Spacing.one,
+        marginLeft: 31,
     },
 });

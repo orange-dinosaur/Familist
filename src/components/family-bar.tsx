@@ -1,4 +1,5 @@
 import { BlurView } from 'expo-blur';
+import { Image } from 'expo-image';
 import { SymbolView } from 'expo-symbols';
 import React, { useState } from 'react';
 import { Modal, Pressable, StyleSheet, TextInput, View } from 'react-native';
@@ -216,31 +217,52 @@ export function FamilyBar() {
     return (
         <>
             <View style={styles.bar}>
-                <Pressable
-                    onPress={openFamily}
-                    disabled={!family}
-                    accessibilityLabel={
-                        family ? `Family ${family.name}` : 'Family'
-                    }
-                    accessibilityRole="button"
-                    style={({ pressed }) => [
-                        styles.familyButton,
-                        pressed && { opacity: 0.7 },
-                    ]}>
-                    <ThemedText
-                        type="default"
-                        numberOfLines={1}
-                        style={styles.family}>
-                        {family?.name ?? ''}
-                    </ThemedText>
-                    {family && (
-                        <SymbolView
-                            name={{ ios: 'chevron.down', web: 'expand_more' }}
-                            tintColor={theme.textSecondary}
-                            size={14}
-                        />
-                    )}
-                </Pressable>
+                <View style={styles.brand}>
+                    {/*
+                     * The mark is drawn twice, in inks for opposite grounds:
+                     * the green one reads on the dark background, the light
+                     * one on the cream.
+                     */}
+                    <Image
+                        source={
+                            scheme === 'dark'
+                                ? require('@/assets/images/familist-mark-verde.svg')
+                                : require('@/assets/images/familist-mark-chiaro.svg')
+                        }
+                        style={styles.mark}
+                        contentFit="contain"
+                        accessibilityLabel="FamiList"
+                    />
+
+                    <Pressable
+                        onPress={openFamily}
+                        disabled={!family}
+                        accessibilityLabel={
+                            family ? `Family ${family.name}` : 'Family'
+                        }
+                        accessibilityRole="button"
+                        style={({ pressed }) => [
+                            styles.familyButton,
+                            pressed && { opacity: 0.7 },
+                        ]}>
+                        <ThemedText
+                            type="default"
+                            numberOfLines={1}
+                            style={styles.family}>
+                            {family?.name ?? ''}
+                        </ThemedText>
+                        {family && (
+                            <SymbolView
+                                name={{
+                                    ios: 'chevron.down',
+                                    web: 'expand_more',
+                                }}
+                                tintColor={theme.textSecondary}
+                                size={14}
+                            />
+                        )}
+                    </Pressable>
+                </View>
 
                 <Pressable
                     onPress={() => setAccountOpen(true)}
@@ -854,6 +876,17 @@ const styles = StyleSheet.create({
         alignSelf: 'center',
         paddingHorizontal: Spacing.four,
         paddingTop: Spacing.two,
+    },
+    brand: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: Spacing.two,
+        flexShrink: 1,
+    },
+    /** The mark's viewBox is square, so it sits in a square box. */
+    mark: {
+        width: 28,
+        height: 28,
     },
     familyButton: {
         flexDirection: 'row',

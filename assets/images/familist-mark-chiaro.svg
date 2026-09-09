@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="512" height="512" role="img" aria-label="FamiList">
+<rect x="17.1" y="16.4" width="2.8" height="35" rx="1.4" fill="#2F4436"/>
+<path d="M18.5 18c-5.5 0-8-2.5-8-6.5 5.5 0 8 2.5 8 6.5z" fill="#7C8F79"/>
+<path d="M18.5 32c-5.5 0-8-2.5-8-6.5 5.5 0 8 2.5 8 6.5z" fill="#7C8F79"/>
+<path d="M18.5 46c-5.5 0-8-2.5-8-6.5 5.5 0 8 2.5 8 6.5z" fill="#7C8F79"/>
+<rect x="23.5" y="16.4" width="30" height="3.2" rx="1.6" fill="#6B4F3A"/>
+<rect x="23.5" y="30.4" width="22" height="3.2" rx="1.6" fill="#6B4F3A"/>
+</svg>
