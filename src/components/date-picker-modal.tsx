@@ -5,7 +5,7 @@ import { Modal, Pressable, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { formatDateString, getRelativeDateString } from '@/constants/dates';
-import { Spacing } from '@/constants/theme';
+import { Colors, Fonts, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useTheme } from '@/hooks/use-theme';
 
@@ -111,11 +111,13 @@ export function DatePickerModal({
                                     ios: 'chevron.left',
                                     web: 'chevron_left',
                                 }}
-                                tintColor={theme.text}
-                                size={24}
+                                tintColor={theme.textSecondary}
+                                size={18}
                             />
                         </Pressable>
-                        <ThemedText type="subtitle" style={styles.monthTitle}>
+                        <ThemedText
+                            type="figureLarge"
+                            style={styles.monthTitle}>
                             {monthTitle}
                         </ThemedText>
                         <Pressable
@@ -128,23 +130,33 @@ export function DatePickerModal({
                                     ios: 'chevron.right',
                                     web: 'chevron_right',
                                 }}
-                                tintColor={theme.text}
-                                size={24}
+                                tintColor={theme.textSecondary}
+                                size={18}
                             />
                         </Pressable>
                     </View>
 
+                    <View>
+                        <View style={styles.weekdays}>
+                            {weekdayLabels.map((label) => (
+                                <View key={label} style={styles.weekdayCell}>
+                                    <ThemedText
+                                        type="label"
+                                        themeColor="textMuted">
+                                        {label}
+                                    </ThemedText>
+                                </View>
+                            ))}
+                        </View>
+                        <View
+                            style={[
+                                styles.rule,
+                                { backgroundColor: `${theme.text}29` },
+                            ]}
+                        />
+                    </View>
+
                     <View style={styles.grid}>
-                        {weekdayLabels.map((label) => (
-                            <View key={label} style={styles.cell}>
-                                <ThemedText
-                                    type="small"
-                                    themeColor="textSecondary"
-                                    style={styles.weekdayLabel}>
-                                    {label}
-                                </ThemedText>
-                            </View>
-                        ))}
                         {monthGrid(month).map((day, index) => {
                             if (!day) {
                                 return (
@@ -170,19 +182,17 @@ export function DatePickerModal({
                                             },
                                             !isSelected &&
                                                 day === todayStr && {
-                                                    backgroundColor:
-                                                        theme.backgroundElement,
+                                                    borderWidth: 1,
+                                                    borderColor: `${theme.text}29`,
                                                 },
                                         ]}>
                                         <ThemedText
-                                            style={[
-                                                styles.dayText,
-                                                {
-                                                    color: isSelected
-                                                        ? theme.background
-                                                        : theme.text,
-                                                },
-                                            ]}>
+                                            type="figureSmall"
+                                            style={{
+                                                color: isSelected
+                                                    ? theme.background
+                                                    : theme.text,
+                                            }}>
                                             {Number(day.slice(-2))}
                                         </ThemedText>
                                     </Pressable>
@@ -197,7 +207,7 @@ export function DatePickerModal({
                         accessibilityRole="button"
                         style={[
                             styles.closeButton,
-                            { backgroundColor: theme.backgroundElement },
+                            { borderColor: `${theme.text}29` },
                         ]}>
                         <ThemedText style={styles.closeButtonText}>
                             Cancel
@@ -210,9 +220,10 @@ export function DatePickerModal({
 }
 
 const styles = StyleSheet.create({
+    /** The scrim is the same dark in both schemes, like the dock. */
     overlay: {
         flex: 1,
-        backgroundColor: 'rgba(0, 0, 0, 0.15)',
+        backgroundColor: `${Colors.dark.background}47`,
         justifyContent: 'center',
         alignItems: 'center',
         paddingHorizontal: Spacing.four,
@@ -220,7 +231,7 @@ const styles = StyleSheet.create({
     content: {
         width: '100%',
         maxWidth: 400,
-        borderRadius: 24,
+        borderRadius: 28,
         padding: Spacing.four,
         gap: Spacing.three,
     },
@@ -234,6 +245,17 @@ const styles = StyleSheet.create({
         flex: 1,
         textAlign: 'center',
     },
+    weekdays: {
+        flexDirection: 'row',
+        paddingBottom: Spacing.two,
+    },
+    weekdayCell: {
+        width: `${100 / 7}%`,
+        alignItems: 'center',
+    },
+    rule: {
+        height: StyleSheet.hairlineWidth,
+    },
     grid: {
         flexDirection: 'row',
         flexWrap: 'wrap',
@@ -245,9 +267,6 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         padding: Spacing.half,
     },
-    weekdayLabel: {
-        fontWeight: '600',
-    },
     day: {
         width: '100%',
         height: '100%',
@@ -255,18 +274,16 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         borderRadius: 999,
     },
-    dayText: {
-        fontSize: 15,
-        fontWeight: '600',
-    },
     closeButton: {
         alignItems: 'center',
         justifyContent: 'center',
-        padding: Spacing.three,
-        borderRadius: 14,
+        paddingVertical: Spacing.three,
+        borderRadius: 12,
+        borderWidth: 1,
     },
     closeButtonText: {
-        fontSize: 16,
-        fontWeight: '600',
+        fontFamily: Fonts.sansSemiBold,
+        fontSize: 13.5,
+        lineHeight: 18,
     },
 });
