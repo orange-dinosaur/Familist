@@ -12,7 +12,7 @@ import { FamilyMembers } from '@/components/family-members';
 import { MemberAvatar } from '@/components/member-avatar';
 import { ThemedText } from '@/components/themed-text';
 import { apiFetch, authClient } from '@/auth/client';
-import { Colors, MaxContentWidth, Spacing } from '@/constants/theme';
+import { Colors, Fonts, MaxContentWidth, Spacing } from '@/constants/theme';
 import { useAvatar } from '@/hooks/use-avatar';
 import { useFamily } from '@/hooks/use-family';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -50,6 +50,67 @@ const CONFIRM: Record<Confirm, { title: string; body: string; act: string }> = {
         act: 'Delete',
     },
 };
+
+/** One line of the account menu, under the hairline that divides them. */
+function MenuRow({
+    label,
+    accessibilityLabel,
+    icon,
+    onPress,
+    tone = 'default',
+    chevron = false,
+    disabled = false,
+}: {
+    label: string;
+    accessibilityLabel?: string;
+    icon: { ios: SFSymbol; web: AndroidSymbol };
+    onPress: () => void;
+    tone?: 'default' | 'destructive';
+    chevron?: boolean;
+    disabled?: boolean;
+}) {
+    const theme = useTheme();
+    const tint = disabled
+        ? theme.textMuted
+        : tone === 'destructive'
+          ? theme.destructive
+          : theme.textSecondary;
+
+    return (
+        <Pressable
+            onPress={onPress}
+            disabled={disabled}
+            accessibilityLabel={accessibilityLabel ?? label}
+            accessibilityRole="button"
+            accessibilityState={{ disabled }}
+            style={({ pressed }) => [
+                styles.menuRow,
+                { borderTopColor: `${theme.text}17` },
+                pressed && { opacity: 0.6 },
+            ]}>
+            <SymbolView name={icon} tintColor={tint} size={16} />
+            <ThemedText
+                type="small"
+                themeColor={
+                    disabled
+                        ? 'textMuted'
+                        : tone === 'destructive'
+                          ? 'destructive'
+                          : 'text'
+                }
+                style={styles.menuLabel}>
+                {label}
+            </ThemedText>
+            {chevron && (
+                <SymbolView
+                    name={{ ios: 'chevron.right', web: 'chevron_right' }}
+                    tintColor={tint}
+                    size={12}
+                />
+            )}
+        </Pressable>
+    );
+}
 
 /** One line of the family sheet: an icon, a label, and a way further in. */
 function SheetRow({
@@ -334,7 +395,10 @@ export function FamilyBar() {
                     intensity={40}
                     tint={scheme === 'dark' ? 'dark' : 'light'}
                     experimentalBlurMethod="dimezisBlurView"
-                    style={styles.overlay}>
+                    style={[
+                        styles.overlay,
+                        { backgroundColor: `${theme.text}29` },
+                    ]}>
                     <Pressable
                         style={StyleSheet.absoluteFill}
                         onPress={() => setFamilyOpen(false)}
@@ -607,7 +671,10 @@ export function FamilyBar() {
                     intensity={40}
                     tint={scheme === 'dark' ? 'dark' : 'light'}
                     experimentalBlurMethod="dimezisBlurView"
-                    style={styles.overlay}>
+                    style={[
+                        styles.overlay,
+                        { backgroundColor: `${theme.text}29` },
+                    ]}>
                     <Pressable
                         style={StyleSheet.absoluteFill}
                         onPress={() => setAccountOpen(false)}
@@ -616,105 +683,97 @@ export function FamilyBar() {
                     />
                     <View
                         style={[
-                            styles.sheet,
-                            { backgroundColor: theme.background },
+                            styles.menu,
+                            {
+                                backgroundColor: theme.backgroundElement,
+                                shadowColor: theme.text,
+                            },
                         ]}>
-                        <View style={styles.identity}>
-                            <ThemedText type="subtitle">Account</ThemedText>
-                            {session?.user.email && (
-                                <ThemedText
-                                    type="small"
-                                    themeColor="textSecondary">
-                                    {session.user.email}
+                        <View style={styles.menuIdentity}>
+                            <MemberAvatar
+                                member={me}
+                                size={36}
+                                icon={{ ios: 'person.fill', web: 'person' }}
+                            />
+                            <View style={styles.menuText}>
+                                <ThemedText type="small" numberOfLines={1}>
+                                    {me?.name ??
+                                        session?.user.name ??
+                                        'Account'}
                                 </ThemedText>
-                            )}
+                                {session?.user.email && (
+                                    <ThemedText
+                                        themeColor="textMuted"
+                                        numberOfLines={1}
+                                        style={styles.menuEmail}>
+                                        {session.user.email}
+                                    </ThemedText>
+                                )}
+                            </View>
                         </View>
 
                         {/* Only somebody with a member row has a picture to change. */}
                         {me && (
-                            <View style={styles.picture}>
-                                <MemberAvatar member={me} size={72} />
-                                <View style={styles.pictureActions}>
-                                    <Pressable
-                                        onPress={choose}
-                                        disabled={avatarBusy}
-                                        accessibilityLabel="Change profile picture"
-                                        accessibilityRole="button">
-                                        <ThemedText themeColor="link">
-                                            {me.image
-                                                ? 'Change picture'
-                                                : 'Add a picture'}
-                                        </ThemedText>
-                                    </Pressable>
-                                    {me.image && (
-                                        <Pressable
-                                            onPress={removePicture}
-                                            disabled={avatarBusy}
-                                            accessibilityLabel="Remove profile picture"
-                                            accessibilityRole="button">
-                                            <ThemedText themeColor="textSecondary">
-                                                Remove
-                                            </ThemedText>
-                                        </Pressable>
-                                    )}
-                                </View>
-                                {avatarError && (
-                                    <ThemedText
-                                        type="small"
-                                        style={{ color: theme.destructive }}>
-                                        {avatarError}
-                                    </ThemedText>
-                                )}
-                            </View>
+                            <MenuRow
+                                label={
+                                    me.image
+                                        ? 'Change picture'
+                                        : 'Add a picture'
+                                }
+                                icon={{ ios: 'photo', web: 'image' }}
+                                disabled={avatarBusy}
+                                onPress={choose}
+                            />
                         )}
 
-                        <Pressable
-                            onPress={signOut}
-                            accessibilityLabel="Sign out"
-                            accessibilityRole="button"
-                            style={({ pressed }) => [
-                                styles.row,
-                                { backgroundColor: theme.backgroundElement },
-                                pressed && {
-                                    backgroundColor: theme.backgroundSelected,
-                                },
-                            ]}>
-                            <SymbolView
-                                name={{
-                                    ios: 'rectangle.portrait.and.arrow.right',
-                                    web: 'logout',
-                                }}
-                                tintColor={theme.textSecondary}
-                                size={22}
+                        {me?.image && (
+                            <MenuRow
+                                label="Remove picture"
+                                accessibilityLabel="Remove profile picture"
+                                icon={{ ios: 'xmark.circle', web: 'cancel' }}
+                                disabled={avatarBusy}
+                                onPress={removePicture}
                             />
-                            <ThemedText type="default">Sign out</ThemedText>
-                        </Pressable>
+                        )}
 
-                        <Pressable
+                        {avatarError && (
+                            <ThemedText
+                                type="small"
+                                style={[
+                                    styles.menuError,
+                                    { color: theme.destructive },
+                                ]}>
+                                {avatarError}
+                            </ThemedText>
+                        )}
+
+                        {/* Settings has no route until the appearance step builds it. */}
+                        <MenuRow
+                            label="Settings"
+                            icon={{ ios: 'gearshape', web: 'settings' }}
+                            chevron
+                            disabled
+                            onPress={() => {}}
+                        />
+
+                        <MenuRow
+                            label="Sign out"
+                            icon={{
+                                ios: 'rectangle.portrait.and.arrow.right',
+                                web: 'logout',
+                            }}
+                            onPress={signOut}
+                        />
+
+                        <MenuRow
+                            label="Delete account"
+                            icon={{ ios: 'trash', web: 'delete' }}
+                            tone="destructive"
                             onPress={() => {
                                 setError(null);
                                 setDeleting(true);
                             }}
-                            accessibilityLabel="Delete account"
-                            accessibilityRole="button"
-                            style={({ pressed }) => [
-                                styles.row,
-                                { backgroundColor: theme.backgroundElement },
-                                pressed && {
-                                    backgroundColor: theme.backgroundSelected,
-                                },
-                            ]}>
-                            <SymbolView
-                                name={{ ios: 'trash', web: 'delete' }}
-                                tintColor={theme.destructive}
-                                size={22}
-                            />
-                            <ThemedText
-                                type="default"
-                                style={{ color: theme.destructive }}>
-                                Delete account
-                            </ThemedText>
-                        </Pressable>
+                        />
                     </View>
                 </BlurView>
             </Modal>
@@ -733,7 +792,10 @@ export function FamilyBar() {
                     intensity={40}
                     tint={scheme === 'dark' ? 'dark' : 'light'}
                     experimentalBlurMethod="dimezisBlurView"
-                    style={styles.overlay}>
+                    style={[
+                        styles.overlay,
+                        { backgroundColor: `${theme.text}29` },
+                    ]}>
                     <Pressable
                         style={StyleSheet.absoluteFill}
                         onPress={closeDeleting}
@@ -891,18 +953,49 @@ const styles = StyleSheet.create({
         borderRadius: 14,
         paddingVertical: Spacing.three,
     },
-    picture: {
-        alignItems: 'center',
-        gap: Spacing.two,
-        paddingBottom: Spacing.one,
+    menu: {
+        width: '100%',
+        maxWidth: 400,
+        borderRadius: 18,
+        shadowOpacity: 0.3,
+        shadowRadius: 20,
+        shadowOffset: { width: 0, height: 10 },
+        elevation: 12,
     },
-    pictureActions: {
+    menuIdentity: {
         flexDirection: 'row',
-        gap: Spacing.four,
+        alignItems: 'center',
+        gap: Spacing.three,
+        paddingVertical: Spacing.three,
+        paddingHorizontal: Spacing.four,
+    },
+    menuText: {
+        flex: 1,
+        minWidth: 0,
+        gap: Spacing.half,
+    },
+    menuEmail: {
+        fontFamily: Fonts.sansMedium,
+        fontSize: 11,
+        lineHeight: 15,
+    },
+    menuRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: Spacing.three,
+        paddingVertical: Spacing.three,
+        paddingHorizontal: Spacing.four,
+        borderTopWidth: 1,
+    },
+    menuLabel: {
+        flex: 1,
+    },
+    menuError: {
+        paddingHorizontal: Spacing.four,
+        paddingBottom: Spacing.two,
     },
     overlay: {
         flex: 1,
-        backgroundColor: 'rgba(0, 0, 0, 0.15)',
         justifyContent: 'flex-end',
         alignItems: 'center',
         paddingHorizontal: Spacing.four,
@@ -917,14 +1010,6 @@ const styles = StyleSheet.create({
     },
     identity: {
         gap: Spacing.one,
-    },
-    row: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: Spacing.three,
-        borderRadius: 14,
-        paddingVertical: Spacing.three,
-        paddingHorizontal: Spacing.three,
     },
     sheetRow: {
         flexDirection: 'row',
