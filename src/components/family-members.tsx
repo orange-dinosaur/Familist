@@ -13,7 +13,8 @@ import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { MemberAvatar } from '@/components/member-avatar';
 import { ThemedText } from '@/components/themed-text';
-import { Spacing } from '@/constants/theme';
+import { dayOf, formatShortDateString } from '@/constants/dates';
+import { Fonts, Spacing } from '@/constants/theme';
 import { useFamily } from '@/hooks/use-family';
 import { type Invitation, useInvitations } from '@/hooks/use-invitations';
 import { useMembers } from '@/hooks/use-members';
@@ -67,6 +68,66 @@ const CONFIRMATIONS: Record<
  * placeholder being invited to sign in, or null for a brand new member.
  */
 type Inviting = { target: Member | null };
+
+/** What a member is to the family, as both the list and their own face say it. */
+function roleCaption(member: Member, meId: string | undefined): string {
+    const role = member.role ? ROLE_LABELS[member.role] : 'No account';
+    return member.id === meId ? `You · ${role}` : role;
+}
+
+/** One thing that can be done to the open member, under the same hairline. */
+function ActionRow({
+    label,
+    accessibilityLabel,
+    destructive = false,
+    onPress,
+}: {
+    label: string;
+    accessibilityLabel?: string;
+    destructive?: boolean;
+    onPress: () => void;
+}) {
+    const theme = useTheme();
+
+    return (
+        <Pressable
+            onPress={onPress}
+            accessibilityRole="button"
+            accessibilityLabel={accessibilityLabel ?? label}
+            style={({ pressed }) => [
+                styles.actionRow,
+                { borderBottomColor: `${theme.text}17` },
+                pressed && { opacity: 0.6 },
+            ]}>
+            <ThemedText
+                type="default"
+                style={destructive && { color: theme.destructive }}>
+                {label}
+            </ThemedText>
+        </Pressable>
+    );
+}
+
+function SectionLabel({ label, count }: { label: string; count?: number }) {
+    const theme = useTheme();
+
+    return (
+        <View
+            style={[
+                styles.sectionHeader,
+                { borderTopColor: `${theme.text}29` },
+            ]}>
+            <ThemedText type="label">{label}</ThemedText>
+            {count !== undefined && (
+                <ThemedText
+                    themeColor="textSecondary"
+                    style={styles.sectionCount}>
+                    {count}
+                </ThemedText>
+            )}
+        </View>
+    );
+}
 
 export function FamilyMembers({ onBack }: { onBack: () => void }) {
     const theme = useTheme();
@@ -205,7 +266,7 @@ export function FamilyMembers({ onBack }: { onBack: () => void }) {
     if (open && confirming !== null) {
         return (
             <>
-                <ThemedText type="subtitle">
+                <ThemedText type="figureLarge">
                     {CONFIRMATIONS[confirming].title}
                 </ThemedText>
                 <ThemedText type="small" themeColor="textSecondary">
@@ -237,7 +298,7 @@ export function FamilyMembers({ onBack }: { onBack: () => void }) {
     if (inviting && invitation !== null) {
         return (
             <>
-                <ThemedText type="subtitle">Their invite code</ThemedText>
+                <ThemedText type="figureLarge">Their invite code</ThemedText>
                 <ThemedText
                     selectable
                     style={[styles.code, { color: theme.text }]}>
@@ -246,7 +307,7 @@ export function FamilyMembers({ onBack }: { onBack: () => void }) {
                 <ThemedText type="small" themeColor="textSecondary">
                     Anyone holding this code can join your family as{' '}
                     {ROLE_LABELS[inviteRole]}. It stops working on{' '}
-                    {new Date(invitation.expiresAt).toLocaleDateString()}.
+                    {formatShortDateString(dayOf(invitation.expiresAt), true)}.
                 </ThemedText>
                 <ThemedText type="small" themeColor="textSecondary">
                     Nothing is emailed - pass it on yourself.
@@ -272,7 +333,7 @@ export function FamilyMembers({ onBack }: { onBack: () => void }) {
     if (inviting) {
         return (
             <>
-                <ThemedText type="subtitle">
+                <ThemedText type="figureLarge">
                     {inviting.target
                         ? `Invite ${inviting.target.name}`
                         : 'Invite someone'}
@@ -283,12 +344,7 @@ export function FamilyMembers({ onBack }: { onBack: () => void }) {
                         : 'They join the family as a new member.'}
                 </ThemedText>
 
-                <ThemedText
-                    type="smallBold"
-                    themeColor="textSecondary"
-                    style={styles.groupLabel}>
-                    Role
-                </ThemedText>
+                <SectionLabel label="Role" />
                 {MEMBER_ROLES.map((role) =>
                     roleRow(
                         role,
@@ -329,7 +385,15 @@ export function FamilyMembers({ onBack }: { onBack: () => void }) {
     if (open) {
         return (
             <>
-                <ThemedText type="subtitle">{open.name}</ThemedText>
+                <View style={styles.memberHeader}>
+                    <MemberAvatar member={open} size={44} />
+                    <View style={styles.memberText}>
+                        <ThemedText type="figureLarge">{open.name}</ThemedText>
+                        <ThemedText type="labelSmall" themeColor="textMuted">
+                            {roleCaption(open, membership?.id)}
+                        </ThemedText>
+                    </View>
+                </View>
 
                 <ScrollView
                     style={styles.scroll}
@@ -337,12 +401,7 @@ export function FamilyMembers({ onBack }: { onBack: () => void }) {
                     showsVerticalScrollIndicator={false}>
                     {open.role !== null && (
                         <>
-                            <ThemedText
-                                type="smallBold"
-                                themeColor="textSecondary"
-                                style={styles.groupLabel}>
-                                Role
-                            </ThemedText>
+                            <SectionLabel label="Role" />
                             {MEMBER_ROLES.map((role) =>
                                 roleRow(
                                     role,
@@ -368,48 +427,32 @@ export function FamilyMembers({ onBack }: { onBack: () => void }) {
 
                     {open.role !== null && open.id !== membership?.id && (
                         <>
-                            <Pressable
+                            <SectionLabel label="Manage" />
+                            <ActionRow
+                                label="Revoke access"
                                 onPress={() => setConfirming('revoke')}
-                                accessibilityRole="button"
-                                style={styles.option}>
-                                <ThemedText type="default">
-                                    Revoke access
-                                </ThemedText>
-                            </Pressable>
-                            <Pressable
+                            />
+                            <ActionRow
+                                label="Remove from the family"
+                                destructive
                                 onPress={() => setConfirming('remove')}
-                                accessibilityRole="button"
-                                style={styles.option}>
-                                <ThemedText
-                                    type="default"
-                                    style={{ color: theme.destructive }}>
-                                    Remove from the family
-                                </ThemedText>
-                            </Pressable>
+                            />
                         </>
                     )}
 
                     {open.role === null && (
                         <>
-                            <Pressable
-                                onPress={() => startInviting(open)}
-                                accessibilityRole="button"
+                            <SectionLabel label="Manage" />
+                            <ActionRow
+                                label="Invite them to sign in"
                                 accessibilityLabel={`Invite ${open.name} to sign in`}
-                                style={styles.option}>
-                                <ThemedText type="default">
-                                    Invite them to sign in
-                                </ThemedText>
-                            </Pressable>
-                            <Pressable
+                                onPress={() => startInviting(open)}
+                            />
+                            <ActionRow
+                                label="Delete this member"
+                                destructive
                                 onPress={() => setConfirming('delete')}
-                                accessibilityRole="button"
-                                style={styles.option}>
-                                <ThemedText
-                                    type="default"
-                                    style={{ color: theme.destructive }}>
-                                    Delete this member
-                                </ThemedText>
-                            </Pressable>
+                            />
                         </>
                     )}
                 </ScrollView>
@@ -425,11 +468,13 @@ export function FamilyMembers({ onBack }: { onBack: () => void }) {
 
     return (
         <>
-            <ThemedText type="subtitle">Family members</ThemedText>
+            <ThemedText type="figureLarge">Family members</ThemedText>
+
+            <SectionLabel label="Members" count={members.length} />
 
             <ScrollView
                 style={styles.scroll}
-                contentContainerStyle={styles.scrollContent}
+                contentContainerStyle={styles.listContent}
                 showsVerticalScrollIndicator={false}>
                 {!loading && members.length === 0 && (
                     <ThemedText type="small" themeColor="textSecondary">
@@ -446,21 +491,30 @@ export function FamilyMembers({ onBack }: { onBack: () => void }) {
                         accessibilityRole="button"
                         style={({ pressed }) => [
                             styles.memberRow,
-                            { backgroundColor: theme.backgroundElement },
+                            { borderBottomColor: `${theme.text}17` },
                             pressed && { opacity: 0.6 },
                         ]}>
-                        <MemberAvatar member={member} size={36} />
+                        <MemberAvatar member={member} size={34} />
                         <View style={styles.memberText}>
                             <ThemedText type="default">
                                 {member.name}
-                                {member.id === membership?.id && ' (you)'}
                             </ThemedText>
-                            <ThemedText type="small" themeColor="textSecondary">
-                                {member.role
-                                    ? ROLE_LABELS[member.role]
-                                    : 'No account'}
+                            <ThemedText
+                                type="labelSmall"
+                                themeColor="textMuted">
+                                {roleCaption(member, membership?.id)}
                             </ThemedText>
                         </View>
+                        {canManage && (
+                            <SymbolView
+                                name={{
+                                    ios: 'chevron.right',
+                                    web: 'chevron_right',
+                                }}
+                                tintColor={theme.textSecondary}
+                                size={12}
+                            />
+                        )}
                     </Pressable>
                 ))}
 
@@ -470,26 +524,23 @@ export function FamilyMembers({ onBack }: { onBack: () => void }) {
                         accessibilityLabel="Invite someone to the family"
                         accessibilityRole="button"
                         style={({ pressed }) => [
-                            styles.memberRow,
-                            { backgroundColor: theme.backgroundElement },
-                            pressed && { opacity: 0.6 },
+                            styles.primaryButton,
+                            { backgroundColor: theme.text },
+                            pressed && { opacity: 0.8 },
                         ]}>
-                        <SymbolView
-                            name={{
-                                ios: 'person.badge.plus',
-                                web: 'person_add',
-                            }}
-                            tintColor={theme.textSecondary}
-                            size={22}
-                        />
-                        <ThemedText themeColor="textSecondary">
+                        <ThemedText
+                            type="smallBold"
+                            style={{ color: theme.background }}>
                             Invite someone
                         </ThemedText>
                     </Pressable>
                 )}
 
                 {!canManage && members.length > 0 && (
-                    <ThemedText type="small" themeColor="textSecondary">
+                    <ThemedText
+                        type="small"
+                        themeColor="textSecondary"
+                        style={styles.listHint}>
                         Only an owner can change roles or remove people.
                     </ThemedText>
                 )}
@@ -513,19 +564,52 @@ const styles = StyleSheet.create({
     scrollContent: {
         gap: Spacing.two,
     },
+    /** The rows carry their own hairlines, so nothing separates them further. */
+    listContent: {
+        paddingBottom: Spacing.two,
+    },
+    listHint: {
+        paddingTop: Spacing.three,
+    },
+    sectionHeader: {
+        flexDirection: 'row',
+        alignItems: 'baseline',
+        justifyContent: 'space-between',
+        gap: Spacing.two,
+        borderTopWidth: 1,
+        paddingTop: Spacing.three,
+        paddingBottom: Spacing.one,
+    },
+    sectionCount: {
+        fontSize: 11,
+        lineHeight: 16,
+    },
     memberRow: {
         flexDirection: 'row',
         alignItems: 'center',
         gap: Spacing.three,
-        borderRadius: 12,
-        padding: Spacing.three,
+        paddingVertical: Spacing.three,
+        borderBottomWidth: 1,
     },
     memberText: {
         flex: 1,
         gap: Spacing.half,
     },
-    groupLabel: {
-        paddingTop: Spacing.two,
+    memberHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: Spacing.three,
+    },
+    actionRow: {
+        paddingVertical: Spacing.three,
+        borderBottomWidth: 1,
+    },
+    primaryButton: {
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderRadius: 12,
+        paddingVertical: Spacing.three,
+        marginTop: Spacing.three,
     },
     option: {
         flexDirection: 'row',
@@ -539,7 +623,9 @@ const styles = StyleSheet.create({
         flex: 1,
         gap: Spacing.half,
     },
+    /** A code is read out and typed in, so it is set in the mono. */
     code: {
+        fontFamily: Fonts.mono,
         fontSize: 30,
         lineHeight: 38,
         fontWeight: '600',
