@@ -89,6 +89,12 @@ export const Spacing = {
     six: 64,
 } as const;
 
-export const BottomTabInset =
-    Platform.select({ ios: 50, android: 80, web: 54 }) ?? 0;
+/**
+ * What the dock covers: the 14 above it, the 66 of the pill itself, and the 26
+ * it sits off the bottom. One number rather than three, now that the same dock
+ * is on every platform.
+ */
+export const BottomTabInset = 106;
+/** The dock keeps a phone's proportions however wide the window gets. */
+export const DockMaxWidth = 390;
 export const MaxContentWidth = 800;
