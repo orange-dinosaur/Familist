@@ -1,16 +1,10 @@
 import { SymbolView } from 'expo-symbols';
 import { useFocusEffect } from 'expo-router';
 import React, { useState, useRef } from 'react';
-import {
-    Modal,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    TextInput,
-    View,
-} from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { FormField, FormSheet } from '@/components/form-sheet';
 import { FamilyBar } from '@/components/family-bar';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -316,305 +310,198 @@ export default function DailyMealScreen() {
             </SafeAreaView>
 
             {/* Add meal modal */}
-            <Modal
+            <FormSheet
                 visible={modalVisible}
-                animationType="slide"
-                presentationStyle="pageSheet"
-                onRequestClose={closeModal}>
-                <View
-                    style={[
-                        styles.modalContainer,
-                        { backgroundColor: theme.background },
-                    ]}>
-                    <SafeAreaView style={styles.modalSafeArea}>
-                        {/* Modal header */}
-                        <View style={styles.modalHeader}>
-                            <ThemedText type="figureLarge">
-                                Add a meal
-                            </ThemedText>
-                            <Pressable
-                                onPress={closeModal}
-                                hitSlop={8}
-                                accessibilityLabel="Close"
-                                accessibilityRole="button">
-                                <SymbolView
-                                    name={{ ios: 'xmark', web: 'close' }}
-                                    tintColor={theme.textSecondary}
-                                    size={16}
-                                />
-                            </Pressable>
-                        </View>
-
+                title="Add a meal"
+                onClose={closeModal}
+                actionLabel="Done"
+                onAction={handleDone}
+                error={error}>
+                {/* Step 1: Choose Day */}
+                {!isDayPreselected && (
+                    <View style={styles.modalSection}>
+                        <ThemedText type="label" themeColor="textSecondary">
+                            Day
+                        </ThemedText>
                         <ScrollView
-                            style={styles.modalScroll}
-                            contentContainerStyle={styles.modalScrollContent}
-                            showsVerticalScrollIndicator={false}
-                            keyboardShouldPersistTaps="handled">
-                            {/* Step 1: Choose Day */}
-                            {!isDayPreselected && (
-                                <View style={styles.modalSection}>
-                                    <ThemedText
-                                        type="label"
-                                        themeColor="textSecondary">
-                                        Day
-                                    </ThemedText>
-                                    <ScrollView
-                                        horizontal
-                                        showsHorizontalScrollIndicator={false}
-                                        contentContainerStyle={
-                                            styles.modalStrip
-                                        }>
-                                        {dates.map((day) => {
-                                            const { initial, date } =
-                                                dayColumn(day);
-                                            const isSelected =
-                                                selectedDay === day;
-                                            const isToday = day === todayStr;
-                                            const dayColor = isToday
-                                                ? 'link'
-                                                : isSelected
-                                                  ? 'text'
-                                                  : 'textMuted';
-                                            return (
-                                                <Pressable
-                                                    key={day}
-                                                    onPress={() =>
-                                                        setSelectedDay(day)
-                                                    }
-                                                    accessibilityLabel={
-                                                        isToday
-                                                            ? `Today, ${longDay(day)}`
-                                                            : longDay(day)
-                                                    }
-                                                    accessibilityRole="button"
-                                                    accessibilityState={{
-                                                        selected: isSelected,
-                                                    }}
-                                                    style={styles.dayColumn}>
-                                                    <ThemedText
-                                                        type="label"
-                                                        themeColor={dayColor}>
-                                                        {initial}
-                                                    </ThemedText>
-                                                    <ThemedText
-                                                        type="figureSmall"
-                                                        themeColor={dayColor}
-                                                        style={styles.dayDate}>
-                                                        {date}
-                                                    </ThemedText>
-                                                    <View
-                                                        style={[
-                                                            styles.dayMark,
-                                                            isSelected && {
-                                                                backgroundColor:
-                                                                    theme.text,
-                                                            },
-                                                        ]}
-                                                    />
-                                                </Pressable>
-                                            );
-                                        })}
-                                    </ScrollView>
-                                </View>
-                            )}
-
-                            {/* Step 2: Choose meal type */}
-                            <View style={styles.modalSection}>
-                                <ThemedText
-                                    type="label"
-                                    themeColor="textSecondary">
-                                    Meal time
-                                </ThemedText>
-                                <View style={styles.mealTypeRow}>
-                                    {MEAL_TIMES.map((time) => {
-                                        const isSelected =
-                                            selectedTime === time;
-                                        return (
-                                            <Pressable
-                                                key={time}
-                                                onPress={() =>
-                                                    setSelectedTime(time)
-                                                }
-                                                accessibilityLabel={`Select ${time}`}
-                                                accessibilityRole="button"
-                                                accessibilityState={{
-                                                    selected: isSelected,
-                                                }}
-                                                style={styles.mealType}>
-                                                <ThemedText
-                                                    type="label"
-                                                    themeColor={
-                                                        isSelected
-                                                            ? 'text'
-                                                            : 'textMuted'
-                                                    }>
-                                                    {timeLabel[time]}
-                                                </ThemedText>
-                                                <View
-                                                    style={[
-                                                        styles.dayMark,
-                                                        isSelected && {
-                                                            backgroundColor:
-                                                                theme.text,
-                                                        },
-                                                    ]}
-                                                />
-                                            </Pressable>
-                                        );
-                                    })}
-                                </View>
-                            </View>
-
-                            {/* Step 3: Add dishes (only when type selected) */}
-                            {selectedTime && (
-                                <View style={styles.modalSection}>
-                                    <ThemedText
-                                        type="label"
-                                        themeColor="textSecondary">
-                                        {timeLabel[selectedTime]} on{' '}
-                                        {formatLocalDateString(selectedDay)}
-                                    </ThemedText>
-
-                                    <View style={styles.dishInputRow}>
-                                        <TextInput
+                            horizontal
+                            showsHorizontalScrollIndicator={false}
+                            contentContainerStyle={styles.modalStrip}>
+                            {dates.map((day) => {
+                                const { initial, date } = dayColumn(day);
+                                const isSelected = selectedDay === day;
+                                const isToday = day === todayStr;
+                                const dayColor = isToday
+                                    ? 'link'
+                                    : isSelected
+                                      ? 'text'
+                                      : 'textMuted';
+                                return (
+                                    <Pressable
+                                        key={day}
+                                        onPress={() => setSelectedDay(day)}
+                                        accessibilityLabel={
+                                            isToday
+                                                ? `Today, ${longDay(day)}`
+                                                : longDay(day)
+                                        }
+                                        accessibilityRole="button"
+                                        accessibilityState={{
+                                            selected: isSelected,
+                                        }}
+                                        style={styles.dayColumn}>
+                                        <ThemedText
+                                            type="label"
+                                            themeColor={dayColor}>
+                                            {initial}
+                                        </ThemedText>
+                                        <ThemedText
+                                            type="figureSmall"
+                                            themeColor={dayColor}
+                                            style={styles.dayDate}>
+                                            {date}
+                                        </ThemedText>
+                                        <View
                                             style={[
-                                                styles.dishInput,
-                                                {
-                                                    borderBottomColor: `${theme.text}29`,
-                                                    color: theme.text,
+                                                styles.dayMark,
+                                                isSelected && {
+                                                    backgroundColor: theme.text,
                                                 },
                                             ]}
-                                            placeholder="Dish name..."
-                                            placeholderTextColor={
-                                                theme.textSecondary
-                                            }
-                                            value={dishName}
-                                            onChangeText={setDishName}
-                                            onSubmitEditing={addDish}
-                                            returnKeyType="done"
-                                            accessibilityLabel="Dish name"
                                         />
-                                        <Pressable
-                                            onPress={addDish}
-                                            disabled={!dishName.trim()}
-                                            accessibilityLabel="Add dish"
-                                            accessibilityRole="button"
-                                            style={({ pressed }) => [
-                                                styles.addDishButton,
-                                                {
-                                                    backgroundColor:
-                                                        dishName.trim()
-                                                            ? theme.text
-                                                            : theme.backgroundElement,
-                                                },
-                                                pressed && {
-                                                    opacity: 0.8,
-                                                },
-                                            ]}>
-                                            <SymbolView
-                                                name={{
-                                                    ios: 'plus',
-                                                    web: 'add',
-                                                }}
-                                                tintColor={
-                                                    dishName.trim()
-                                                        ? theme.background
-                                                        : theme.textSecondary
-                                                }
-                                                size={18}
-                                            />
-                                        </Pressable>
-                                    </View>
+                                    </Pressable>
+                                );
+                            })}
+                        </ScrollView>
+                    </View>
+                )}
 
-                                    {/* Show dishes added for the selected day + time */}
-                                    {meals.filter(
+                {/* Step 2: Choose meal type */}
+                <View style={styles.modalSection}>
+                    <ThemedText type="label" themeColor="textSecondary">
+                        Meal time
+                    </ThemedText>
+                    <View style={styles.mealTypeRow}>
+                        {MEAL_TIMES.map((time) => {
+                            const isSelected = selectedTime === time;
+                            return (
+                                <Pressable
+                                    key={time}
+                                    onPress={() => setSelectedTime(time)}
+                                    accessibilityLabel={`Select ${time}`}
+                                    accessibilityRole="button"
+                                    accessibilityState={{
+                                        selected: isSelected,
+                                    }}
+                                    style={styles.mealType}>
+                                    <ThemedText
+                                        type="label"
+                                        themeColor={
+                                            isSelected ? 'text' : 'textMuted'
+                                        }>
+                                        {timeLabel[time]}
+                                    </ThemedText>
+                                    <View
+                                        style={[
+                                            styles.dayMark,
+                                            isSelected && {
+                                                backgroundColor: theme.text,
+                                            },
+                                        ]}
+                                    />
+                                </Pressable>
+                            );
+                        })}
+                    </View>
+                </View>
+
+                {/* Step 3: Add dishes (only when type selected) */}
+                {selectedTime && (
+                    <View style={styles.dishes}>
+                        <FormField
+                            label={`${timeLabel[selectedTime]} on ${formatLocalDateString(selectedDay)}`}
+                            placeholder="Dish name..."
+                            value={dishName}
+                            onChangeText={setDishName}
+                            onSubmitEditing={addDish}
+                            returnKeyType="done"
+                            accessibilityLabel="Dish name"
+                            trailing={
+                                <Pressable
+                                    onPress={addDish}
+                                    disabled={!dishName.trim()}
+                                    hitSlop={8}
+                                    accessibilityLabel="Add this dish"
+                                    accessibilityRole="button"
+                                    style={({ pressed }) =>
+                                        pressed && { opacity: 0.6 }
+                                    }>
+                                    <ThemedText
+                                        type="label"
+                                        themeColor={
+                                            dishName.trim()
+                                                ? 'text'
+                                                : 'textSecondary'
+                                        }>
+                                        Add
+                                    </ThemedText>
+                                </Pressable>
+                            }
+                        />
+
+                        {/* Show dishes added for the selected day + time */}
+                        {meals.filter(
+                            (m) =>
+                                m.day === selectedDay && m.time === selectedTime
+                        ).length > 0 && (
+                            <View style={styles.addedDishList}>
+                                {meals
+                                    .filter(
                                         (m) =>
                                             m.day === selectedDay &&
                                             m.time === selectedTime
-                                    ).length > 0 && (
-                                        <View style={styles.addedDishList}>
-                                            {meals
-                                                .filter(
-                                                    (m) =>
-                                                        m.day === selectedDay &&
-                                                        m.time === selectedTime
-                                                )
-                                                .map((meal) => {
-                                                    return (
-                                                        <View
-                                                            key={`modal-${meal.id}`}
-                                                            style={[
-                                                                styles.addedDishRow,
-                                                                {
-                                                                    borderBottomColor: `${theme.text}1A`,
-                                                                },
-                                                            ]}>
-                                                            <ThemedText
-                                                                type="small"
-                                                                style={
-                                                                    styles.mealName
-                                                                }>
-                                                                {meal.name}
-                                                            </ThemedText>
-                                                            <Pressable
-                                                                onPress={() =>
-                                                                    removeMeal(
-                                                                        meal.id
-                                                                    )
-                                                                }
-                                                                hitSlop={8}
-                                                                accessibilityLabel={`Remove ${meal.name}`}
-                                                                accessibilityRole="button">
-                                                                <SymbolView
-                                                                    name={{
-                                                                        ios: 'xmark',
-                                                                        web: 'close',
-                                                                    }}
-                                                                    tintColor={
-                                                                        theme.textSecondary
-                                                                    }
-                                                                    size={14}
-                                                                />
-                                                            </Pressable>
-                                                        </View>
-                                                    );
-                                                })}
-                                        </View>
-                                    )}
-                                </View>
-                            )}
-                        </ScrollView>
-
-                        {/* Done button */}
-                        <View style={styles.modalFooter}>
-                            {error && (
-                                <ThemedText
-                                    type="small"
-                                    style={{ color: theme.destructive }}>
-                                    {error}
-                                </ThemedText>
-                            )}
-                            <Pressable
-                                onPress={handleDone}
-                                accessibilityLabel="Done"
-                                accessibilityRole="button"
-                                style={({ pressed }) => [
-                                    styles.doneButton,
-                                    { backgroundColor: theme.text },
-                                    pressed && { opacity: 0.8 },
-                                ]}>
-                                <ThemedText
-                                    style={[
-                                        styles.doneButtonText,
-                                        { color: theme.background },
-                                    ]}>
-                                    Done
-                                </ThemedText>
-                            </Pressable>
-                        </View>
-                    </SafeAreaView>
-                </View>
-            </Modal>
+                                    )
+                                    .map((meal) => {
+                                        return (
+                                            <View
+                                                key={`modal-${meal.id}`}
+                                                style={[
+                                                    styles.addedDishRow,
+                                                    {
+                                                        borderBottomColor: `${theme.text}1A`,
+                                                    },
+                                                ]}>
+                                                <ThemedText
+                                                    type="small"
+                                                    style={styles.mealName}>
+                                                    {meal.name}
+                                                </ThemedText>
+                                                <Pressable
+                                                    onPress={() =>
+                                                        removeMeal(meal.id)
+                                                    }
+                                                    hitSlop={8}
+                                                    accessibilityLabel={`Remove ${meal.name}`}
+                                                    accessibilityRole="button">
+                                                    <SymbolView
+                                                        name={{
+                                                            ios: 'xmark',
+                                                            web: 'close',
+                                                        }}
+                                                        tintColor={
+                                                            theme.textSecondary
+                                                        }
+                                                        size={14}
+                                                    />
+                                                </Pressable>
+                                            </View>
+                                        );
+                                    })}
+                            </View>
+                        )}
+                    </View>
+                )}
+            </FormSheet>
         </ThemedView>
     );
 }
@@ -723,27 +610,6 @@ const styles = StyleSheet.create({
     },
 
     // Modal
-    modalContainer: {
-        flex: 1,
-    },
-    modalSafeArea: {
-        flex: 1,
-    },
-    modalHeader: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingHorizontal: Spacing.four,
-        paddingTop: Spacing.three,
-        paddingBottom: Spacing.two,
-    },
-    modalScroll: {
-        flex: 1,
-    },
-    modalScrollContent: {
-        paddingHorizontal: Spacing.four,
-        paddingBottom: Spacing.four,
-    },
     modalSection: {
         paddingTop: Spacing.three,
         gap: Spacing.two,
@@ -760,26 +626,8 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
 
-    // Dish input
-    dishInputRow: {
-        flexDirection: 'row',
+    dishes: {
         gap: Spacing.two,
-        alignItems: 'center',
-        paddingTop: Spacing.two,
-    },
-    dishInput: {
-        flex: 1,
-        height: 44,
-        borderBottomWidth: 1,
-        fontFamily: Fonts.sansMedium,
-        fontSize: 15,
-    },
-    addDishButton: {
-        width: 44,
-        height: 44,
-        borderRadius: 12,
-        alignItems: 'center',
-        justifyContent: 'center',
     },
 
     // Added dishes list in modal
@@ -792,23 +640,5 @@ const styles = StyleSheet.create({
         gap: Spacing.two,
         paddingVertical: Spacing.three,
         borderBottomWidth: 1,
-    },
-
-    // Modal footer
-    modalFooter: {
-        paddingHorizontal: Spacing.four,
-        paddingVertical: Spacing.three,
-        gap: Spacing.two,
-    },
-    doneButton: {
-        alignItems: 'center',
-        justifyContent: 'center',
-        borderRadius: 12,
-        paddingVertical: Spacing.three,
-    },
-    doneButtonText: {
-        fontFamily: Fonts.sansSemiBold,
-        fontSize: 13.5,
-        lineHeight: 18,
     },
 });
