@@ -2,11 +2,9 @@ import { SymbolView } from 'expo-symbols';
 import React, { useState, useRef } from 'react';
 import {
     Animated,
-    Modal,
     Pressable,
     ScrollView,
     StyleSheet,
-    TextInput,
     View,
 } from 'react-native';
 import Swipeable from 'react-native-gesture-handler/Swipeable';
@@ -14,7 +12,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ChoiceCard } from '@/components/choice-card';
 import { DatePickerModal } from '@/components/date-picker-modal';
-import { MemberPicker } from '@/components/form-sheet';
+import {
+    FormField,
+    FormSheet,
+    MemberPicker,
+    OptionTabs,
+} from '@/components/form-sheet';
 import { FamilyBar } from '@/components/family-bar';
 import { ThemedText } from '@/components/themed-text';
 import { MemberAvatar } from '@/components/member-avatar';
@@ -48,6 +51,12 @@ const priorityColors = {
     medium: 'priorityMedium',
     high: 'priorityHigh',
 } as const;
+
+const PRIORITIES = [
+    { key: 'low', label: 'Low' },
+    { key: 'medium', label: 'Medium' },
+    { key: 'high', label: 'High' },
+] as const;
 
 interface TodoRowProps {
     todo: TodoItem;
@@ -536,327 +545,126 @@ export default function TodoScreen() {
             </SafeAreaView>
 
             {/* Modal dialog */}
-            <Modal
+            <FormSheet
                 visible={modalVisible}
-                animationType="slide"
-                presentationStyle="pageSheet"
-                onRequestClose={closeModal}>
-                <View
-                    style={[
-                        styles.modalContainer,
-                        { backgroundColor: theme.background },
-                    ]}>
-                    <SafeAreaView style={styles.modalSafeArea}>
-                        {/* Modal header */}
-                        <View style={styles.modalHeader}>
-                            <ThemedText type="subtitle">
-                                {editingTodo ? 'Edit Task' : 'Add Task'}
-                            </ThemedText>
-                            <Pressable
-                                onPress={closeModal}
-                                hitSlop={8}
-                                accessibilityLabel="Close"
-                                accessibilityRole="button">
-                                <SymbolView
-                                    name={{
-                                        ios: 'xmark.circle.fill',
-                                        web: 'cancel',
-                                    }}
-                                    tintColor={theme.textSecondary}
-                                    size={28}
-                                />
-                            </Pressable>
-                        </View>
+                title={editingTodo ? 'Edit task' : 'Add a task'}
+                onClose={closeModal}
+                actionLabel="Save"
+                onAction={saveTodo}
+                actionDisabled={!todoText.trim()}
+                error={error}>
+                <FormField
+                    label="Task description"
+                    placeholder="Describe the task..."
+                    value={todoText}
+                    onChangeText={setTodoText}
+                />
+                <OptionTabs
+                    label="Priority"
+                    options={PRIORITIES.map((one) => ({
+                        ...one,
+                        color: theme[priorityColors[one.key]],
+                    }))}
+                    chosen={todoPriority}
+                    onChoose={setTodoPriority}
+                />
 
-                        <ScrollView
-                            style={styles.modalScroll}
-                            contentContainerStyle={styles.modalScrollContent}
-                            showsVerticalScrollIndicator={false}
-                            keyboardShouldPersistTaps="handled">
-                            {/* Label Input */}
-                            <ThemedText
-                                type="default"
-                                style={styles.modalLabel}>
-                                Task description
-                            </ThemedText>
-                            <TextInput
-                                style={[
-                                    styles.textInput,
-                                    {
-                                        backgroundColor:
-                                            theme.backgroundElement,
-                                        color: theme.text,
-                                    },
-                                ]}
-                                placeholder="Describe the task..."
-                                placeholderTextColor={theme.textSecondary}
-                                value={todoText}
-                                onChangeText={setTodoText}
-                                accessibilityLabel="Task description"
-                            />
-
-                            {/* Priority Selection */}
-                            <ThemedText
-                                type="default"
-                                style={styles.modalLabel}>
-                                Priority
-                            </ThemedText>
-                            <View style={styles.priorityGrid}>
-                                {(['low', 'medium', 'high'] as const).map(
-                                    (p) => {
-                                        const isSelected = todoPriority === p;
-                                        const priorityConfig = {
-                                            low: {
-                                                color: theme.priorityLow,
-                                                label: 'Low',
-                                            },
-                                            medium: {
-                                                color: theme.priorityMedium,
-                                                label: 'Medium',
-                                            },
-                                            high: {
-                                                color: theme.priorityHigh,
-                                                label: 'High',
-                                            },
-                                        };
-                                        return (
-                                            <Pressable
-                                                key={p}
-                                                onPress={() =>
-                                                    setTodoPriority(p)
-                                                }
-                                                accessibilityLabel={`Select priority ${p}`}
-                                                accessibilityRole="button"
-                                                accessibilityState={{
-                                                    selected: isSelected,
-                                                }}
-                                                style={[
-                                                    styles.priorityCard,
-                                                    {
-                                                        backgroundColor:
-                                                            isSelected
-                                                                ? theme.backgroundSelected
-                                                                : theme.backgroundElement,
-                                                        borderColor: isSelected
-                                                            ? priorityConfig[p]
-                                                                  .color
-                                                            : 'transparent',
-                                                    },
-                                                ]}>
-                                                <View
-                                                    style={[
-                                                        styles.priorityDot,
-                                                        {
-                                                            backgroundColor:
-                                                                priorityConfig[
-                                                                    p
-                                                                ].color,
-                                                        },
-                                                    ]}
-                                                />
-                                                <ThemedText
-                                                    type="small"
-                                                    style={
-                                                        styles.priorityLabel
-                                                    }>
-                                                    {priorityConfig[p].label}
-                                                </ThemedText>
-                                            </Pressable>
-                                        );
-                                    }
-                                )}
-                            </View>
-
-                            {/* Due date, which a task need not have. */}
-                            <ThemedText
-                                type="default"
-                                style={styles.modalLabel}>
-                                Due date
-                            </ThemedText>
-                            <View style={styles.dayPillsContainer}>
-                                <Pressable
-                                    onPress={() => setTodoDay(null)}
-                                    accessibilityRole="button"
-                                    accessibilityState={{
-                                        selected: todoDay === null,
-                                    }}
-                                    style={[
-                                        styles.dayPill,
-                                        {
-                                            backgroundColor:
-                                                todoDay === null
-                                                    ? theme.text
-                                                    : theme.backgroundElement,
-                                        },
-                                    ]}>
-                                    <ThemedText
-                                        style={[
-                                            styles.dayPillText,
-                                            {
-                                                color:
-                                                    todoDay === null
-                                                        ? theme.background
-                                                        : theme.text,
-                                            },
-                                        ]}>
-                                        No date
-                                    </ThemedText>
-                                </Pressable>
-                                <Pressable
-                                    onPress={() => setDatePickerVisible(true)}
-                                    accessibilityLabel="Pick a due date"
-                                    accessibilityRole="button"
-                                    accessibilityState={{
-                                        selected: todoDay !== null,
-                                    }}
-                                    style={[
-                                        styles.dayPill,
-                                        {
-                                            backgroundColor:
-                                                todoDay !== null
-                                                    ? theme.text
-                                                    : theme.backgroundElement,
-                                        },
-                                    ]}>
-                                    <SymbolView
-                                        name={{
-                                            ios: 'calendar',
-                                            web: 'calendar_month',
-                                        }}
-                                        tintColor={
-                                            todoDay !== null
-                                                ? theme.background
-                                                : theme.text
-                                        }
-                                        size={18}
-                                    />
-                                    <ThemedText
-                                        style={[
-                                            styles.dayPillText,
-                                            {
-                                                color:
-                                                    todoDay !== null
-                                                        ? theme.background
-                                                        : theme.text,
-                                            },
-                                        ]}>
-                                        {todoDay
-                                            ? formatShortDateString(todoDay)
-                                            : 'Pick a date'}
-                                    </ThemedText>
-                                </Pressable>
-                            </View>
-
-                            {/* Assignee Selection */}
-                            <ThemedText
-                                type="default"
-                                style={styles.modalLabel}>
-                                Assignee
-                            </ThemedText>
-                            <View style={styles.assigneeList}>
-                                {members.map((user) => {
-                                    const isSelected =
-                                        todoAssigneeId === user.id;
-                                    return (
-                                        <Pressable
-                                            key={user.id}
-                                            onPress={() =>
-                                                setTodoAssigneeId(
-                                                    isSelected
-                                                        ? undefined
-                                                        : user.id
-                                                )
-                                            }
-                                            accessibilityLabel={`Assign to ${user.name}`}
-                                            accessibilityRole="button"
-                                            accessibilityState={{
-                                                selected: isSelected,
-                                            }}
-                                            style={[
-                                                styles.editAssigneeRow,
-                                                {
-                                                    backgroundColor:
-                                                        theme.backgroundElement,
-                                                    borderColor: isSelected
-                                                        ? theme.text
-                                                        : 'transparent',
-                                                },
-                                            ]}>
-                                            <MemberAvatar
-                                                member={user}
-                                                size={32}
-                                            />
-                                            <ThemedText
-                                                style={styles.editAssigneeName}>
-                                                {user.name}
-                                            </ThemedText>
-                                            {isSelected && (
-                                                <SymbolView
-                                                    name={{
-                                                        ios: 'checkmark.circle.fill',
-                                                        web: 'check_circle',
-                                                    }}
-                                                    tintColor={theme.text}
-                                                    size={22}
-                                                />
-                                            )}
-                                        </Pressable>
-                                    );
-                                })}
-                            </View>
-                        </ScrollView>
-
-                        {/* Save Button */}
-                        <View style={styles.modalFooter}>
-                            {error && (
-                                <ThemedText
-                                    type="small"
-                                    style={{ color: theme.destructive }}>
-                                    {error}
-                                </ThemedText>
-                            )}
-                            <Pressable
-                                onPress={saveTodo}
-                                disabled={!todoText.trim()}
-                                accessibilityLabel="Save task"
-                                accessibilityRole="button"
-                                style={({ pressed }) => [
-                                    styles.saveButton,
-                                    {
-                                        backgroundColor: todoText.trim()
+                {/* Due date, which a task need not have. */}
+                <View style={styles.dueDate}>
+                    <ThemedText type="label" themeColor="textSecondary">
+                        Due date
+                    </ThemedText>
+                    <View style={styles.dayPillsContainer}>
+                        <Pressable
+                            onPress={() => setTodoDay(null)}
+                            accessibilityRole="button"
+                            accessibilityState={{
+                                selected: todoDay === null,
+                            }}
+                            style={[
+                                styles.dayPill,
+                                {
+                                    backgroundColor:
+                                        todoDay === null
                                             ? theme.text
                                             : theme.backgroundElement,
-                                    },
-                                    pressed && {
-                                        opacity: 0.8,
+                                },
+                            ]}>
+                            <ThemedText
+                                style={[
+                                    styles.dayPillText,
+                                    {
+                                        color:
+                                            todoDay === null
+                                                ? theme.background
+                                                : theme.text,
                                     },
                                 ]}>
-                                <ThemedText
-                                    style={[
-                                        styles.saveButtonText,
-                                        {
-                                            color: todoText.trim()
-                                                ? theme.background
-                                                : theme.textSecondary,
-                                        },
-                                    ]}>
-                                    Save
-                                </ThemedText>
-                            </Pressable>
-                        </View>
-
-                        <DatePickerModal
-                            visible={datePickerVisible}
-                            value={todoDay}
-                            onSelect={(day) => {
-                                setTodoDay(day);
-                                setDatePickerVisible(false);
+                                No date
+                            </ThemedText>
+                        </Pressable>
+                        <Pressable
+                            onPress={() => setDatePickerVisible(true)}
+                            accessibilityLabel="Pick a due date"
+                            accessibilityRole="button"
+                            accessibilityState={{
+                                selected: todoDay !== null,
                             }}
-                            onClose={() => setDatePickerVisible(false)}
-                        />
-                    </SafeAreaView>
+                            style={[
+                                styles.dayPill,
+                                {
+                                    backgroundColor:
+                                        todoDay !== null
+                                            ? theme.text
+                                            : theme.backgroundElement,
+                                },
+                            ]}>
+                            <SymbolView
+                                name={{
+                                    ios: 'calendar',
+                                    web: 'calendar_month',
+                                }}
+                                tintColor={
+                                    todoDay !== null
+                                        ? theme.background
+                                        : theme.text
+                                }
+                                size={18}
+                            />
+                            <ThemedText
+                                style={[
+                                    styles.dayPillText,
+                                    {
+                                        color:
+                                            todoDay !== null
+                                                ? theme.background
+                                                : theme.text,
+                                    },
+                                ]}>
+                                {todoDay
+                                    ? formatShortDateString(todoDay)
+                                    : 'Pick a date'}
+                            </ThemedText>
+                        </Pressable>
+                    </View>
                 </View>
-            </Modal>
+                <DatePickerModal
+                    visible={datePickerVisible}
+                    value={todoDay}
+                    onSelect={(day) => {
+                        setTodoDay(day);
+                        setDatePickerVisible(false);
+                    }}
+                    onClose={() => setDatePickerVisible(false)}
+                />
+
+                <MemberPicker
+                    label="Assignee"
+                    chosenId={todoAssigneeId}
+                    onChoose={setTodoAssigneeId}
+                    noneLabel="Unassigned"
+                />
+            </FormSheet>
 
             <ChoiceCard
                 visible={assigningTodoId !== null}
@@ -1011,64 +819,11 @@ const styles = StyleSheet.create({
         lineHeight: 18,
     },
 
-    // Priority Dot
-    priorityDot: {
-        width: 6,
-        height: 6,
-        borderRadius: 3,
-    },
-
-    // Modal
-    modalContainer: {
-        flex: 1,
-    },
-    modalSafeArea: {
-        flex: 1,
-    },
-    modalHeader: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingHorizontal: Spacing.four,
-        paddingTop: Spacing.three,
-        paddingBottom: Spacing.two,
-    },
-    modalScroll: {
-        flex: 1,
-    },
-    modalScrollContent: {
-        paddingHorizontal: Spacing.four,
-        gap: Spacing.three,
-        paddingBottom: Spacing.four,
-    },
-    modalLabel: {
-        fontWeight: '600',
-    },
-    textInput: {
-        height: 48,
-        borderRadius: 12,
-        paddingHorizontal: Spacing.three,
-        fontSize: 16,
-    },
-    priorityGrid: {
-        flexDirection: 'row',
-        gap: Spacing.two,
-    },
-    priorityCard: {
-        flex: 1,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: Spacing.two,
-        borderWidth: 2,
-        borderRadius: 12,
-        paddingVertical: Spacing.two + Spacing.half,
-    },
-    priorityLabel: {
-        fontWeight: '600',
-    },
-
     // Due date pills in modal
+    dueDate: {
+        paddingTop: Spacing.three,
+        gap: Spacing.two,
+    },
     dayPillsContainer: {
         flexDirection: 'row',
         gap: Spacing.two,
@@ -1085,40 +840,6 @@ const styles = StyleSheet.create({
     },
     dayPillText: {
         fontSize: 14,
-        fontWeight: '600',
-    },
-
-    // Assignee rows in modal
-    assigneeList: {
-        gap: Spacing.two,
-    },
-    editAssigneeRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: Spacing.three,
-        padding: Spacing.three,
-        borderRadius: 12,
-        borderWidth: 2,
-    },
-    editAssigneeName: {
-        fontSize: 16,
-        fontWeight: '500',
-    },
-
-    // Modal footer
-    modalFooter: {
-        paddingHorizontal: Spacing.four,
-        paddingVertical: Spacing.three,
-        gap: Spacing.two,
-    },
-    saveButton: {
-        alignItems: 'center',
-        justifyContent: 'center',
-        borderRadius: 14,
-        padding: Spacing.three,
-    },
-    saveButtonText: {
-        fontSize: 16,
         fontWeight: '600',
     },
 

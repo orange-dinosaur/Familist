@@ -361,7 +361,11 @@ export function MemberPicker({
 
 interface OptionTabsProps<T extends string> {
     label: string;
-    options: readonly { key: T; label: string }[];
+    /**
+     * An option with a `color` gets a bar in it before its label, and its
+     * underline in that colour when chosen.
+     */
+    options: readonly { key: T; label: string; color?: string }[];
     chosen: T;
     onChoose: (key: T) => void;
 }
@@ -392,17 +396,30 @@ export function OptionTabs<T extends string>({
                             accessibilityRole="button"
                             accessibilityState={{ selected: isChosen }}
                             style={styles.tab}>
-                            <ThemedText
-                                type="label"
-                                themeColor={
-                                    isChosen ? 'text' : 'textSecondary'
-                                }>
-                                {option.label}
-                            </ThemedText>
+                            <View style={styles.tabLabel}>
+                                {option.color && (
+                                    <View
+                                        style={[
+                                            styles.tabColor,
+                                            { backgroundColor: option.color },
+                                        ]}
+                                    />
+                                )}
+                                <ThemedText
+                                    type="label"
+                                    themeColor={
+                                        isChosen ? 'text' : 'textSecondary'
+                                    }>
+                                    {option.label}
+                                </ThemedText>
+                            </View>
                             <View
                                 style={[
                                     styles.tabMark,
-                                    isChosen && { backgroundColor: theme.text },
+                                    isChosen && {
+                                        backgroundColor:
+                                            option.color ?? theme.text,
+                                    },
                                 ]}
                             />
                         </Pressable>
@@ -559,6 +576,15 @@ const styles = StyleSheet.create({
     },
     tab: {
         alignItems: 'center',
+    },
+    tabLabel: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: Spacing.two,
+    },
+    tabColor: {
+        width: 3,
+        alignSelf: 'stretch',
     },
     /** The mark under the chosen option. */
     tabMark: {
