@@ -14,6 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ChoiceCard } from '@/components/choice-card';
 import {
+    ChoiceRow,
     DateRow,
     FormField,
     FormSheet,
@@ -286,6 +287,9 @@ export default function DailyChoresScreen() {
             // eslint-disable-next-line react-hooks/exhaustive-deps
         }, [])
     );
+
+    /** Edit mode draws its rows to match `ChoiceRow`. */
+    const rowRule = { borderBottomColor: `${theme.text}17` };
 
     const isPlanned = (definitionId: string) =>
         activeChores.some(
@@ -593,7 +597,7 @@ export default function DailyChoresScreen() {
                                 : 'No chores yet. Add the first one above.'}
                         </ThemedText>
                     ) : editing ? (
-                        <View style={styles.definitionList}>
+                        <View>
                             {definitions.map((definition) => {
                                 const manageable = canManageChore(
                                     definition.createdBy
@@ -607,10 +611,7 @@ export default function DailyChoresScreen() {
                                             style={[
                                                 styles.definitionRow,
                                                 styles.definitionConfirm,
-                                                {
-                                                    backgroundColor:
-                                                        theme.backgroundElement,
-                                                },
+                                                rowRule,
                                             ]}>
                                             <ThemedText type="small">
                                                 Delete {definition.name}? It
@@ -648,13 +649,7 @@ export default function DailyChoresScreen() {
                                 return (
                                     <View
                                         key={definition.id}
-                                        style={[
-                                            styles.definitionRow,
-                                            {
-                                                backgroundColor:
-                                                    theme.backgroundElement,
-                                            },
-                                        ]}>
+                                        style={[styles.definitionRow, rowRule]}>
                                         {renaming ? (
                                             <TextInput
                                                 style={[
@@ -741,49 +736,20 @@ export default function DailyChoresScreen() {
                             })}
                         </View>
                     ) : (
-                        <View style={styles.pillsGrid}>
-                            {definitions.map((definition) => {
-                                const planned = isPlanned(definition.id);
-                                return (
-                                    <Pressable
-                                        key={definition.id}
-                                        onPress={() =>
-                                            toggleChoreActive(
-                                                definition.id,
-                                                selectedDay
-                                            )
-                                        }
-                                        accessibilityLabel={`Toggle ${definition.name}`}
-                                        accessibilityRole="button"
-                                        accessibilityState={{
-                                            selected: planned,
-                                        }}
-                                        style={[
-                                            styles.chorePill,
-                                            {
-                                                backgroundColor: planned
-                                                    ? theme.text
-                                                    : theme.backgroundElement,
-                                                borderColor: planned
-                                                    ? theme.text
-                                                    : 'transparent',
-                                                borderWidth: 2,
-                                            },
-                                        ]}>
-                                        <ThemedText
-                                            style={[
-                                                styles.chorePillText,
-                                                {
-                                                    color: planned
-                                                        ? theme.background
-                                                        : theme.text,
-                                                },
-                                            ]}>
-                                            {definition.name}
-                                        </ThemedText>
-                                    </Pressable>
-                                );
-                            })}
+                        <View>
+                            {definitions.map((definition) => (
+                                <ChoiceRow
+                                    key={definition.id}
+                                    label={definition.name}
+                                    chosen={isPlanned(definition.id)}
+                                    onPress={() =>
+                                        toggleChoreActive(
+                                            definition.id,
+                                            selectedDay
+                                        )
+                                    }
+                                />
+                            ))}
                         </View>
                     )}
                 </View>
@@ -948,32 +914,14 @@ const styles = StyleSheet.create({
     listHeadingText: {
         flex: 1,
     },
-    pillsGrid: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        gap: Spacing.two,
-    },
-    chorePill: {
-        paddingHorizontal: Spacing.three,
-        paddingVertical: Spacing.two,
-        borderRadius: 20,
-    },
-    chorePillText: {
-        fontSize: 14,
-        fontWeight: '600',
-    },
 
     // The family's chores, as rows that can be renamed and deleted
-    definitionList: {
-        gap: Spacing.one,
-    },
     definitionRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: Spacing.two,
-        borderRadius: 14,
-        paddingVertical: Spacing.two + Spacing.one,
-        paddingHorizontal: Spacing.three,
+        gap: Spacing.three,
+        paddingVertical: Spacing.three,
+        borderBottomWidth: 1,
     },
     definitionName: {
         flex: 1,
@@ -981,6 +929,7 @@ const styles = StyleSheet.create({
     definitionInput: {
         flex: 1,
         fontSize: 16,
+        padding: 0,
     },
     definitionActions: {
         flexDirection: 'row',
