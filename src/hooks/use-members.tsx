@@ -123,9 +123,10 @@ export function MembersProvider({ children }: { children: React.ReactNode }) {
 
             if (!res.ok) return body?.error ?? 'Could not save that member.';
 
+            /** The route answers without the picture, so keep the one we have. */
             setMembers((current) =>
                 current.map((member) =>
-                    member.id === id ? body.member : member
+                    member.id === id ? { ...member, ...body.member } : member
                 )
             );
             return null;

@@ -11,7 +11,13 @@
 import { useRouter } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import React, { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import {
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    TextInput,
+    View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { DeleteAccount, signOutAndClear } from '@/components/delete-account';
@@ -19,12 +25,13 @@ import { MemberAvatar } from '@/components/member-avatar';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { authClient } from '@/auth/client';
-import { MaxContentWidth, Spacing } from '@/constants/theme';
+import { Fonts, MaxContentWidth, Spacing } from '@/constants/theme';
 import { APPEARANCES, type Appearance } from '@/constants/types';
 import { useAppearance } from '@/hooks/use-appearance';
 import { useFamily } from '@/hooks/use-family';
 import { useMembers } from '@/hooks/use-members';
 import { useTheme } from '@/hooks/use-theme';
+import { MAX_MEMBER_NAME_LENGTH } from '@/utils/member';
 
 const APPEARANCE_LABELS: Record<Appearance, string> = {
     system: 'System',
@@ -37,13 +44,30 @@ export default function SettingsScreen() {
     const router = useRouter();
 
     const { member } = useFamily();
-    const { members } = useMembers();
+    const { members, editMember } = useMembers();
     const { data: session } = authClient.useSession();
     const { appearance, chooseAppearance } = useAppearance();
 
     const [deleting, setDeleting] = useState(false);
+    const [draftName, setDraftName] = useState<string | null>(null);
+    const [profileError, setProfileError] = useState<string | null>(null);
 
     const me = members.find((one) => one.id === member?.id) ?? null;
+
+    /**
+     * The draft stays on screen until the save answers, so the old name never
+     * flashes back. An empty or unchanged name is not sent.
+     */
+    async function saveName() {
+        const name = draftName?.trim();
+        if (me && name && name !== me.name) {
+            const error = await editMember(me.id, name, me.color).catch(
+                () => 'Could not save that. Check your connection.'
+            );
+            setProfileError(error);
+        }
+        setDraftName(null);
+    }
 
     return (
         <ThemedView style={styles.container}>
@@ -89,9 +113,62 @@ export default function SettingsScreen() {
                 <ScrollView
                     style={styles.scrollView}
                     contentContainerStyle={styles.scrollContent}>
+                    {/* Only somebody with a member row has a profile to change. */}
+                    {me && (
+                        <>
+                            <View
+                                style={[
+                                    styles.sectionHeader,
+                                    { borderTopColor: `${theme.text}29` },
+                                ]}>
+                                <ThemedText type="label">Profile</ThemedText>
+                            </View>
+
+                            <View
+                                style={[
+                                    styles.row,
+                                    { borderBottomColor: `${theme.text}17` },
+                                ]}>
+                                <ThemedText
+                                    type="labelSmall"
+                                    themeColor="textSecondary"
+                                    style={styles.rowLabel}>
+                                    Name
+                                </ThemedText>
+                                <TextInput
+                                    value={draftName ?? me.name}
+                                    onFocus={() => setDraftName(me.name)}
+                                    onChangeText={setDraftName}
+                                    onBlur={saveName}
+                                    maxLength={MAX_MEMBER_NAME_LENGTH}
+                                    autoCapitalize="words"
+                                    autoCorrect={false}
+                                    returnKeyType="done"
+                                    accessibilityLabel="Name"
+                                    style={[
+                                        styles.nameInput,
+                                        { color: theme.text },
+                                    ]}
+                                />
+                            </View>
+
+                            {profileError && (
+                                <ThemedText
+                                    type="small"
+                                    style={[
+                                        styles.profileError,
+                                        { color: theme.destructive },
+                                    ]}>
+                                    {profileError}
+                                </ThemedText>
+                            )}
+                        </>
+                    )}
+
                     <View
                         style={[
                             styles.sectionHeader,
+                            me && styles.sectionGap,
                             { borderTopColor: `${theme.text}29` },
                         ]}>
                         <ThemedText type="label">Preferences</ThemedText>
@@ -260,6 +337,18 @@ const styles = StyleSheet.create({
         borderRadius: 999,
         paddingHorizontal: Spacing.three,
         paddingVertical: Spacing.one,
+    },
+    sectionGap: {
+        marginTop: Spacing.three,
+    },
+    nameInput: {
+        flex: 1,
+        fontFamily: Fonts.sansMedium,
+        fontSize: 14,
+        padding: 0,
+    },
+    profileError: {
+        paddingTop: Spacing.two,
     },
     foot: {
         paddingHorizontal: Spacing.four,
