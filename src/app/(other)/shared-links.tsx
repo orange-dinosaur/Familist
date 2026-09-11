@@ -3,7 +3,6 @@ import React, { useRef, useState } from 'react';
 import {
     Animated,
     Linking,
-    Modal,
     Pressable,
     ScrollView,
     StyleSheet,
@@ -13,6 +12,7 @@ import {
 import Swipeable from 'react-native-gesture-handler/Swipeable';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { FormSheet } from '@/components/form-sheet';
 import { MemberAvatar } from '@/components/member-avatar';
 import { ScreenHeader } from '@/components/screen-header';
 import { ThemedText } from '@/components/themed-text';
@@ -361,196 +361,112 @@ function SharedLinks() {
                 )}
             </SafeAreaView>
 
-            <Modal
+            <FormSheet
                 visible={modalVisible}
-                animationType="slide"
-                presentationStyle="pageSheet"
-                onRequestClose={closeModal}>
-                <View
+                title={editing ? 'Edit link' : 'Add a link'}
+                onClose={closeModal}
+                actionLabel="Save"
+                onAction={save}
+                actionDisabled={!complete}
+                error={error}>
+                <ThemedText style={styles.modalLabel}>Title</ThemedText>
+                <TextInput
                     style={[
-                        styles.modalContainer,
-                        { backgroundColor: theme.background },
-                    ]}>
-                    <SafeAreaView style={styles.modalSafeArea}>
-                        <View style={styles.modalHeader}>
-                            <ThemedText type="subtitle">
-                                {editing ? 'Edit Link' : 'Add Link'}
-                            </ThemedText>
+                        styles.textInput,
+                        {
+                            backgroundColor: theme.backgroundElement,
+                            color: theme.text,
+                        },
+                    ]}
+                    placeholder="What it is..."
+                    placeholderTextColor={theme.textSecondary}
+                    value={title}
+                    onChangeText={setTitle}
+                    accessibilityLabel="Title"
+                />
+
+                <ThemedText style={styles.modalLabel}>Link</ThemedText>
+                <TextInput
+                    style={[
+                        styles.textInput,
+                        {
+                            backgroundColor: theme.backgroundElement,
+                            color: theme.text,
+                        },
+                    ]}
+                    placeholder="https://"
+                    placeholderTextColor={theme.textSecondary}
+                    value={url}
+                    onChangeText={setUrl}
+                    maxLength={MAX_URL_LENGTH}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    keyboardType="url"
+                    accessibilityLabel="Link"
+                />
+
+                <ThemedText style={styles.modalLabel}>Note</ThemedText>
+                <TextInput
+                    style={[
+                        styles.textInput,
+                        {
+                            backgroundColor: theme.backgroundElement,
+                            color: theme.text,
+                        },
+                    ]}
+                    placeholder="What it is for..."
+                    placeholderTextColor={theme.textSecondary}
+                    value={note}
+                    onChangeText={setNote}
+                    accessibilityLabel="Note"
+                />
+
+                <ThemedText style={styles.modalLabel}>Who kept it</ThemedText>
+                <View style={styles.keeperList}>
+                    {members.map((member) => {
+                        const isSelected = createdBy === member.id;
+                        return (
                             <Pressable
-                                onPress={closeModal}
-                                hitSlop={8}
-                                accessibilityLabel="Close"
-                                accessibilityRole="button">
-                                <SymbolView
-                                    name={{
-                                        ios: 'xmark.circle.fill',
-                                        web: 'cancel',
-                                    }}
-                                    tintColor={theme.textSecondary}
-                                    size={28}
-                                />
-                            </Pressable>
-                        </View>
-
-                        <ScrollView
-                            style={styles.modalScroll}
-                            contentContainerStyle={styles.modalScrollContent}
-                            showsVerticalScrollIndicator={false}
-                            keyboardShouldPersistTaps="handled">
-                            <ThemedText style={styles.modalLabel}>
-                                Title
-                            </ThemedText>
-                            <TextInput
-                                style={[
-                                    styles.textInput,
-                                    {
-                                        backgroundColor:
-                                            theme.backgroundElement,
-                                        color: theme.text,
-                                    },
-                                ]}
-                                placeholder="What it is..."
-                                placeholderTextColor={theme.textSecondary}
-                                value={title}
-                                onChangeText={setTitle}
-                                accessibilityLabel="Title"
-                            />
-
-                            <ThemedText style={styles.modalLabel}>
-                                Link
-                            </ThemedText>
-                            <TextInput
-                                style={[
-                                    styles.textInput,
-                                    {
-                                        backgroundColor:
-                                            theme.backgroundElement,
-                                        color: theme.text,
-                                    },
-                                ]}
-                                placeholder="https://"
-                                placeholderTextColor={theme.textSecondary}
-                                value={url}
-                                onChangeText={setUrl}
-                                maxLength={MAX_URL_LENGTH}
-                                autoCapitalize="none"
-                                autoCorrect={false}
-                                keyboardType="url"
-                                accessibilityLabel="Link"
-                            />
-
-                            <ThemedText style={styles.modalLabel}>
-                                Note
-                            </ThemedText>
-                            <TextInput
-                                style={[
-                                    styles.textInput,
-                                    {
-                                        backgroundColor:
-                                            theme.backgroundElement,
-                                        color: theme.text,
-                                    },
-                                ]}
-                                placeholder="What it is for..."
-                                placeholderTextColor={theme.textSecondary}
-                                value={note}
-                                onChangeText={setNote}
-                                accessibilityLabel="Note"
-                            />
-
-                            <ThemedText style={styles.modalLabel}>
-                                Who kept it
-                            </ThemedText>
-                            <View style={styles.keeperList}>
-                                {members.map((member) => {
-                                    const isSelected = createdBy === member.id;
-                                    return (
-                                        <Pressable
-                                            key={member.id}
-                                            onPress={() =>
-                                                setCreatedBy(
-                                                    isSelected
-                                                        ? undefined
-                                                        : member.id
-                                                )
-                                            }
-                                            accessibilityLabel={`Kept by ${member.name}`}
-                                            accessibilityRole="button"
-                                            accessibilityState={{
-                                                selected: isSelected,
-                                            }}
-                                            style={[
-                                                styles.keeperRow,
-                                                {
-                                                    backgroundColor:
-                                                        theme.backgroundElement,
-                                                    borderColor: isSelected
-                                                        ? theme.text
-                                                        : 'transparent',
-                                                },
-                                            ]}>
-                                            <MemberAvatar
-                                                member={member}
-                                                size={32}
-                                            />
-                                            <ThemedText
-                                                style={styles.keeperName}>
-                                                {member.name}
-                                            </ThemedText>
-                                            {isSelected && (
-                                                <SymbolView
-                                                    name={{
-                                                        ios: 'checkmark.circle.fill',
-                                                        web: 'check_circle',
-                                                    }}
-                                                    tintColor={theme.text}
-                                                    size={22}
-                                                />
-                                            )}
-                                        </Pressable>
-                                    );
-                                })}
-                            </View>
-                        </ScrollView>
-
-                        <View style={styles.modalFooter}>
-                            {error && (
-                                <ThemedText
-                                    type="small"
-                                    style={{ color: theme.destructive }}>
-                                    {error}
-                                </ThemedText>
-                            )}
-                            <Pressable
-                                onPress={save}
-                                disabled={!complete}
-                                accessibilityLabel="Save link"
+                                key={member.id}
+                                onPress={() =>
+                                    setCreatedBy(
+                                        isSelected ? undefined : member.id
+                                    )
+                                }
+                                accessibilityLabel={`Kept by ${member.name}`}
                                 accessibilityRole="button"
-                                style={({ pressed }) => [
-                                    styles.saveButton,
+                                accessibilityState={{
+                                    selected: isSelected,
+                                }}
+                                style={[
+                                    styles.keeperRow,
                                     {
-                                        backgroundColor: complete
+                                        backgroundColor:
+                                            theme.backgroundElement,
+                                        borderColor: isSelected
                                             ? theme.text
-                                            : theme.backgroundElement,
+                                            : 'transparent',
                                     },
-                                    pressed && { opacity: 0.8 },
                                 ]}>
-                                <ThemedText
-                                    style={[
-                                        styles.saveButtonText,
-                                        {
-                                            color: complete
-                                                ? theme.background
-                                                : theme.textSecondary,
-                                        },
-                                    ]}>
-                                    Save
+                                <MemberAvatar member={member} size={32} />
+                                <ThemedText style={styles.keeperName}>
+                                    {member.name}
                                 </ThemedText>
+                                {isSelected && (
+                                    <SymbolView
+                                        name={{
+                                            ios: 'checkmark.circle.fill',
+                                            web: 'check_circle',
+                                        }}
+                                        tintColor={theme.text}
+                                        size={22}
+                                    />
+                                )}
                             </Pressable>
-                        </View>
-                    </SafeAreaView>
+                        );
+                    })}
                 </View>
-            </Modal>
+            </FormSheet>
         </ThemedView>
     );
 }
@@ -666,26 +582,6 @@ const styles = StyleSheet.create({
     },
 
     // The add and edit form
-    modalContainer: {
-        flex: 1,
-    },
-    modalSafeArea: {
-        flex: 1,
-    },
-    modalHeader: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingHorizontal: Spacing.four,
-        paddingVertical: Spacing.three,
-    },
-    modalScroll: {
-        flex: 1,
-    },
-    modalScrollContent: {
-        paddingHorizontal: Spacing.four,
-        paddingBottom: Spacing.four,
-    },
     modalLabel: {
         fontWeight: '600',
         marginTop: Spacing.three,
@@ -711,18 +607,5 @@ const styles = StyleSheet.create({
     },
     keeperName: {
         flex: 1,
-    },
-    modalFooter: {
-        paddingHorizontal: Spacing.four,
-        paddingVertical: Spacing.three,
-        gap: Spacing.two,
-    },
-    saveButton: {
-        alignItems: 'center',
-        borderRadius: 14,
-        paddingVertical: Spacing.three,
-    },
-    saveButtonText: {
-        fontWeight: '600',
     },
 });
