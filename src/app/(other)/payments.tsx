@@ -11,6 +11,7 @@ import Swipeable from 'react-native-gesture-handler/Swipeable';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import {
+    AmountField,
     DateRow,
     FormField,
     FormSheet,
@@ -594,55 +595,14 @@ function Payments() {
                     value={name}
                     onChangeText={setName}
                 />
-                <FormField
+                <AmountField
                     label="Amount"
                     placeholder="49.90"
                     value={amount}
                     onChangeText={setAmount}
-                    keyboardType="decimal-pad"
+                    currency={currency}
+                    onChooseCurrency={setCurrency}
                 />
-
-                <View style={styles.currency}>
-                    <ThemedText type="label" themeColor="textSecondary">
-                        Currency
-                    </ThemedText>
-                    <ScrollView
-                        horizontal
-                        showsHorizontalScrollIndicator={false}
-                        contentContainerStyle={styles.pillRow}>
-                        {CURRENCIES.map((code) => {
-                            const isSelected = currency === code;
-                            return (
-                                <Pressable
-                                    key={code}
-                                    onPress={() => setCurrency(code)}
-                                    accessibilityRole="button"
-                                    accessibilityState={{
-                                        selected: isSelected,
-                                    }}
-                                    style={[
-                                        styles.pill,
-                                        {
-                                            backgroundColor: isSelected
-                                                ? theme.text
-                                                : theme.backgroundElement,
-                                        },
-                                    ]}>
-                                    <ThemedText
-                                        type="small"
-                                        style={{
-                                            color: isSelected
-                                                ? theme.background
-                                                : theme.text,
-                                        }}>
-                                        {code}
-                                    </ThemedText>
-                                </Pressable>
-                            );
-                        })}
-                    </ScrollView>
-                </View>
-
                 <DateRow label="Due" day={dueOn} onChange={setDueOn} />
                 <MemberPicker
                     label="Who pays"
@@ -782,21 +742,5 @@ const styles = StyleSheet.create({
         fontFamily: Fonts.sansSemiBold,
         fontSize: 13.5,
         lineHeight: 18,
-    },
-
-    // The add and edit form
-    currency: {
-        paddingTop: Spacing.three,
-        gap: Spacing.two,
-    },
-    pillRow: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        gap: Spacing.two,
-    },
-    pill: {
-        borderRadius: 16,
-        paddingHorizontal: Spacing.three,
-        paddingVertical: Spacing.two,
     },
 });

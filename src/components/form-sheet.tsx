@@ -11,10 +11,12 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { ChoiceCard } from './choice-card';
 import { DatePickerModal } from './date-picker-modal';
 import { MemberAvatar } from './member-avatar';
 import { ThemedText } from './themed-text';
 
+import { CURRENCIES, type Currency } from '@/constants/currencies';
 import { formatShortDateString } from '@/constants/dates';
 import { MAX_EMOJI_LENGTH } from '@/constants/limits';
 import { Fonts, MaxContentWidth, Spacing } from '@/constants/theme';
@@ -152,6 +154,88 @@ export function FormField({ label, style, ...input }: FormFieldProps) {
                 ]}
             />
         </View>
+    );
+}
+
+interface AmountFieldProps extends TextInputProps {
+    label: string;
+    currency: Currency;
+    onChooseCurrency: (currency: Currency) => void;
+}
+
+/**
+ * A labelled decimal field with its currency code at the end. Tapping the code
+ * opens a card of every currency.
+ */
+export function AmountField({
+    label,
+    currency,
+    onChooseCurrency,
+    style,
+    ...input
+}: AmountFieldProps) {
+    const theme = useTheme();
+    const [choosing, setChoosing] = useState(false);
+
+    return (
+        <>
+            <View style={styles.field}>
+                <ThemedText type="label" themeColor="textSecondary">
+                    {label}
+                </ThemedText>
+                <View
+                    style={[
+                        styles.amountRow,
+                        { borderBottomColor: `${theme.text}29` },
+                    ]}>
+                    <TextInput
+                        accessibilityLabel={label}
+                        placeholderTextColor={theme.textSecondary}
+                        keyboardType="decimal-pad"
+                        {...input}
+                        style={[
+                            styles.amountInput,
+                            { color: theme.text },
+                            style,
+                        ]}
+                    />
+                    <Pressable
+                        onPress={() => setChoosing(true)}
+                        hitSlop={8}
+                        accessibilityLabel={`Currency: ${currency}`}
+                        accessibilityRole="button"
+                        style={({ pressed }) => [
+                            styles.currency,
+                            pressed && { opacity: 0.6 },
+                        ]}>
+                        <ThemedText style={styles.currencyCode}>
+                            {currency}
+                        </ThemedText>
+                        <SymbolView
+                            name={{ ios: 'chevron.down', web: 'expand_more' }}
+                            tintColor={theme.textSecondary}
+                            size={12}
+                        />
+                    </Pressable>
+                </View>
+            </View>
+            <ChoiceCard
+                visible={choosing}
+                title="Currency"
+                onClose={() => setChoosing(false)}>
+                {CURRENCIES.map((code) => (
+                    <ChoiceRow
+                        key={code}
+                        label={code}
+                        chosen={code === currency}
+                        onPress={() => {
+                            onChooseCurrency(code);
+                            setChoosing(false);
+                        }}
+                    />
+                ))}
+            </ChoiceCard>
+        </>
     );
 }
 
@@ -427,6 +511,29 @@ const styles = StyleSheet.create({
         borderBottomWidth: 1,
         fontFamily: Fonts.sansMedium,
         fontSize: 15,
+    },
+    amountRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: Spacing.two,
+        height: 44,
+        borderBottomWidth: 1,
+    },
+    amountInput: {
+        flex: 1,
+        alignSelf: 'stretch',
+        fontFamily: Fonts.sansMedium,
+        fontSize: 15,
+    },
+    currency: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: Spacing.one,
+    },
+    currencyCode: {
+        fontFamily: Fonts.mono,
+        fontSize: 13,
+        lineHeight: 18,
     },
     emoji: {
         width: 44,
