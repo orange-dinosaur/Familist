@@ -11,7 +11,7 @@ import {
 import Swipeable from 'react-native-gesture-handler/Swipeable';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { ChoiceRow, FormField, FormSheet } from '@/components/form-sheet';
+import { FormField, FormSheet, MemberPicker } from '@/components/form-sheet';
 import { MemberAvatar } from '@/components/member-avatar';
 import { ScreenHeader } from '@/components/screen-header';
 import { ThemedText } from '@/components/themed-text';
@@ -208,7 +208,6 @@ function SharedLinks() {
         editSharedLink,
         deleteSharedLink,
     } = useSharedLinks();
-    const { members } = useMembers();
     const { member: me } = useFamily();
     const { canManageContent } = usePermissions();
 
@@ -393,27 +392,15 @@ function SharedLinks() {
                     onChangeText={setNote}
                 />
 
-                <ThemedText
-                    type="label"
-                    themeColor="textSecondary"
-                    style={styles.modalLabel}>
-                    Who kept it
-                </ThemedText>
-                {members.map((member) => {
-                    const chosen = createdBy === member.id;
-                    return (
-                        <ChoiceRow
-                            key={member.id}
-                            label={member.name}
-                            accessibilityLabel={`Kept by ${member.name}`}
-                            chosen={chosen}
-                            onPress={() =>
-                                setCreatedBy(chosen ? undefined : member.id)
-                            }
-                            leading={<MemberAvatar member={member} size={34} />}
-                        />
-                    );
-                })}
+                <MemberPicker
+                    label="Who kept it"
+                    chosenId={createdBy}
+                    onChoose={(memberId) =>
+                        setCreatedBy(
+                            createdBy === memberId ? undefined : memberId
+                        )
+                    }
+                />
             </FormSheet>
         </ThemedView>
     );
@@ -527,11 +514,5 @@ const styles = StyleSheet.create({
         fontFamily: Fonts.sansSemiBold,
         fontSize: 13.5,
         lineHeight: 18,
-    },
-
-    // The add and edit form
-    modalLabel: {
-        marginTop: Spacing.three,
-        marginBottom: Spacing.two,
     },
 });

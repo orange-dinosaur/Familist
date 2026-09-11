@@ -11,9 +11,11 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { MemberAvatar } from './member-avatar';
 import { ThemedText } from './themed-text';
 
 import { Fonts, MaxContentWidth, Spacing } from '@/constants/theme';
+import { useMembers } from '@/hooks/use-members';
 import { useTheme } from '@/hooks/use-theme';
 
 interface FormSheetProps {
@@ -190,6 +192,37 @@ export function ChoiceRow({
                 />
             )}
         </Pressable>
+    );
+}
+
+interface MemberPickerProps {
+    label: string;
+    chosenId?: string;
+    onChoose: (memberId: string) => void;
+}
+
+/** A labelled list of the family, one row per member with their avatar. */
+export function MemberPicker({ label, chosenId, onChoose }: MemberPickerProps) {
+    const { members } = useMembers();
+
+    return (
+        <View style={styles.field}>
+            <ThemedText type="label" themeColor="textSecondary">
+                {label}
+            </ThemedText>
+            <View>
+                {members.map((member) => (
+                    <ChoiceRow
+                        key={member.id}
+                        label={member.name}
+                        accessibilityLabel={`${label}: ${member.name}`}
+                        chosen={member.id === chosenId}
+                        onPress={() => onChoose(member.id)}
+                        leading={<MemberAvatar member={member} size={34} />}
+                    />
+                ))}
+            </View>
+        </View>
     );
 }
 
