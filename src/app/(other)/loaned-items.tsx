@@ -10,8 +10,8 @@ import {
 import Swipeable from 'react-native-gesture-handler/Swipeable';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { DatePickerModal } from '@/components/date-picker-modal';
 import {
+    DateRow,
     FormField,
     FormSheet,
     MemberPicker,
@@ -24,7 +24,6 @@ import { ThemedView } from '@/components/themed-view';
 import {
     daysUntil,
     formatCompactDateString,
-    formatShortDateString,
     getRelativeDateString,
 } from '@/constants/dates';
 import { Colors, Fonts, MaxContentWidth, Spacing } from '@/constants/theme';
@@ -240,7 +239,6 @@ function Loans() {
     const [modalVisible, setModalVisible] = useState(false);
     const [editing, setEditing] = useState<LoanItem | null>(null);
     const [showingReturned, setShowingReturned] = useState(false);
-    const [datePickerVisible, setDatePickerVisible] = useState(false);
 
     const [item, setItem] = useState('');
     const [direction, setDirection] = useState<LoanItem['direction']>('lent');
@@ -281,7 +279,6 @@ function Loans() {
 
     const closeModal = () => {
         clearError();
-        setDatePickerVisible(false);
         setModalVisible(false);
     };
 
@@ -476,35 +473,15 @@ function Loans() {
                     onChangeText={setCounterparty}
                 />
 
-                <ThemedText
-                    type="label"
-                    themeColor="textSecondary"
-                    style={styles.modalLabel}>
-                    {direction === 'lent'
-                        ? 'Day it went out'
-                        : 'Day it came in'}
-                </ThemedText>
-                <Pressable
-                    onPress={() => setDatePickerVisible(true)}
-                    accessibilityLabel="Pick the day"
-                    accessibilityRole="button"
-                    style={[
-                        styles.pill,
-                        styles.datePill,
-                        { backgroundColor: theme.text },
-                    ]}>
-                    <SymbolView
-                        name={{
-                            ios: 'calendar',
-                            web: 'calendar_month',
-                        }}
-                        tintColor={theme.background}
-                        size={18}
-                    />
-                    <ThemedText style={{ color: theme.background }}>
-                        {formatShortDateString(day)}
-                    </ThemedText>
-                </Pressable>
+                <DateRow
+                    label={
+                        direction === 'lent'
+                            ? 'Day it went out'
+                            : 'Day it came in'
+                    }
+                    day={day}
+                    onChange={setDay}
+                />
 
                 <MemberPicker
                     label="Whose loan it is"
@@ -512,16 +489,6 @@ function Loans() {
                     onChoose={(id) =>
                         setMemberId(memberId === id ? undefined : id)
                     }
-                />
-
-                <DatePickerModal
-                    visible={datePickerVisible}
-                    value={day}
-                    onSelect={(picked) => {
-                        setDay(picked);
-                        setDatePickerVisible(false);
-                    }}
-                    onClose={() => setDatePickerVisible(false)}
                 />
             </FormSheet>
         </ThemedView>
@@ -644,22 +611,5 @@ const styles = StyleSheet.create({
         fontFamily: Fonts.sansSemiBold,
         fontSize: 13.5,
         lineHeight: 18,
-    },
-
-    // The add and edit form
-    modalLabel: {
-        marginTop: Spacing.three,
-        marginBottom: Spacing.two,
-    },
-    pill: {
-        borderRadius: 16,
-        paddingHorizontal: Spacing.three,
-        paddingVertical: Spacing.two,
-    },
-    datePill: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        alignSelf: 'flex-start',
-        gap: Spacing.two,
     },
 });

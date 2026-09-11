@@ -1,5 +1,5 @@
 import { SymbolView } from 'expo-symbols';
-import React from 'react';
+import React, { useState } from 'react';
 import {
     Modal,
     Pressable,
@@ -11,9 +11,11 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { DatePickerModal } from './date-picker-modal';
 import { MemberAvatar } from './member-avatar';
 import { ThemedText } from './themed-text';
 
+import { formatShortDateString } from '@/constants/dates';
 import { Fonts, MaxContentWidth, Spacing } from '@/constants/theme';
 import { useMembers } from '@/hooks/use-members';
 import { useTheme } from '@/hooks/use-theme';
@@ -280,6 +282,54 @@ export function OptionTabs<T extends string>({
     );
 }
 
+interface DateRowProps {
+    label: string;
+    day: string;
+    onChange: (day: string) => void;
+}
+
+/** A labelled date, written out in full, that opens the calendar when tapped. */
+export function DateRow({ label, day, onChange }: DateRowProps) {
+    const theme = useTheme();
+    const [picking, setPicking] = useState(false);
+    const shown = formatShortDateString(day, true);
+
+    return (
+        <>
+            <View style={styles.field}>
+                <ThemedText type="label" themeColor="textSecondary">
+                    {label}
+                </ThemedText>
+                <Pressable
+                    onPress={() => setPicking(true)}
+                    accessibilityLabel={`${label}: ${shown}`}
+                    accessibilityRole="button"
+                    style={({ pressed }) => [
+                        styles.dateRow,
+                        { borderBottomColor: `${theme.text}29` },
+                        pressed && { opacity: 0.6 },
+                    ]}>
+                    <ThemedText type="small">{shown}</ThemedText>
+                    <SymbolView
+                        name={{ ios: 'calendar', web: 'calendar_month' }}
+                        tintColor={theme.textSecondary}
+                        size={16}
+                    />
+                </Pressable>
+            </View>
+            <DatePickerModal
+                visible={picking}
+                value={day}
+                onSelect={(picked) => {
+                    onChange(picked);
+                    setPicking(false);
+                }}
+                onClose={() => setPicking(false)}
+            />
+        </>
+    );
+}
+
 const styles = StyleSheet.create({
     container: {
         flex: 1,
@@ -354,5 +404,12 @@ const styles = StyleSheet.create({
         height: 2,
         alignSelf: 'stretch',
         marginTop: Spacing.two + Spacing.one,
+    },
+    dateRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        height: 44,
+        borderBottomWidth: 1,
     },
 });
