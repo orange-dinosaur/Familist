@@ -2,17 +2,20 @@ import { SymbolView } from 'expo-symbols';
 import React, { useRef, useState } from 'react';
 import {
     Animated,
-    Modal,
     Pressable,
     ScrollView,
     StyleSheet,
-    TextInput,
     View,
 } from 'react-native';
 import Swipeable from 'react-native-gesture-handler/Swipeable';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { DatePickerModal } from '@/components/date-picker-modal';
+import {
+    DateRow,
+    FormField,
+    FormSheet,
+    MemberPicker,
+} from '@/components/form-sheet';
 import { MemberAvatar } from '@/components/member-avatar';
 import { ScreenHeader } from '@/components/screen-header';
 import { ThemedText } from '@/components/themed-text';
@@ -307,12 +310,10 @@ function Payments() {
         error: subscriptionError,
         editSubscription,
     } = useSubscriptions();
-    const { members } = useMembers();
     const { canManageContent, canToggle } = usePermissions();
 
     const [modalVisible, setModalVisible] = useState(false);
     const [editing, setEditing] = useState<PaymentItem | null>(null);
-    const [datePickerVisible, setDatePickerVisible] = useState(false);
     const [showingEarlier, setShowingEarlier] = useState(false);
     /**
      * The last tick and how to reverse it. Ticking a renewal moves the
@@ -378,7 +379,6 @@ function Payments() {
 
     const closeModal = () => {
         clearError();
-        setDatePickerVisible(false);
         setModalVisible(false);
     };
 
@@ -580,248 +580,77 @@ function Payments() {
                 )}
             </SafeAreaView>
 
-            <Modal
+            <FormSheet
                 visible={modalVisible}
-                animationType="slide"
-                presentationStyle="pageSheet"
-                onRequestClose={closeModal}>
-                <View
-                    style={[
-                        styles.modalContainer,
-                        { backgroundColor: theme.background },
-                    ]}>
-                    <SafeAreaView style={styles.modalSafeArea}>
-                        <View style={styles.modalHeader}>
-                            <ThemedText type="subtitle">
-                                {editing ? 'Edit Payment' : 'Add Payment'}
-                            </ThemedText>
-                            <Pressable
-                                onPress={closeModal}
-                                hitSlop={8}
-                                accessibilityLabel="Close"
-                                accessibilityRole="button">
-                                <SymbolView
-                                    name={{
-                                        ios: 'xmark.circle.fill',
-                                        web: 'cancel',
+                title={editing ? 'Edit payment' : 'Add a payment'}
+                onClose={closeModal}
+                actionLabel="Save"
+                onAction={save}
+                actionDisabled={!complete}
+                error={error}>
+                <FormField
+                    label="Name"
+                    placeholder="What is it for..."
+                    value={name}
+                    onChangeText={setName}
+                />
+                <FormField
+                    label="Amount"
+                    placeholder="49.90"
+                    value={amount}
+                    onChangeText={setAmount}
+                    keyboardType="decimal-pad"
+                />
+
+                <View style={styles.currency}>
+                    <ThemedText type="label" themeColor="textSecondary">
+                        Currency
+                    </ThemedText>
+                    <ScrollView
+                        horizontal
+                        showsHorizontalScrollIndicator={false}
+                        contentContainerStyle={styles.pillRow}>
+                        {CURRENCIES.map((code) => {
+                            const isSelected = currency === code;
+                            return (
+                                <Pressable
+                                    key={code}
+                                    onPress={() => setCurrency(code)}
+                                    accessibilityRole="button"
+                                    accessibilityState={{
+                                        selected: isSelected,
                                     }}
-                                    tintColor={theme.textSecondary}
-                                    size={28}
-                                />
-                            </Pressable>
-                        </View>
-
-                        <ScrollView
-                            style={styles.modalScroll}
-                            contentContainerStyle={styles.modalScrollContent}
-                            showsVerticalScrollIndicator={false}
-                            keyboardShouldPersistTaps="handled">
-                            <ThemedText style={styles.modalLabel}>
-                                Name
-                            </ThemedText>
-                            <TextInput
-                                style={[
-                                    styles.textInput,
-                                    {
-                                        backgroundColor:
-                                            theme.backgroundElement,
-                                        color: theme.text,
-                                    },
-                                ]}
-                                placeholder="What is it for..."
-                                placeholderTextColor={theme.textSecondary}
-                                value={name}
-                                onChangeText={setName}
-                                accessibilityLabel="Name"
-                            />
-
-                            <ThemedText style={styles.modalLabel}>
-                                Amount
-                            </ThemedText>
-                            <TextInput
-                                style={[
-                                    styles.textInput,
-                                    {
-                                        backgroundColor:
-                                            theme.backgroundElement,
-                                        color: theme.text,
-                                    },
-                                ]}
-                                placeholder="49.90"
-                                placeholderTextColor={theme.textSecondary}
-                                value={amount}
-                                onChangeText={setAmount}
-                                keyboardType="decimal-pad"
-                                accessibilityLabel="Amount"
-                            />
-
-                            <ThemedText style={styles.modalLabel}>
-                                Currency
-                            </ThemedText>
-                            <ScrollView
-                                horizontal
-                                showsHorizontalScrollIndicator={false}
-                                contentContainerStyle={styles.pillRow}>
-                                {CURRENCIES.map((code) => {
-                                    const isSelected = currency === code;
-                                    return (
-                                        <Pressable
-                                            key={code}
-                                            onPress={() => setCurrency(code)}
-                                            accessibilityRole="button"
-                                            accessibilityState={{
-                                                selected: isSelected,
-                                            }}
-                                            style={[
-                                                styles.pill,
-                                                {
-                                                    backgroundColor: isSelected
-                                                        ? theme.text
-                                                        : theme.backgroundElement,
-                                                },
-                                            ]}>
-                                            <ThemedText
-                                                type="small"
-                                                style={{
-                                                    color: isSelected
-                                                        ? theme.background
-                                                        : theme.text,
-                                                }}>
-                                                {code}
-                                            </ThemedText>
-                                        </Pressable>
-                                    );
-                                })}
-                            </ScrollView>
-
-                            <ThemedText style={styles.modalLabel}>
-                                Due
-                            </ThemedText>
-                            <Pressable
-                                onPress={() => setDatePickerVisible(true)}
-                                accessibilityLabel="Pick the due date"
-                                accessibilityRole="button"
-                                style={[
-                                    styles.pill,
-                                    styles.datePill,
-                                    { backgroundColor: theme.text },
-                                ]}>
-                                <SymbolView
-                                    name={{
-                                        ios: 'calendar',
-                                        web: 'calendar_month',
-                                    }}
-                                    tintColor={theme.background}
-                                    size={18}
-                                />
-                                <ThemedText style={{ color: theme.background }}>
-                                    {formatShortDateString(dueOn)}
-                                </ThemedText>
-                            </Pressable>
-
-                            <ThemedText style={styles.modalLabel}>
-                                Who pays
-                            </ThemedText>
-                            <View style={styles.payerList}>
-                                {members.map((member) => {
-                                    const isSelected = payerId === member.id;
-                                    return (
-                                        <Pressable
-                                            key={member.id}
-                                            onPress={() =>
-                                                setPayerId(
-                                                    isSelected
-                                                        ? undefined
-                                                        : member.id
-                                                )
-                                            }
-                                            accessibilityLabel={`Paid by ${member.name}`}
-                                            accessibilityRole="button"
-                                            accessibilityState={{
-                                                selected: isSelected,
-                                            }}
-                                            style={[
-                                                styles.payerRow,
-                                                {
-                                                    backgroundColor:
-                                                        theme.backgroundElement,
-                                                    borderColor: isSelected
-                                                        ? theme.text
-                                                        : 'transparent',
-                                                },
-                                            ]}>
-                                            <MemberAvatar
-                                                member={member}
-                                                size={32}
-                                            />
-                                            <ThemedText
-                                                style={styles.payerName}>
-                                                {member.name}
-                                            </ThemedText>
-                                            {isSelected && (
-                                                <SymbolView
-                                                    name={{
-                                                        ios: 'checkmark.circle.fill',
-                                                        web: 'check_circle',
-                                                    }}
-                                                    tintColor={theme.text}
-                                                    size={22}
-                                                />
-                                            )}
-                                        </Pressable>
-                                    );
-                                })}
-                            </View>
-                        </ScrollView>
-
-                        <View style={styles.modalFooter}>
-                            {error && (
-                                <ThemedText
-                                    type="small"
-                                    style={{ color: theme.destructive }}>
-                                    {error}
-                                </ThemedText>
-                            )}
-                            <Pressable
-                                onPress={save}
-                                disabled={!complete}
-                                accessibilityLabel="Save payment"
-                                accessibilityRole="button"
-                                style={({ pressed }) => [
-                                    styles.saveButton,
-                                    {
-                                        backgroundColor: complete
-                                            ? theme.text
-                                            : theme.backgroundElement,
-                                    },
-                                    pressed && { opacity: 0.8 },
-                                ]}>
-                                <ThemedText
                                     style={[
-                                        styles.saveButtonText,
+                                        styles.pill,
                                         {
-                                            color: complete
-                                                ? theme.background
-                                                : theme.textSecondary,
+                                            backgroundColor: isSelected
+                                                ? theme.text
+                                                : theme.backgroundElement,
                                         },
                                     ]}>
-                                    Save
-                                </ThemedText>
-                            </Pressable>
-                        </View>
-
-                        <DatePickerModal
-                            visible={datePickerVisible}
-                            value={dueOn}
-                            onSelect={(day) => {
-                                setDueOn(day);
-                                setDatePickerVisible(false);
-                            }}
-                            onClose={() => setDatePickerVisible(false)}
-                        />
-                    </SafeAreaView>
+                                    <ThemedText
+                                        type="small"
+                                        style={{
+                                            color: isSelected
+                                                ? theme.background
+                                                : theme.text,
+                                        }}>
+                                        {code}
+                                    </ThemedText>
+                                </Pressable>
+                            );
+                        })}
+                    </ScrollView>
                 </View>
-            </Modal>
+
+                <DateRow label="Due" day={dueOn} onChange={setDueOn} />
+                <MemberPicker
+                    label="Who pays"
+                    chosenId={payerId}
+                    onChoose={setPayerId}
+                    noneLabel="Unassigned"
+                />
+            </FormSheet>
         </ThemedView>
     );
 }
@@ -956,36 +785,9 @@ const styles = StyleSheet.create({
     },
 
     // The add and edit form
-    modalContainer: {
-        flex: 1,
-    },
-    modalSafeArea: {
-        flex: 1,
-    },
-    modalHeader: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingHorizontal: Spacing.four,
-        paddingVertical: Spacing.three,
-    },
-    modalScroll: {
-        flex: 1,
-    },
-    modalScrollContent: {
-        paddingHorizontal: Spacing.four,
-        paddingBottom: Spacing.four,
-    },
-    modalLabel: {
-        fontWeight: '600',
-        marginTop: Spacing.three,
-        marginBottom: Spacing.two,
-    },
-    textInput: {
-        borderRadius: 12,
-        paddingHorizontal: Spacing.three,
-        paddingVertical: Spacing.three,
-        fontSize: 16,
+    currency: {
+        paddingTop: Spacing.three,
+        gap: Spacing.two,
     },
     pillRow: {
         flexDirection: 'row',
@@ -996,39 +798,5 @@ const styles = StyleSheet.create({
         borderRadius: 16,
         paddingHorizontal: Spacing.three,
         paddingVertical: Spacing.two,
-    },
-    datePill: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        alignSelf: 'flex-start',
-        gap: Spacing.two,
-    },
-    payerList: {
-        gap: Spacing.two,
-    },
-    payerRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: Spacing.three,
-        borderRadius: 12,
-        borderWidth: 2,
-        paddingHorizontal: Spacing.three,
-        paddingVertical: Spacing.two,
-    },
-    payerName: {
-        flex: 1,
-    },
-    modalFooter: {
-        paddingHorizontal: Spacing.four,
-        paddingVertical: Spacing.three,
-        gap: Spacing.two,
-    },
-    saveButton: {
-        alignItems: 'center',
-        borderRadius: 14,
-        paddingVertical: Spacing.three,
-    },
-    saveButtonText: {
-        fontWeight: '600',
     },
 });
