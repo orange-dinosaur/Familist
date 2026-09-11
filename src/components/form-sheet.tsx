@@ -226,6 +226,60 @@ export function MemberPicker({ label, chosenId, onChoose }: MemberPickerProps) {
     );
 }
 
+interface OptionTabsProps<T extends string> {
+    label: string;
+    options: readonly { key: T; label: string }[];
+    chosen: T;
+    onChoose: (key: T) => void;
+}
+
+/** A labelled choice between a few options, drawn as tabs on a rule. */
+export function OptionTabs<T extends string>({
+    label,
+    options,
+    chosen,
+    onChoose,
+}: OptionTabsProps<T>) {
+    const theme = useTheme();
+
+    return (
+        <View style={styles.field}>
+            <ThemedText type="label" themeColor="textSecondary">
+                {label}
+            </ThemedText>
+            <View
+                style={[styles.tabs, { borderBottomColor: `${theme.text}24` }]}>
+                {options.map((option) => {
+                    const isChosen = option.key === chosen;
+                    return (
+                        <Pressable
+                            key={option.key}
+                            onPress={() => onChoose(option.key)}
+                            accessibilityLabel={`${label}: ${option.label}`}
+                            accessibilityRole="button"
+                            accessibilityState={{ selected: isChosen }}
+                            style={styles.tab}>
+                            <ThemedText
+                                type="label"
+                                themeColor={
+                                    isChosen ? 'text' : 'textSecondary'
+                                }>
+                                {option.label}
+                            </ThemedText>
+                            <View
+                                style={[
+                                    styles.tabMark,
+                                    isChosen && { backgroundColor: theme.text },
+                                ]}
+                            />
+                        </Pressable>
+                    );
+                })}
+            </View>
+        </View>
+    );
+}
+
 const styles = StyleSheet.create({
     container: {
         flex: 1,
@@ -286,5 +340,19 @@ const styles = StyleSheet.create({
     },
     choiceLabel: {
         flex: 1,
+    },
+    tabs: {
+        flexDirection: 'row',
+        gap: Spacing.four,
+        borderBottomWidth: 1,
+    },
+    tab: {
+        alignItems: 'center',
+    },
+    /** The mark under the chosen option. */
+    tabMark: {
+        height: 2,
+        alignSelf: 'stretch',
+        marginTop: Spacing.two + Spacing.one,
     },
 });

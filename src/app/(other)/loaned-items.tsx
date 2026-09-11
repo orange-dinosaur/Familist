@@ -2,17 +2,21 @@ import { SymbolView } from 'expo-symbols';
 import React, { useRef, useState } from 'react';
 import {
     Animated,
-    Modal,
     Pressable,
     ScrollView,
     StyleSheet,
-    TextInput,
     View,
 } from 'react-native';
 import Swipeable from 'react-native-gesture-handler/Swipeable';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { DatePickerModal } from '@/components/date-picker-modal';
+import {
+    FormField,
+    FormSheet,
+    MemberPicker,
+    OptionTabs,
+} from '@/components/form-sheet';
 import { MemberAvatar } from '@/components/member-avatar';
 import { ScreenHeader } from '@/components/screen-header';
 import { ThemedText } from '@/components/themed-text';
@@ -231,7 +235,6 @@ function Loans() {
         toggleReturned,
         deleteLoan,
     } = useLoans();
-    const { members } = useMembers();
     const { canManageContent, canToggle } = usePermissions();
 
     const [modalVisible, setModalVisible] = useState(false);
@@ -442,248 +445,85 @@ function Loans() {
                 )}
             </SafeAreaView>
 
-            <Modal
+            <FormSheet
                 visible={modalVisible}
-                animationType="slide"
-                presentationStyle="pageSheet"
-                onRequestClose={closeModal}>
-                <View
+                title={editing ? 'Edit loan' : 'Add a loan'}
+                onClose={closeModal}
+                actionLabel="Save"
+                onAction={save}
+                actionDisabled={!complete}
+                error={error}>
+                <FormField
+                    label="Item"
+                    placeholder="What it is..."
+                    value={item}
+                    onChangeText={setItem}
+                />
+
+                <OptionTabs
+                    label="Direction"
+                    options={LOAN_DIRECTIONS}
+                    chosen={direction}
+                    onChoose={setDirection}
+                />
+
+                <FormField
+                    label={
+                        direction === 'lent' ? 'Who has it' : 'Who it is from'
+                    }
+                    placeholder="A name..."
+                    value={counterparty}
+                    onChangeText={setCounterparty}
+                />
+
+                <ThemedText
+                    type="label"
+                    themeColor="textSecondary"
+                    style={styles.modalLabel}>
+                    {direction === 'lent'
+                        ? 'Day it went out'
+                        : 'Day it came in'}
+                </ThemedText>
+                <Pressable
+                    onPress={() => setDatePickerVisible(true)}
+                    accessibilityLabel="Pick the day"
+                    accessibilityRole="button"
                     style={[
-                        styles.modalContainer,
-                        { backgroundColor: theme.background },
+                        styles.pill,
+                        styles.datePill,
+                        { backgroundColor: theme.text },
                     ]}>
-                    <SafeAreaView style={styles.modalSafeArea}>
-                        <View style={styles.modalHeader}>
-                            <ThemedText type="subtitle">
-                                {editing ? 'Edit Loan' : 'Add Loan'}
-                            </ThemedText>
-                            <Pressable
-                                onPress={closeModal}
-                                hitSlop={8}
-                                accessibilityLabel="Close"
-                                accessibilityRole="button">
-                                <SymbolView
-                                    name={{
-                                        ios: 'xmark.circle.fill',
-                                        web: 'cancel',
-                                    }}
-                                    tintColor={theme.textSecondary}
-                                    size={28}
-                                />
-                            </Pressable>
-                        </View>
+                    <SymbolView
+                        name={{
+                            ios: 'calendar',
+                            web: 'calendar_month',
+                        }}
+                        tintColor={theme.background}
+                        size={18}
+                    />
+                    <ThemedText style={{ color: theme.background }}>
+                        {formatShortDateString(day)}
+                    </ThemedText>
+                </Pressable>
 
-                        <ScrollView
-                            style={styles.modalScroll}
-                            contentContainerStyle={styles.modalScrollContent}
-                            showsVerticalScrollIndicator={false}
-                            keyboardShouldPersistTaps="handled">
-                            <ThemedText style={styles.modalLabel}>
-                                Item
-                            </ThemedText>
-                            <TextInput
-                                style={[
-                                    styles.textInput,
-                                    {
-                                        backgroundColor:
-                                            theme.backgroundElement,
-                                        color: theme.text,
-                                    },
-                                ]}
-                                placeholder="What it is..."
-                                placeholderTextColor={theme.textSecondary}
-                                value={item}
-                                onChangeText={setItem}
-                                accessibilityLabel="Item"
-                            />
+                <MemberPicker
+                    label="Whose loan it is"
+                    chosenId={memberId}
+                    onChoose={(id) =>
+                        setMemberId(memberId === id ? undefined : id)
+                    }
+                />
 
-                            <ThemedText style={styles.modalLabel}>
-                                Direction
-                            </ThemedText>
-                            <View style={styles.pillRow}>
-                                {LOAN_DIRECTIONS.map(({ key, label }) => {
-                                    const isSelected = direction === key;
-                                    return (
-                                        <Pressable
-                                            key={key}
-                                            onPress={() => setDirection(key)}
-                                            accessibilityRole="button"
-                                            accessibilityState={{
-                                                selected: isSelected,
-                                            }}
-                                            style={[
-                                                styles.pill,
-                                                styles.directionPill,
-                                                {
-                                                    backgroundColor: isSelected
-                                                        ? theme.text
-                                                        : theme.backgroundElement,
-                                                },
-                                            ]}>
-                                            <ThemedText
-                                                style={{
-                                                    color: isSelected
-                                                        ? theme.background
-                                                        : theme.text,
-                                                }}>
-                                                {label}
-                                            </ThemedText>
-                                        </Pressable>
-                                    );
-                                })}
-                            </View>
-
-                            <ThemedText style={styles.modalLabel}>
-                                {direction === 'lent'
-                                    ? 'Who has it'
-                                    : 'Who it is from'}
-                            </ThemedText>
-                            <TextInput
-                                style={[
-                                    styles.textInput,
-                                    {
-                                        backgroundColor:
-                                            theme.backgroundElement,
-                                        color: theme.text,
-                                    },
-                                ]}
-                                placeholder="A name..."
-                                placeholderTextColor={theme.textSecondary}
-                                value={counterparty}
-                                onChangeText={setCounterparty}
-                                accessibilityLabel="Counterparty"
-                            />
-
-                            <ThemedText style={styles.modalLabel}>
-                                {direction === 'lent'
-                                    ? 'Day it went out'
-                                    : 'Day it came in'}
-                            </ThemedText>
-                            <Pressable
-                                onPress={() => setDatePickerVisible(true)}
-                                accessibilityLabel="Pick the day"
-                                accessibilityRole="button"
-                                style={[
-                                    styles.pill,
-                                    styles.datePill,
-                                    { backgroundColor: theme.text },
-                                ]}>
-                                <SymbolView
-                                    name={{
-                                        ios: 'calendar',
-                                        web: 'calendar_month',
-                                    }}
-                                    tintColor={theme.background}
-                                    size={18}
-                                />
-                                <ThemedText style={{ color: theme.background }}>
-                                    {formatShortDateString(day)}
-                                </ThemedText>
-                            </Pressable>
-
-                            <ThemedText style={styles.modalLabel}>
-                                Whose loan it is
-                            </ThemedText>
-                            <View style={styles.memberList}>
-                                {members.map((member) => {
-                                    const isSelected = memberId === member.id;
-                                    return (
-                                        <Pressable
-                                            key={member.id}
-                                            onPress={() =>
-                                                setMemberId(
-                                                    isSelected
-                                                        ? undefined
-                                                        : member.id
-                                                )
-                                            }
-                                            accessibilityLabel={`Loan of ${member.name}`}
-                                            accessibilityRole="button"
-                                            accessibilityState={{
-                                                selected: isSelected,
-                                            }}
-                                            style={[
-                                                styles.memberRow,
-                                                {
-                                                    backgroundColor:
-                                                        theme.backgroundElement,
-                                                    borderColor: isSelected
-                                                        ? theme.text
-                                                        : 'transparent',
-                                                },
-                                            ]}>
-                                            <MemberAvatar
-                                                member={member}
-                                                size={32}
-                                            />
-                                            <ThemedText
-                                                style={styles.memberName}>
-                                                {member.name}
-                                            </ThemedText>
-                                            {isSelected && (
-                                                <SymbolView
-                                                    name={{
-                                                        ios: 'checkmark.circle.fill',
-                                                        web: 'check_circle',
-                                                    }}
-                                                    tintColor={theme.text}
-                                                    size={22}
-                                                />
-                                            )}
-                                        </Pressable>
-                                    );
-                                })}
-                            </View>
-                        </ScrollView>
-
-                        <View style={styles.modalFooter}>
-                            {error && (
-                                <ThemedText
-                                    type="small"
-                                    style={{ color: theme.destructive }}>
-                                    {error}
-                                </ThemedText>
-                            )}
-                            <Pressable
-                                onPress={save}
-                                disabled={!complete}
-                                accessibilityLabel="Save loan"
-                                accessibilityRole="button"
-                                style={({ pressed }) => [
-                                    styles.saveButton,
-                                    {
-                                        backgroundColor: complete
-                                            ? theme.text
-                                            : theme.backgroundElement,
-                                    },
-                                    pressed && { opacity: 0.8 },
-                                ]}>
-                                <ThemedText
-                                    style={[
-                                        styles.saveButtonText,
-                                        {
-                                            color: complete
-                                                ? theme.background
-                                                : theme.textSecondary,
-                                        },
-                                    ]}>
-                                    Save
-                                </ThemedText>
-                            </Pressable>
-                        </View>
-
-                        <DatePickerModal
-                            visible={datePickerVisible}
-                            value={day}
-                            onSelect={(picked) => {
-                                setDay(picked);
-                                setDatePickerVisible(false);
-                            }}
-                            onClose={() => setDatePickerVisible(false)}
-                        />
-                    </SafeAreaView>
-                </View>
-            </Modal>
+                <DatePickerModal
+                    visible={datePickerVisible}
+                    value={day}
+                    onSelect={(picked) => {
+                        setDay(picked);
+                        setDatePickerVisible(false);
+                    }}
+                    onClose={() => setDatePickerVisible(false)}
+                />
+            </FormSheet>
         </ThemedView>
     );
 }
@@ -807,83 +647,19 @@ const styles = StyleSheet.create({
     },
 
     // The add and edit form
-    modalContainer: {
-        flex: 1,
-    },
-    modalSafeArea: {
-        flex: 1,
-    },
-    modalHeader: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingHorizontal: Spacing.four,
-        paddingVertical: Spacing.three,
-    },
-    modalScroll: {
-        flex: 1,
-    },
-    modalScrollContent: {
-        paddingHorizontal: Spacing.four,
-        paddingBottom: Spacing.four,
-    },
     modalLabel: {
-        fontWeight: '600',
         marginTop: Spacing.three,
         marginBottom: Spacing.two,
-    },
-    textInput: {
-        borderRadius: 12,
-        paddingHorizontal: Spacing.three,
-        paddingVertical: Spacing.three,
-        fontSize: 16,
-    },
-    pillRow: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        gap: Spacing.two,
     },
     pill: {
         borderRadius: 16,
         paddingHorizontal: Spacing.three,
         paddingVertical: Spacing.two,
     },
-    directionPill: {
-        flex: 1,
-        alignItems: 'center',
-    },
     datePill: {
         flexDirection: 'row',
         alignItems: 'center',
         alignSelf: 'flex-start',
         gap: Spacing.two,
-    },
-    memberList: {
-        gap: Spacing.two,
-    },
-    memberRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: Spacing.three,
-        borderRadius: 12,
-        borderWidth: 2,
-        paddingHorizontal: Spacing.three,
-        paddingVertical: Spacing.two,
-    },
-    memberName: {
-        flex: 1,
-    },
-    modalFooter: {
-        paddingHorizontal: Spacing.four,
-        paddingVertical: Spacing.three,
-        gap: Spacing.two,
-    },
-    saveButton: {
-        alignItems: 'center',
-        borderRadius: 14,
-        paddingVertical: Spacing.three,
-    },
-    saveButtonText: {
-        fontWeight: '600',
     },
 });
