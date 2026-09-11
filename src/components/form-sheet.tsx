@@ -221,32 +221,56 @@ export function ChoiceRow({
 }
 
 interface MemberPickerProps {
-    label: string;
+    /** The heading over the list, left out where a card already titles it. */
+    label?: string;
     chosenId?: string;
-    onChoose: (memberId: string) => void;
+    onChoose: (memberId: string | undefined) => void;
+    /** Adds a row for nobody at the foot of the list, under this name. */
+    noneLabel?: string;
 }
 
-/** A labelled list of the family, one row per member with their avatar. */
-export function MemberPicker({ label, chosenId, onChoose }: MemberPickerProps) {
+/** A list of the family, one row per member with their avatar. */
+export function MemberPicker({
+    label,
+    chosenId,
+    onChoose,
+    noneLabel,
+}: MemberPickerProps) {
     const { members } = useMembers();
+
+    const rows = (
+        <View>
+            {members.map((member) => (
+                <ChoiceRow
+                    key={member.id}
+                    label={member.name}
+                    accessibilityLabel={
+                        label ? `${label}: ${member.name}` : member.name
+                    }
+                    chosen={member.id === chosenId}
+                    onPress={() => onChoose(member.id)}
+                    leading={<MemberAvatar member={member} size={34} />}
+                />
+            ))}
+            {noneLabel && (
+                <ChoiceRow
+                    label={noneLabel}
+                    chosen={chosenId === undefined}
+                    onPress={() => onChoose(undefined)}
+                    leading={<MemberAvatar member={null} size={34} />}
+                />
+            )}
+        </View>
+    );
+
+    if (!label) return rows;
 
     return (
         <View style={styles.field}>
             <ThemedText type="label" themeColor="textSecondary">
                 {label}
             </ThemedText>
-            <View>
-                {members.map((member) => (
-                    <ChoiceRow
-                        key={member.id}
-                        label={member.name}
-                        accessibilityLabel={`${label}: ${member.name}`}
-                        chosen={member.id === chosenId}
-                        onPress={() => onChoose(member.id)}
-                        leading={<MemberAvatar member={member} size={34} />}
-                    />
-                ))}
-            </View>
+            {rows}
         </View>
     );
 }

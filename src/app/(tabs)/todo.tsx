@@ -1,4 +1,3 @@
-import { BlurView } from 'expo-blur';
 import { SymbolView } from 'expo-symbols';
 import React, { useState, useRef } from 'react';
 import {
@@ -13,7 +12,9 @@ import {
 import Swipeable from 'react-native-gesture-handler/Swipeable';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { ChoiceCard } from '@/components/choice-card';
 import { DatePickerModal } from '@/components/date-picker-modal';
+import { MemberPicker } from '@/components/form-sheet';
 import { FamilyBar } from '@/components/family-bar';
 import { ThemedText } from '@/components/themed-text';
 import { MemberAvatar } from '@/components/member-avatar';
@@ -31,7 +32,6 @@ import {
     MaxContentWidth,
     Spacing,
 } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useTheme } from '@/hooks/use-theme';
 import { useMembers } from '@/hooks/use-members';
 import { usePermissions } from '@/hooks/use-permissions';
@@ -258,7 +258,6 @@ TodoRow.displayName = 'TodoRow';
 
 export default function TodoScreen() {
     const theme = useTheme();
-    const scheme = useColorScheme();
     const {
         todos,
         loading,
@@ -275,6 +274,7 @@ export default function TodoScreen() {
 
     const [modalVisible, setModalVisible] = useState(false);
     const [assigningTodoId, setAssigningTodoId] = useState<string | null>(null);
+    const assigningTodo = todos.find((one) => one.id === assigningTodoId);
     const [showingCompleted, setShowingCompleted] = useState(false);
     const [sort, setSort] = useState<TodoSort>('urgency');
     const [editingTodo, setEditingTodo] = useState<TodoItem | null>(null);
@@ -858,99 +858,21 @@ export default function TodoScreen() {
                 </View>
             </Modal>
 
-            {/* Assignee Selection Modal */}
-            <Modal
+            <ChoiceCard
                 visible={assigningTodoId !== null}
-                animationType="none"
-                transparent={true}
-                onRequestClose={() => setAssigningTodoId(null)}>
-                <BlurView
-                    intensity={40}
-                    tint={scheme === 'dark' ? 'dark' : 'light'}
-                    experimentalBlurMethod="dimezisBlurView"
-                    style={styles.modalOverlay}>
-                    <Pressable
-                        style={StyleSheet.absoluteFill}
-                        onPress={() => setAssigningTodoId(null)}
-                        accessibilityLabel="Close"
-                        accessibilityRole="button"
-                    />
-                    <View
-                        style={[
-                            styles.assigneeModalContent,
-                            { backgroundColor: theme.background },
-                        ]}>
-                        <ThemedText
-                            type="subtitle"
-                            style={styles.assigneeModalTitle}>
-                            Assign Task
-                        </ThemedText>
-
-                        <ScrollView
-                            style={styles.assigneeList}
-                            showsVerticalScrollIndicator={false}>
-                            {members.map((member) => (
-                                <Pressable
-                                    key={member.id}
-                                    onPress={() => {
-                                        if (assigningTodoId) {
-                                            assignTodo(
-                                                assigningTodoId,
-                                                member.id
-                                            );
-                                        }
-                                        setAssigningTodoId(null);
-                                    }}
-                                    style={({ pressed }) => [
-                                        styles.assigneeRow,
-                                        pressed && {
-                                            backgroundColor:
-                                                theme.backgroundSelected,
-                                        },
-                                    ]}>
-                                    <MemberAvatar member={member} size={40} />
-                                    <ThemedText style={styles.assigneeName}>
-                                        {member.name}
-                                    </ThemedText>
-                                </Pressable>
-                            ))}
-
-                            <Pressable
-                                onPress={() => {
-                                    if (assigningTodoId) {
-                                        assignTodo(assigningTodoId, undefined);
-                                    }
-                                    setAssigningTodoId(null);
-                                }}
-                                style={({ pressed }) => [
-                                    styles.assigneeRow,
-                                    pressed && {
-                                        backgroundColor:
-                                            theme.backgroundSelected,
-                                    },
-                                ]}>
-                                <MemberAvatar member={null} size={40} />
-                                <ThemedText
-                                    themeColor="textSecondary"
-                                    style={styles.assigneeName}>
-                                    Unassigned
-                                </ThemedText>
-                            </Pressable>
-                        </ScrollView>
-
-                        <Pressable
-                            onPress={() => setAssigningTodoId(null)}
-                            style={[
-                                styles.assigneeCloseButton,
-                                { backgroundColor: theme.backgroundElement },
-                            ]}>
-                            <ThemedText style={{ fontWeight: '600' }}>
-                                Cancel
-                            </ThemedText>
-                        </Pressable>
-                    </View>
-                </BlurView>
-            </Modal>
+                title="Assign task"
+                onClose={() => setAssigningTodoId(null)}>
+                <MemberPicker
+                    chosenId={assigningTodo?.assigneeId ?? undefined}
+                    noneLabel="Unassigned"
+                    onChoose={(memberId) => {
+                        if (assigningTodoId) {
+                            assignTodo(assigningTodoId, memberId);
+                        }
+                        setAssigningTodoId(null);
+                    }}
+                />
+            </ChoiceCard>
         </ThemedView>
     );
 }
@@ -1170,14 +1092,6 @@ const styles = StyleSheet.create({
     assigneeList: {
         gap: Spacing.two,
     },
-    assigneeRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: Spacing.three,
-        paddingVertical: Spacing.three,
-        paddingHorizontal: Spacing.two,
-        borderRadius: 14,
-    },
     editAssigneeRow: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -1189,36 +1103,6 @@ const styles = StyleSheet.create({
     editAssigneeName: {
         fontSize: 16,
         fontWeight: '500',
-    },
-    assigneeName: {
-        fontSize: 16,
-        fontWeight: '500',
-    },
-    assigneeModalContent: {
-        width: '100%',
-        maxWidth: 400,
-        borderRadius: 24,
-        padding: Spacing.four,
-        gap: Spacing.three,
-    },
-    assigneeModalTitle: {
-        fontWeight: '700',
-        textAlign: 'center',
-    },
-    assigneeCloseButton: {
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: Spacing.three,
-        borderRadius: 14,
-        marginTop: Spacing.one,
-    },
-    modalOverlay: {
-        flex: 1,
-        backgroundColor: 'rgba(0, 0, 0, 0.15)',
-        justifyContent: 'flex-end',
-        alignItems: 'center',
-        paddingHorizontal: Spacing.four,
-        paddingBottom: Spacing.six,
     },
 
     // Modal footer

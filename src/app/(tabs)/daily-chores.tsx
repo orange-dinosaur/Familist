@@ -1,4 +1,3 @@
-import { BlurView } from 'expo-blur';
 import { SymbolView } from 'expo-symbols';
 import { useFocusEffect } from 'expo-router';
 import React, { useState, useRef } from 'react';
@@ -14,7 +13,9 @@ import {
 import Swipeable from 'react-native-gesture-handler/Swipeable';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { ChoiceCard } from '@/components/choice-card';
 import { DatePickerModal } from '@/components/date-picker-modal';
+import { MemberPicker } from '@/components/form-sheet';
 import { FamilyBar } from '@/components/family-bar';
 import { ThemedText } from '@/components/themed-text';
 import { MemberAvatar } from '@/components/member-avatar';
@@ -37,7 +38,6 @@ import { useChoreDefinitions } from '@/hooks/use-chore-definitions';
 import { useChores } from '@/hooks/use-chores';
 import { useMembers } from '@/hooks/use-members';
 import { usePermissions } from '@/hooks/use-permissions';
-import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useTheme } from '@/hooks/use-theme';
 
 /** Seven of these fill a phone; the rest of the range scrolls. */
@@ -199,7 +199,6 @@ ChoreRow.displayName = 'ChoreRow';
 
 export default function DailyChoresScreen() {
     const theme = useTheme();
-    const scheme = useColorScheme();
     const {
         chores,
         loading,
@@ -219,12 +218,12 @@ export default function DailyChoresScreen() {
         renameDefinition,
         deleteDefinition,
     } = useChoreDefinitions();
-    const { members } = useMembers();
     const { canManageChore, canManageContent, canToggle } = usePermissions();
     const [modalVisible, setModalVisible] = useState(false);
     const [assigningChoreId, setAssigningChoreId] = useState<string | null>(
         null
     );
+    const assigningChore = chores.find((one) => one.id === assigningChoreId);
     const [datePickerVisible, setDatePickerVisible] = useState(false);
     const [newChoreName, setNewChoreName] = useState('');
     const [editing, setEditing] = useState(false);
@@ -934,102 +933,21 @@ export default function DailyChoresScreen() {
                 </View>
             </Modal>
 
-            {/* Assignee Selection Modal */}
-            <Modal
+            <ChoiceCard
                 visible={assigningChoreId !== null}
-                animationType="none"
-                transparent={true}
-                onRequestClose={() => setAssigningChoreId(null)}>
-                <BlurView
-                    intensity={40}
-                    tint={scheme === 'dark' ? 'dark' : 'light'}
-                    experimentalBlurMethod="dimezisBlurView"
-                    style={styles.modalOverlay}>
-                    <Pressable
-                        style={StyleSheet.absoluteFill}
-                        onPress={() => setAssigningChoreId(null)}
-                        accessibilityLabel="Close"
-                        accessibilityRole="button"
-                    />
-                    <View
-                        style={[
-                            styles.assigneeModalContent,
-                            { backgroundColor: theme.background },
-                        ]}>
-                        <ThemedText
-                            type="subtitle"
-                            style={styles.assigneeModalTitle}>
-                            Assign Chore
-                        </ThemedText>
-
-                        <ScrollView
-                            style={styles.assigneeList}
-                            showsVerticalScrollIndicator={false}>
-                            {members.map((user) => (
-                                <Pressable
-                                    key={user.id}
-                                    onPress={() => {
-                                        if (assigningChoreId) {
-                                            assignChore(
-                                                assigningChoreId,
-                                                user.id
-                                            );
-                                        }
-                                        setAssigningChoreId(null);
-                                    }}
-                                    style={({ pressed }) => [
-                                        styles.assigneeRow,
-                                        pressed && {
-                                            backgroundColor:
-                                                theme.backgroundSelected,
-                                        },
-                                    ]}>
-                                    <MemberAvatar member={user} size={40} />
-                                    <ThemedText style={styles.assigneeName}>
-                                        {user.name}
-                                    </ThemedText>
-                                </Pressable>
-                            ))}
-
-                            <Pressable
-                                onPress={() => {
-                                    if (assigningChoreId) {
-                                        assignChore(
-                                            assigningChoreId,
-                                            undefined
-                                        );
-                                    }
-                                    setAssigningChoreId(null);
-                                }}
-                                style={({ pressed }) => [
-                                    styles.assigneeRow,
-                                    pressed && {
-                                        backgroundColor:
-                                            theme.backgroundSelected,
-                                    },
-                                ]}>
-                                <MemberAvatar member={null} size={40} />
-                                <ThemedText
-                                    themeColor="textSecondary"
-                                    style={styles.assigneeName}>
-                                    Unassigned
-                                </ThemedText>
-                            </Pressable>
-                        </ScrollView>
-
-                        <Pressable
-                            onPress={() => setAssigningChoreId(null)}
-                            style={[
-                                styles.assigneeCloseButton,
-                                { backgroundColor: theme.backgroundElement },
-                            ]}>
-                            <ThemedText style={{ fontWeight: '600' }}>
-                                Cancel
-                            </ThemedText>
-                        </Pressable>
-                    </View>
-                </BlurView>
-            </Modal>
+                title="Assign chore"
+                onClose={() => setAssigningChoreId(null)}>
+                <MemberPicker
+                    chosenId={assigningChore?.assigneeId ?? undefined}
+                    noneLabel="Unassigned"
+                    onChoose={(memberId) => {
+                        if (assigningChoreId) {
+                            assignChore(assigningChoreId, memberId);
+                        }
+                        setAssigningChoreId(null);
+                    }}
+                />
+            </ChoiceCard>
         </ThemedView>
     );
 }
@@ -1333,48 +1251,5 @@ const styles = StyleSheet.create({
         fontFamily: Fonts.sansSemiBold,
         fontSize: 11,
         lineHeight: 15,
-    },
-
-    // Assignee Selection Modal
-    modalOverlay: {
-        flex: 1,
-        backgroundColor: 'rgba(0, 0, 0, 0.15)',
-        justifyContent: 'flex-end',
-        alignItems: 'center',
-        paddingHorizontal: Spacing.four,
-        paddingBottom: Spacing.six,
-    },
-    assigneeModalContent: {
-        width: '100%',
-        maxWidth: 400,
-        borderRadius: 24,
-        padding: Spacing.four,
-        gap: Spacing.three,
-    },
-    assigneeModalTitle: {
-        fontWeight: '700',
-        textAlign: 'center',
-    },
-    assigneeList: {
-        maxHeight: 300,
-    },
-    assigneeRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: Spacing.three,
-        paddingVertical: Spacing.three,
-        paddingHorizontal: Spacing.two,
-        borderRadius: 14,
-    },
-    assigneeName: {
-        fontSize: 16,
-        fontWeight: '500',
-    },
-    assigneeCloseButton: {
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: Spacing.three,
-        borderRadius: 14,
-        marginTop: Spacing.one,
     },
 });
