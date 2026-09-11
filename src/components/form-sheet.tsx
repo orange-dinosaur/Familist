@@ -129,30 +129,46 @@ export function FormSheet({
 
 interface FormFieldProps extends TextInputProps {
     label: string;
+    /** Drawn at the end of the rule, such as a button that acts on the text. */
+    trailing?: React.ReactNode;
 }
 
 /** A labelled text field, drawn as a single rule under what is typed. */
-export function FormField({ label, style, ...input }: FormFieldProps) {
+export function FormField({
+    label,
+    trailing,
+    style,
+    ...input
+}: FormFieldProps) {
     const theme = useTheme();
+    const rule = { borderBottomColor: `${theme.text}29` };
+
+    const field = (
+        <TextInput
+            accessibilityLabel={label}
+            placeholderTextColor={theme.textSecondary}
+            {...input}
+            style={[
+                trailing ? styles.rowInput : [styles.input, rule],
+                { color: theme.text },
+                style,
+            ]}
+        />
+    );
 
     return (
         <View style={styles.field}>
             <ThemedText type="label" themeColor="textSecondary">
                 {label}
             </ThemedText>
-            <TextInput
-                accessibilityLabel={label}
-                placeholderTextColor={theme.textSecondary}
-                {...input}
-                style={[
-                    styles.input,
-                    {
-                        borderBottomColor: `${theme.text}29`,
-                        color: theme.text,
-                    },
-                    style,
-                ]}
-            />
+            {trailing ? (
+                <View style={[styles.inputRow, rule]}>
+                    {field}
+                    {trailing}
+                </View>
+            ) : (
+                field
+            )}
         </View>
     );
 }
@@ -185,7 +201,7 @@ export function AmountField({
                 </ThemedText>
                 <View
                     style={[
-                        styles.amountRow,
+                        styles.inputRow,
                         { borderBottomColor: `${theme.text}29` },
                     ]}>
                     <TextInput
@@ -193,11 +209,7 @@ export function AmountField({
                         placeholderTextColor={theme.textSecondary}
                         keyboardType="decimal-pad"
                         {...input}
-                        style={[
-                            styles.amountInput,
-                            { color: theme.text },
-                            style,
-                        ]}
+                        style={[styles.rowInput, { color: theme.text }, style]}
                     />
                     <Pressable
                         onPress={() => setChoosing(true)}
@@ -550,14 +562,15 @@ const styles = StyleSheet.create({
         fontFamily: Fonts.sansMedium,
         fontSize: 15,
     },
-    amountRow: {
+    /** A field's rule with something drawn at its end, as `input` is alone. */
+    inputRow: {
         flexDirection: 'row',
         alignItems: 'center',
         gap: Spacing.two,
         height: 44,
         borderBottomWidth: 1,
     },
-    amountInput: {
+    rowInput: {
         flex: 1,
         alignSelf: 'stretch',
         fontFamily: Fonts.sansMedium,

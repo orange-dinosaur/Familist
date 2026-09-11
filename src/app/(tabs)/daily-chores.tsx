@@ -13,7 +13,12 @@ import Swipeable from 'react-native-gesture-handler/Swipeable';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ChoiceCard } from '@/components/choice-card';
-import { DateRow, FormSheet, MemberPicker } from '@/components/form-sheet';
+import {
+    DateRow,
+    FormField,
+    FormSheet,
+    MemberPicker,
+} from '@/components/form-sheet';
 import { FamilyBar } from '@/components/family-bar';
 import { ThemedText } from '@/components/themed-text';
 import { MemberAvatar } from '@/components/member-avatar';
@@ -521,49 +526,37 @@ export default function DailyChoresScreen() {
                     onChange={setSelectedDay}
                 />
 
-                <View style={styles.inputSection}>
-                    <ThemedText type="default" style={styles.modalLabel}>
-                        New chore
-                    </ThemedText>
-                    <View style={styles.newChoreRow}>
-                        <TextInput
-                            style={[
-                                styles.textInput,
-                                {
-                                    backgroundColor: theme.backgroundElement,
-                                    color: theme.text,
-                                },
-                            ]}
-                            placeholder="Name a chore..."
-                            placeholderTextColor={theme.textSecondary}
-                            value={newChoreName}
-                            onChangeText={setNewChoreName}
-                            onSubmitEditing={addNewChore}
-                            returnKeyType="done"
-                            accessibilityLabel="New chore"
-                        />
+                <FormField
+                    label="New chore"
+                    placeholder="Name a chore..."
+                    value={newChoreName}
+                    onChangeText={setNewChoreName}
+                    onSubmitEditing={addNewChore}
+                    returnKeyType="done"
+                    trailing={
                         <Pressable
                             onPress={addNewChore}
                             disabled={!newChoreName.trim()}
+                            hitSlop={8}
                             accessibilityLabel="Add this chore"
                             accessibilityRole="button"
-                            style={({ pressed }) => [
-                                styles.newChoreButton,
-                                { backgroundColor: theme.text },
-                                (pressed || !newChoreName.trim()) && {
-                                    opacity: 0.5,
-                                },
-                            ]}>
+                            style={({ pressed }) =>
+                                pressed && { opacity: 0.6 }
+                            }>
                             <ThemedText
-                                style={[
-                                    styles.newChoreButtonText,
-                                    { color: theme.background },
-                                ]}>
+                                type="label"
+                                themeColor={
+                                    newChoreName.trim()
+                                        ? 'text'
+                                        : 'textSecondary'
+                                }>
                                 Add
                             </ThemedText>
                         </Pressable>
-                    </View>
+                    }
+                />
 
+                <View style={styles.chores}>
                     <View style={styles.listHeading}>
                         <ThemedText
                             type="label"
@@ -943,44 +936,17 @@ const styles = StyleSheet.create({
     },
 
     // Modal
-    modalLabel: {
-        fontWeight: '600',
+    chores: {
+        marginTop: Spacing.four,
     },
     listHeading: {
         flexDirection: 'row',
         alignItems: 'center',
         gap: Spacing.three,
-        marginTop: Spacing.four,
         marginBottom: Spacing.two,
     },
     listHeadingText: {
         flex: 1,
-    },
-    inputSection: {
-        marginTop: Spacing.three,
-    },
-    newChoreRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: Spacing.two,
-        marginTop: Spacing.two,
-    },
-    textInput: {
-        flex: 1,
-        height: 48,
-        borderRadius: 12,
-        paddingHorizontal: Spacing.three,
-        fontSize: 16,
-    },
-    newChoreButton: {
-        height: 48,
-        justifyContent: 'center',
-        paddingHorizontal: Spacing.four,
-        borderRadius: 12,
-    },
-    newChoreButtonText: {
-        fontSize: 16,
-        fontWeight: '600',
     },
     pillsGrid: {
         flexDirection: 'row',
