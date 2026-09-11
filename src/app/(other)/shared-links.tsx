@@ -6,13 +6,12 @@ import {
     Pressable,
     ScrollView,
     StyleSheet,
-    TextInput,
     View,
 } from 'react-native';
 import Swipeable from 'react-native-gesture-handler/Swipeable';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { FormSheet } from '@/components/form-sheet';
+import { FormField, FormSheet } from '@/components/form-sheet';
 import { MemberAvatar } from '@/components/member-avatar';
 import { ScreenHeader } from '@/components/screen-header';
 import { ThemedText } from '@/components/themed-text';
@@ -369,59 +368,37 @@ function SharedLinks() {
                 onAction={save}
                 actionDisabled={!complete}
                 error={error}>
-                <ThemedText style={styles.modalLabel}>Title</ThemedText>
-                <TextInput
-                    style={[
-                        styles.textInput,
-                        {
-                            backgroundColor: theme.backgroundElement,
-                            color: theme.text,
-                        },
-                    ]}
+                <FormField
+                    label="Title"
                     placeholder="What it is..."
-                    placeholderTextColor={theme.textSecondary}
                     value={title}
                     onChangeText={setTitle}
-                    accessibilityLabel="Title"
                 />
 
-                <ThemedText style={styles.modalLabel}>Link</ThemedText>
-                <TextInput
-                    style={[
-                        styles.textInput,
-                        {
-                            backgroundColor: theme.backgroundElement,
-                            color: theme.text,
-                        },
-                    ]}
+                <FormField
+                    label="Link"
                     placeholder="https://"
-                    placeholderTextColor={theme.textSecondary}
                     value={url}
                     onChangeText={setUrl}
                     maxLength={MAX_URL_LENGTH}
                     autoCapitalize="none"
                     autoCorrect={false}
                     keyboardType="url"
-                    accessibilityLabel="Link"
                 />
 
-                <ThemedText style={styles.modalLabel}>Note</ThemedText>
-                <TextInput
-                    style={[
-                        styles.textInput,
-                        {
-                            backgroundColor: theme.backgroundElement,
-                            color: theme.text,
-                        },
-                    ]}
+                <FormField
+                    label="Note"
                     placeholder="What it is for..."
-                    placeholderTextColor={theme.textSecondary}
                     value={note}
                     onChangeText={setNote}
-                    accessibilityLabel="Note"
                 />
 
-                <ThemedText style={styles.modalLabel}>Who kept it</ThemedText>
+                <ThemedText
+                    type="label"
+                    themeColor="textSecondary"
+                    style={styles.modalLabel}>
+                    Who kept it
+                </ThemedText>
                 <View style={styles.keeperList}>
                     {members.map((member) => {
                         const isSelected = createdBy === member.id;
@@ -583,15 +560,8 @@ const styles = StyleSheet.create({
 
     // The add and edit form
     modalLabel: {
-        fontWeight: '600',
         marginTop: Spacing.three,
         marginBottom: Spacing.two,
-    },
-    textInput: {
-        borderRadius: 12,
-        paddingHorizontal: Spacing.three,
-        paddingVertical: Spacing.three,
-        fontSize: 16,
     },
     keeperList: {
         gap: Spacing.two,

@@ -1,6 +1,14 @@
 import { SymbolView } from 'expo-symbols';
 import React from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import {
+    Modal,
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    TextInput,
+    type TextInputProps,
+    View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from './themed-text';
@@ -112,6 +120,36 @@ export function FormSheet({
     );
 }
 
+interface FormFieldProps extends TextInputProps {
+    label: string;
+}
+
+/** A labelled text field, drawn as a single rule under what is typed. */
+export function FormField({ label, style, ...input }: FormFieldProps) {
+    const theme = useTheme();
+
+    return (
+        <View style={styles.field}>
+            <ThemedText type="label" themeColor="textSecondary">
+                {label}
+            </ThemedText>
+            <TextInput
+                accessibilityLabel={label}
+                placeholderTextColor={theme.textSecondary}
+                {...input}
+                style={[
+                    styles.input,
+                    {
+                        borderBottomColor: `${theme.text}29`,
+                        color: theme.text,
+                    },
+                    style,
+                ]}
+            />
+        </View>
+    );
+}
+
 const styles = StyleSheet.create({
     container: {
         flex: 1,
@@ -152,5 +190,15 @@ const styles = StyleSheet.create({
         fontFamily: Fonts.sansSemiBold,
         fontSize: 13.5,
         lineHeight: 18,
+    },
+    field: {
+        paddingTop: Spacing.three,
+        gap: Spacing.two,
+    },
+    input: {
+        height: 44,
+        borderBottomWidth: 1,
+        fontFamily: Fonts.sansMedium,
+        fontSize: 15,
     },
 });
