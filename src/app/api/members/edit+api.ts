@@ -4,6 +4,8 @@
  * not their account name - which is why promoting a placeholder in
  * `invitations/accept` keeps the name the family already uses - and the colour
  * is a family-scoped display choice either way.
+ *
+ * Anybody may change their own row. Anyone else's takes an owner.
  */
 
 import { and, eq, isNull } from 'drizzle-orm';
@@ -19,7 +21,7 @@ import {
 } from '@/utils/member';
 
 export async function POST(request: Request): Promise<Response> {
-    const resolved = await resolveTargetMember(request);
+    const resolved = await resolveTargetMember(request, { allowSelf: true });
     if ('error' in resolved) return resolved.error;
 
     const { membership, target, body } = resolved;

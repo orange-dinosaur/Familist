@@ -147,10 +147,22 @@ export async function setActiveMembership(
         });
 }
 
+function ownersOnly(): { error: Response } {
+    return {
+        error: Response.json(
+            { error: 'Only an owner can manage members' },
+            { status: 403 }
+        ),
+    };
+}
+
 /**
  * The member an owner is acting on, resolved the same way for every route that
  * manages members: the caller must be an owner, and the target is looked up by
  * id *and* the caller's `familyId`, never by the submitted id alone.
+ *
+ * `allowSelf` also lets a member who is not an owner through, but only when
+ * the target is their own row.
  *
  * Only the preamble is shared. What each route then does to the row - and what
  * it costs the person on the other end - is deliberately not.
@@ -158,7 +170,10 @@ export async function setActiveMembership(
  * The parsed body comes back with it: a request body can only be read once, so
  * a route needing more than `memberId` has to be handed what was already read.
  */
-export async function resolveTargetMember(request: Request): Promise<
+export async function resolveTargetMember(
+    request: Request,
+    { allowSelf = false }: { allowSelf?: boolean } = {}
+): Promise<
     | { error: Response }
     | {
           membership: Membership;
@@ -169,14 +184,8 @@ export async function resolveTargetMember(request: Request): Promise<
     const membership = await getMembership(request);
     if (!membership) return { error: unauthorized() };
 
-    if (membership.role !== 'owner') {
-        return {
-            error: Response.json(
-                { error: 'Only an owner can manage members' },
-                { status: 403 }
-            ),
-        };
-    }
+    const isOwner = membership.role === 'owner';
+    if (!isOwner && !allowSelf) return ownersOnly();
 
     let body: Record<string, unknown>;
     try {
@@ -197,6 +206,8 @@ export async function resolveTargetMember(request: Request): Promise<
             ),
         };
     }
+
+    if (!isOwner && memberId !== membership.memberId) return ownersOnly();
 
     const [target] = await db
         .select()
