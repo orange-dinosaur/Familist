@@ -150,6 +150,49 @@ export function FormField({ label, style, ...input }: FormFieldProps) {
     );
 }
 
+interface ChoiceRowProps {
+    label: string;
+    chosen: boolean;
+    onPress: () => void;
+    /** Drawn before the label, such as a member's avatar. */
+    leading?: React.ReactNode;
+    accessibilityLabel?: string;
+}
+
+/** One option in a list, with a rule under it and a ✓ on the chosen one. */
+export function ChoiceRow({
+    label,
+    chosen,
+    onPress,
+    leading,
+    accessibilityLabel,
+}: ChoiceRowProps) {
+    const theme = useTheme();
+
+    return (
+        <Pressable
+            onPress={onPress}
+            accessibilityLabel={accessibilityLabel ?? label}
+            accessibilityRole="button"
+            accessibilityState={{ selected: chosen }}
+            style={({ pressed }) => [
+                styles.choice,
+                { borderBottomColor: `${theme.text}17` },
+                pressed && { opacity: 0.6 },
+            ]}>
+            {leading}
+            <ThemedText style={styles.choiceLabel}>{label}</ThemedText>
+            {chosen && (
+                <SymbolView
+                    name={{ ios: 'checkmark', web: 'check' }}
+                    tintColor={theme.text}
+                    size={18}
+                />
+            )}
+        </Pressable>
+    );
+}
+
 const styles = StyleSheet.create({
     container: {
         flex: 1,
@@ -200,5 +243,15 @@ const styles = StyleSheet.create({
         borderBottomWidth: 1,
         fontFamily: Fonts.sansMedium,
         fontSize: 15,
+    },
+    choice: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: Spacing.three,
+        paddingVertical: Spacing.three,
+        borderBottomWidth: 1,
+    },
+    choiceLabel: {
+        flex: 1,
     },
 });

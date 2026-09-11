@@ -11,7 +11,7 @@ import {
 import Swipeable from 'react-native-gesture-handler/Swipeable';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { FormField, FormSheet } from '@/components/form-sheet';
+import { ChoiceRow, FormField, FormSheet } from '@/components/form-sheet';
 import { MemberAvatar } from '@/components/member-avatar';
 import { ScreenHeader } from '@/components/screen-header';
 import { ThemedText } from '@/components/themed-text';
@@ -399,50 +399,21 @@ function SharedLinks() {
                     style={styles.modalLabel}>
                     Who kept it
                 </ThemedText>
-                <View style={styles.keeperList}>
-                    {members.map((member) => {
-                        const isSelected = createdBy === member.id;
-                        return (
-                            <Pressable
-                                key={member.id}
-                                onPress={() =>
-                                    setCreatedBy(
-                                        isSelected ? undefined : member.id
-                                    )
-                                }
-                                accessibilityLabel={`Kept by ${member.name}`}
-                                accessibilityRole="button"
-                                accessibilityState={{
-                                    selected: isSelected,
-                                }}
-                                style={[
-                                    styles.keeperRow,
-                                    {
-                                        backgroundColor:
-                                            theme.backgroundElement,
-                                        borderColor: isSelected
-                                            ? theme.text
-                                            : 'transparent',
-                                    },
-                                ]}>
-                                <MemberAvatar member={member} size={32} />
-                                <ThemedText style={styles.keeperName}>
-                                    {member.name}
-                                </ThemedText>
-                                {isSelected && (
-                                    <SymbolView
-                                        name={{
-                                            ios: 'checkmark.circle.fill',
-                                            web: 'check_circle',
-                                        }}
-                                        tintColor={theme.text}
-                                        size={22}
-                                    />
-                                )}
-                            </Pressable>
-                        );
-                    })}
-                </View>
+                {members.map((member) => {
+                    const chosen = createdBy === member.id;
+                    return (
+                        <ChoiceRow
+                            key={member.id}
+                            label={member.name}
+                            accessibilityLabel={`Kept by ${member.name}`}
+                            chosen={chosen}
+                            onPress={() =>
+                                setCreatedBy(chosen ? undefined : member.id)
+                            }
+                            leading={<MemberAvatar member={member} size={34} />}
+                        />
+                    );
+                })}
             </FormSheet>
         </ThemedView>
     );
@@ -562,20 +533,5 @@ const styles = StyleSheet.create({
     modalLabel: {
         marginTop: Spacing.three,
         marginBottom: Spacing.two,
-    },
-    keeperList: {
-        gap: Spacing.two,
-    },
-    keeperRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: Spacing.three,
-        borderRadius: 12,
-        borderWidth: 2,
-        paddingHorizontal: Spacing.three,
-        paddingVertical: Spacing.two,
-    },
-    keeperName: {
-        flex: 1,
     },
 });
