@@ -11,8 +11,8 @@ import Swipeable from 'react-native-gesture-handler/Swipeable';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ChoiceCard } from '@/components/choice-card';
-import { DatePickerModal } from '@/components/date-picker-modal';
 import {
+    DateRow,
     FormField,
     FormSheet,
     MemberPicker,
@@ -295,7 +295,6 @@ export default function TodoScreen() {
         undefined
     );
     const [todoDay, setTodoDay] = useState<string | null>(null);
-    const [datePickerVisible, setDatePickerVisible] = useState(false);
 
     const todayStr = getRelativeDateString(0);
 
@@ -354,7 +353,6 @@ export default function TodoScreen() {
 
     const closeModal = () => {
         clearError();
-        setDatePickerVisible(false);
         setModalVisible(false);
     };
 
@@ -570,94 +568,12 @@ export default function TodoScreen() {
                 />
 
                 {/* Due date, which a task need not have. */}
-                <View style={styles.dueDate}>
-                    <ThemedText type="label" themeColor="textSecondary">
-                        Due date
-                    </ThemedText>
-                    <View style={styles.dayPillsContainer}>
-                        <Pressable
-                            onPress={() => setTodoDay(null)}
-                            accessibilityRole="button"
-                            accessibilityState={{
-                                selected: todoDay === null,
-                            }}
-                            style={[
-                                styles.dayPill,
-                                {
-                                    backgroundColor:
-                                        todoDay === null
-                                            ? theme.text
-                                            : theme.backgroundElement,
-                                },
-                            ]}>
-                            <ThemedText
-                                style={[
-                                    styles.dayPillText,
-                                    {
-                                        color:
-                                            todoDay === null
-                                                ? theme.background
-                                                : theme.text,
-                                    },
-                                ]}>
-                                No date
-                            </ThemedText>
-                        </Pressable>
-                        <Pressable
-                            onPress={() => setDatePickerVisible(true)}
-                            accessibilityLabel="Pick a due date"
-                            accessibilityRole="button"
-                            accessibilityState={{
-                                selected: todoDay !== null,
-                            }}
-                            style={[
-                                styles.dayPill,
-                                {
-                                    backgroundColor:
-                                        todoDay !== null
-                                            ? theme.text
-                                            : theme.backgroundElement,
-                                },
-                            ]}>
-                            <SymbolView
-                                name={{
-                                    ios: 'calendar',
-                                    web: 'calendar_month',
-                                }}
-                                tintColor={
-                                    todoDay !== null
-                                        ? theme.background
-                                        : theme.text
-                                }
-                                size={18}
-                            />
-                            <ThemedText
-                                style={[
-                                    styles.dayPillText,
-                                    {
-                                        color:
-                                            todoDay !== null
-                                                ? theme.background
-                                                : theme.text,
-                                    },
-                                ]}>
-                                {todoDay
-                                    ? formatShortDateString(todoDay)
-                                    : 'Pick a date'}
-                            </ThemedText>
-                        </Pressable>
-                    </View>
-                </View>
-                <DatePickerModal
-                    visible={datePickerVisible}
-                    value={todoDay}
-                    onSelect={(day) => {
-                        setTodoDay(day);
-                        setDatePickerVisible(false);
-                    }}
-                    onClose={() => setDatePickerVisible(false)}
+                <DateRow
+                    label="Due date"
+                    day={todoDay}
+                    onChange={setTodoDay}
+                    onClear={() => setTodoDay(null)}
                 />
-
                 <MemberPicker
                     label="Assignee"
                     chosenId={todoAssigneeId}
@@ -817,30 +733,6 @@ const styles = StyleSheet.create({
         fontFamily: Fonts.sansSemiBold,
         fontSize: 13.5,
         lineHeight: 18,
-    },
-
-    // Due date pills in modal
-    dueDate: {
-        paddingTop: Spacing.three,
-        gap: Spacing.two,
-    },
-    dayPillsContainer: {
-        flexDirection: 'row',
-        gap: Spacing.two,
-    },
-    dayPill: {
-        flex: 1,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: Spacing.two,
-        paddingHorizontal: Spacing.three,
-        paddingVertical: Spacing.two + Spacing.half,
-        borderRadius: 20,
-    },
-    dayPillText: {
-        fontSize: 14,
-        fontWeight: '600',
     },
 
     // Swipeable Actions

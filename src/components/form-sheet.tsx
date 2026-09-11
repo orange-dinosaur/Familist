@@ -432,15 +432,18 @@ export function OptionTabs<T extends string>({
 
 interface DateRowProps {
     label: string;
-    day: string;
+    /** Null only where the date is optional, which reads as "No date". */
+    day: string | null;
     onChange: (day: string) => void;
+    /** Adds a ✕ that empties the row once it holds a date. */
+    onClear?: () => void;
 }
 
 /** A labelled date, written out in full, that opens the calendar when tapped. */
-export function DateRow({ label, day, onChange }: DateRowProps) {
+export function DateRow({ label, day, onChange, onClear }: DateRowProps) {
     const theme = useTheme();
     const [picking, setPicking] = useState(false);
-    const shown = formatShortDateString(day, true);
+    const shown = day ? formatShortDateString(day, true) : 'No date';
 
     return (
         <>
@@ -457,7 +460,25 @@ export function DateRow({ label, day, onChange }: DateRowProps) {
                         { borderBottomColor: `${theme.text}29` },
                         pressed && { opacity: 0.6 },
                     ]}>
-                    <ThemedText type="small">{shown}</ThemedText>
+                    <ThemedText
+                        type="small"
+                        themeColor={day ? 'text' : 'textSecondary'}
+                        style={styles.dateText}>
+                        {shown}
+                    </ThemedText>
+                    {onClear && day ? (
+                        <Pressable
+                            onPress={onClear}
+                            hitSlop={8}
+                            accessibilityLabel={`Clear the ${label.toLowerCase()}`}
+                            accessibilityRole="button">
+                            <SymbolView
+                                name={{ ios: 'xmark', web: 'close' }}
+                                tintColor={theme.textSecondary}
+                                size={14}
+                            />
+                        </Pressable>
+                    ) : null}
                     <SymbolView
                         name={{ ios: 'calendar', web: 'calendar_month' }}
                         tintColor={theme.textSecondary}
@@ -595,8 +616,11 @@ const styles = StyleSheet.create({
     dateRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'space-between',
+        gap: Spacing.three,
         height: 44,
         borderBottomWidth: 1,
+    },
+    dateText: {
+        flex: 1,
     },
 });
