@@ -2,23 +2,31 @@ import { SymbolView } from 'expo-symbols';
 import React, { useRef, useState } from 'react';
 import {
     Animated,
-    Modal,
     Pressable,
     ScrollView,
     StyleSheet,
-    TextInput,
     View,
 } from 'react-native';
 import Swipeable from 'react-native-gesture-handler/Swipeable';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { DatePickerModal } from '@/components/date-picker-modal';
+import {
+    DateRow,
+    EmojiField,
+    FormField,
+    FormSheet,
+    MemberPicker,
+    OptionTabs,
+} from '@/components/form-sheet';
 import { MemberAvatar } from '@/components/member-avatar';
 import { ScreenHeader } from '@/components/screen-header';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { daysUntil, formatShortDateString } from '@/constants/dates';
-import { MAX_EMOJI_LENGTH } from '@/constants/limits';
+import {
+    daysUntil,
+    formatShortDateString,
+    getRelativeDateString,
+} from '@/constants/dates';
 import {
     Colors,
     Fonts,
@@ -50,6 +58,13 @@ function ageTone(activity: ActivityItem): ThemeColor {
     const days = daysSince(activity);
     return days === null || days >= LongAgoDays ? 'priorityHigh' : 'text';
 }
+
+type LastDone = 'notYet' | 'done';
+
+const LAST_DONE_OPTIONS: { key: LastDone; label: string }[] = [
+    { key: 'notYet', label: 'Not yet' },
+    { key: 'done', label: 'Done' },
+];
 
 interface ActivityRowProps {
     activity: ActivityItem;
@@ -243,7 +258,6 @@ function WhenDidILast() {
         markDone,
         deleteActivity,
     } = useActivities();
-    const { members } = useMembers();
     const { canManageContent, canToggle } = usePermissions();
 
     const [modalVisible, setModalVisible] = useState(false);
@@ -252,7 +266,6 @@ function WhenDidILast() {
     const [emoji, setEmoji] = useState('');
     const [assigneeId, setAssigneeId] = useState<string | undefined>(undefined);
     const [lastDoneOn, setLastDoneOn] = useState<string | null>(null);
-    const [datePickerVisible, setDatePickerVisible] = useState(false);
 
     const listed = [...activities].sort(byLastDone);
     /** Never done sits with the long-ago ones, which is what never amounts to. */
@@ -287,8 +300,13 @@ function WhenDidILast() {
 
     const closeModal = () => {
         clearError();
-        setDatePickerVisible(false);
         setModalVisible(false);
+    };
+
+    /** Done starts on today, and the day row below can move it. */
+    const chooseLastDone = (key: LastDone) => {
+        if (key === 'notYet') setLastDoneOn(null);
+        else if (lastDoneOn === null) setLastDoneOn(getRelativeDateString(0));
     };
 
     const save = async () => {
@@ -401,255 +419,53 @@ function WhenDidILast() {
                 )}
             </SafeAreaView>
 
-            <Modal
+            <FormSheet
                 visible={modalVisible}
-                animationType="slide"
-                presentationStyle="pageSheet"
-                onRequestClose={closeModal}>
-                <View
-                    style={[
-                        styles.modalContainer,
-                        { backgroundColor: theme.background },
-                    ]}>
-                    <SafeAreaView style={styles.modalSafeArea}>
-                        <View style={styles.modalHeader}>
-                            <ThemedText type="subtitle">
-                                {editing ? 'Edit Activity' : 'Add Activity'}
-                            </ThemedText>
-                            <Pressable
-                                onPress={closeModal}
-                                hitSlop={8}
-                                accessibilityLabel="Close"
-                                accessibilityRole="button">
-                                <SymbolView
-                                    name={{
-                                        ios: 'xmark.circle.fill',
-                                        web: 'cancel',
-                                    }}
-                                    tintColor={theme.textSecondary}
-                                    size={28}
-                                />
-                            </Pressable>
-                        </View>
-
-                        <ScrollView
-                            style={styles.modalScroll}
-                            contentContainerStyle={styles.modalScrollContent}
-                            showsVerticalScrollIndicator={false}
-                            keyboardShouldPersistTaps="handled">
-                            <ThemedText style={styles.modalLabel}>
-                                Name
-                            </ThemedText>
-                            <View style={styles.nameRow}>
-                                <TextInput
-                                    style={[
-                                        styles.emojiInput,
-                                        {
-                                            backgroundColor:
-                                                theme.backgroundElement,
-                                            color: theme.text,
-                                        },
-                                    ]}
-                                    placeholder="🪴"
-                                    placeholderTextColor={theme.textSecondary}
-                                    value={emoji}
-                                    onChangeText={setEmoji}
-                                    maxLength={MAX_EMOJI_LENGTH}
-                                    accessibilityLabel="Emoji"
-                                />
-                                <TextInput
-                                    style={[
-                                        styles.textInput,
-                                        styles.nameInput,
-                                        {
-                                            backgroundColor:
-                                                theme.backgroundElement,
-                                            color: theme.text,
-                                        },
-                                    ]}
-                                    placeholder="Water the plants..."
-                                    placeholderTextColor={theme.textSecondary}
-                                    value={name}
-                                    onChangeText={setName}
-                                    accessibilityLabel="Name"
-                                />
-                            </View>
-
-                            <ThemedText style={styles.modalLabel}>
-                                Whose it is
-                            </ThemedText>
-                            <View style={styles.assigneeList}>
-                                {members.map((member) => {
-                                    const isSelected = assigneeId === member.id;
-                                    return (
-                                        <Pressable
-                                            key={member.id}
-                                            onPress={() =>
-                                                setAssigneeId(
-                                                    isSelected
-                                                        ? undefined
-                                                        : member.id
-                                                )
-                                            }
-                                            accessibilityLabel={`Assign to ${member.name}`}
-                                            accessibilityRole="button"
-                                            accessibilityState={{
-                                                selected: isSelected,
-                                            }}
-                                            style={[
-                                                styles.assigneeRow,
-                                                {
-                                                    backgroundColor:
-                                                        theme.backgroundElement,
-                                                    borderColor: isSelected
-                                                        ? theme.text
-                                                        : 'transparent',
-                                                },
-                                            ]}>
-                                            <MemberAvatar
-                                                member={member}
-                                                size={32}
-                                            />
-                                            <ThemedText
-                                                style={styles.assigneeName}>
-                                                {member.name}
-                                            </ThemedText>
-                                            {isSelected && (
-                                                <SymbolView
-                                                    name={{
-                                                        ios: 'checkmark.circle.fill',
-                                                        web: 'check_circle',
-                                                    }}
-                                                    tintColor={theme.text}
-                                                    size={22}
-                                                />
-                                            )}
-                                        </Pressable>
-                                    );
-                                })}
-                            </View>
-
-                            {/* Something already done once starts with its day. */}
-                            <ThemedText style={styles.modalLabel}>
-                                Last done
-                            </ThemedText>
-                            <View style={styles.dayPills}>
-                                <Pressable
-                                    onPress={() => setLastDoneOn(null)}
-                                    accessibilityRole="button"
-                                    accessibilityState={{
-                                        selected: lastDoneOn === null,
-                                    }}
-                                    style={[
-                                        styles.dayPill,
-                                        {
-                                            backgroundColor:
-                                                lastDoneOn === null
-                                                    ? theme.text
-                                                    : theme.backgroundElement,
-                                        },
-                                    ]}>
-                                    <ThemedText
-                                        style={{
-                                            color:
-                                                lastDoneOn === null
-                                                    ? theme.background
-                                                    : theme.text,
-                                        }}>
-                                        Never
-                                    </ThemedText>
-                                </Pressable>
-                                <Pressable
-                                    onPress={() => setDatePickerVisible(true)}
-                                    accessibilityLabel="Pick the day it was last done"
-                                    accessibilityRole="button"
-                                    accessibilityState={{
-                                        selected: lastDoneOn !== null,
-                                    }}
-                                    style={[
-                                        styles.dayPill,
-                                        {
-                                            backgroundColor:
-                                                lastDoneOn !== null
-                                                    ? theme.text
-                                                    : theme.backgroundElement,
-                                        },
-                                    ]}>
-                                    <SymbolView
-                                        name={{
-                                            ios: 'calendar',
-                                            web: 'calendar_month',
-                                        }}
-                                        tintColor={
-                                            lastDoneOn !== null
-                                                ? theme.background
-                                                : theme.text
-                                        }
-                                        size={18}
-                                    />
-                                    <ThemedText
-                                        style={{
-                                            color:
-                                                lastDoneOn !== null
-                                                    ? theme.background
-                                                    : theme.text,
-                                        }}>
-                                        {lastDoneOn
-                                            ? formatShortDateString(lastDoneOn)
-                                            : 'Pick a date'}
-                                    </ThemedText>
-                                </Pressable>
-                            </View>
-                        </ScrollView>
-
-                        <View style={styles.modalFooter}>
-                            {error && (
-                                <ThemedText
-                                    type="small"
-                                    style={{ color: theme.destructive }}>
-                                    {error}
-                                </ThemedText>
-                            )}
-                            <Pressable
-                                onPress={save}
-                                disabled={!name.trim()}
-                                accessibilityLabel="Save activity"
-                                accessibilityRole="button"
-                                style={({ pressed }) => [
-                                    styles.saveButton,
-                                    {
-                                        backgroundColor: name.trim()
-                                            ? theme.text
-                                            : theme.backgroundElement,
-                                    },
-                                    pressed && { opacity: 0.8 },
-                                ]}>
-                                <ThemedText
-                                    style={[
-                                        styles.saveButtonText,
-                                        {
-                                            color: name.trim()
-                                                ? theme.background
-                                                : theme.textSecondary,
-                                        },
-                                    ]}>
-                                    Save
-                                </ThemedText>
-                            </Pressable>
-                        </View>
-
-                        <DatePickerModal
-                            visible={datePickerVisible}
-                            value={lastDoneOn}
-                            onSelect={(day) => {
-                                setLastDoneOn(day);
-                                setDatePickerVisible(false);
-                            }}
-                            onClose={() => setDatePickerVisible(false)}
+                title={editing ? 'Edit activity' : 'Add an activity'}
+                onClose={closeModal}
+                actionLabel="Save"
+                onAction={save}
+                actionDisabled={!name.trim()}
+                error={error}>
+                <View style={styles.nameRow}>
+                    <EmojiField
+                        placeholder="🪴"
+                        value={emoji}
+                        onChangeText={setEmoji}
+                    />
+                    <View style={styles.nameField}>
+                        <FormField
+                            label="Name"
+                            placeholder="Water the plants..."
+                            value={name}
+                            onChangeText={setName}
                         />
-                    </SafeAreaView>
+                    </View>
                 </View>
-            </Modal>
+
+                <MemberPicker
+                    label="Whose it is"
+                    chosenId={assigneeId}
+                    onChoose={(id) =>
+                        setAssigneeId(assigneeId === id ? undefined : id)
+                    }
+                />
+
+                {/* Something already done once starts with its day. */}
+                <OptionTabs
+                    label="Last done"
+                    options={LAST_DONE_OPTIONS}
+                    chosen={lastDoneOn === null ? 'notYet' : 'done'}
+                    onChoose={chooseLastDone}
+                />
+                {lastDoneOn !== null && (
+                    <DateRow
+                        label="Day"
+                        day={lastDoneOn}
+                        onChange={setLastDoneOn}
+                    />
+                )}
+            </FormSheet>
         </ThemedView>
     );
 }
@@ -771,91 +587,12 @@ const styles = StyleSheet.create({
     },
 
     // The add and edit form
-    modalContainer: {
-        flex: 1,
-    },
-    modalSafeArea: {
-        flex: 1,
-    },
-    modalHeader: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingHorizontal: Spacing.four,
-        paddingVertical: Spacing.three,
-    },
-    modalScroll: {
-        flex: 1,
-    },
-    modalScrollContent: {
-        paddingHorizontal: Spacing.four,
-        paddingBottom: Spacing.four,
-    },
-    modalLabel: {
-        fontWeight: '600',
-        marginTop: Spacing.three,
-        marginBottom: Spacing.two,
-    },
-    textInput: {
-        borderRadius: 12,
-        paddingHorizontal: Spacing.three,
-        paddingVertical: Spacing.three,
-        fontSize: 16,
-    },
     nameRow: {
         flexDirection: 'row',
-        gap: Spacing.two,
-    },
-    nameInput: {
-        flex: 1,
-    },
-    assigneeList: {
-        gap: Spacing.two,
-    },
-    assigneeRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
+        alignItems: 'flex-end',
         gap: Spacing.three,
-        borderRadius: 12,
-        borderWidth: 2,
-        paddingHorizontal: Spacing.three,
-        paddingVertical: Spacing.two,
     },
-    assigneeName: {
+    nameField: {
         flex: 1,
-    },
-    dayPills: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        gap: Spacing.two,
-    },
-    dayPill: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: Spacing.two,
-        borderRadius: 16,
-        paddingHorizontal: Spacing.three,
-        paddingVertical: Spacing.two,
-    },
-    emojiInput: {
-        width: 56,
-        borderRadius: 12,
-        paddingHorizontal: Spacing.two,
-        paddingVertical: Spacing.three,
-        fontSize: 20,
-        textAlign: 'center',
-    },
-    modalFooter: {
-        paddingHorizontal: Spacing.four,
-        paddingVertical: Spacing.three,
-        gap: Spacing.two,
-    },
-    saveButton: {
-        alignItems: 'center',
-        borderRadius: 14,
-        paddingVertical: Spacing.three,
-    },
-    saveButtonText: {
-        fontWeight: '600',
     },
 });

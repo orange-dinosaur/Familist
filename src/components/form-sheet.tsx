@@ -16,6 +16,7 @@ import { MemberAvatar } from './member-avatar';
 import { ThemedText } from './themed-text';
 
 import { formatShortDateString } from '@/constants/dates';
+import { MAX_EMOJI_LENGTH } from '@/constants/limits';
 import { Fonts, MaxContentWidth, Spacing } from '@/constants/theme';
 import { useMembers } from '@/hooks/use-members';
 import { useTheme } from '@/hooks/use-theme';
@@ -151,6 +152,28 @@ export function FormField({ label, style, ...input }: FormFieldProps) {
                 ]}
             />
         </View>
+    );
+}
+
+/** A small square for one emoji, to sit beside a field on the same row. */
+export function EmojiField({ style, ...input }: TextInputProps) {
+    const theme = useTheme();
+
+    return (
+        <TextInput
+            accessibilityLabel="Emoji"
+            placeholderTextColor={theme.textSecondary}
+            maxLength={MAX_EMOJI_LENGTH}
+            {...input}
+            style={[
+                styles.emoji,
+                {
+                    borderBottomColor: `${theme.text}29`,
+                    color: theme.text,
+                },
+                style,
+            ]}
+        />
     );
 }
 
@@ -380,6 +403,13 @@ const styles = StyleSheet.create({
         borderBottomWidth: 1,
         fontFamily: Fonts.sansMedium,
         fontSize: 15,
+    },
+    emoji: {
+        width: 44,
+        height: 44,
+        borderBottomWidth: 1,
+        fontSize: 20,
+        textAlign: 'center',
     },
     choice: {
         flexDirection: 'row',
