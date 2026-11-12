@@ -48,13 +48,13 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') {
 
 const rootStyle = `
 body {
-    background-color: #F6F1E7;
+    background-color: #F3EEE7;
     overscroll-behavior: none;
     -webkit-tap-highlight-color: transparent;
 }
 @media (prefers-color-scheme: dark) {
     body {
-        background-color: #1F2A22;
+        background-color: #171B17;
     }
 }
 `;
