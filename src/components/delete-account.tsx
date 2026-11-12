@@ -21,7 +21,7 @@ import {
 } from '@/components/account-handover';
 import { ThemedText } from '@/components/themed-text';
 import { apiFetch, authClient } from '@/auth/client';
-import { Colors, Spacing } from '@/constants/theme';
+import { Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useMembers } from '@/hooks/use-members';
 import { useTheme } from '@/hooks/use-theme';
@@ -177,7 +177,7 @@ export function DeleteAccount({ visible, onClose }: DeleteAccountProps) {
                                     ]}>
                                     <ThemedText
                                         type="default"
-                                        style={styles.destructiveLabel}>
+                                        style={{ color: theme.background }}>
                                         Delete
                                     </ThemedText>
                                 </Pressable>
@@ -218,8 +218,5 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         borderRadius: 14,
         paddingVertical: Spacing.three,
-    },
-    destructiveLabel: {
-        color: Colors.light.background,
     },
 });

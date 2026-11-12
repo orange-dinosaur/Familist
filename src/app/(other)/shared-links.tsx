@@ -18,7 +18,7 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { dayOf, daysUntil, formatCompactDateString } from '@/constants/dates';
 import { MAX_URL_LENGTH } from '@/constants/limits';
-import { Colors, Fonts, MaxContentWidth, Spacing } from '@/constants/theme';
+import { Fonts, MaxContentWidth, Spacing } from '@/constants/theme';
 import { type SharedLinkItem } from '@/constants/types';
 import { useFamily } from '@/hooks/use-family';
 import { useMembers } from '@/hooks/use-members';
@@ -106,13 +106,13 @@ const SharedLinkRow = React.memo(
                             }}>
                             <SymbolView
                                 name={{ ios: 'trash', web: 'delete' }}
-                                tintColor={Colors.light.background}
+                                tintColor={theme.background}
                                 size={18}
                             />
                             <ThemedText
                                 style={[
                                     styles.actionText,
-                                    { color: Colors.light.background },
+                                    { color: theme.background },
                                 ]}>
                                 Delete
                             </ThemedText>

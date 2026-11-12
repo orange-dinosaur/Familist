@@ -26,7 +26,7 @@ import {
     formatCompactDateString,
     getRelativeDateString,
 } from '@/constants/dates';
-import { Colors, Fonts, MaxContentWidth, Spacing } from '@/constants/theme';
+import { Fonts, MaxContentWidth, Spacing } from '@/constants/theme';
 import { type LoanItem } from '@/constants/types';
 import { LoansProvider, useLoans } from '@/hooks/use-loans';
 import { useMembers } from '@/hooks/use-members';
@@ -120,13 +120,13 @@ const LoanRow = React.memo(
                             }}>
                             <SymbolView
                                 name={{ ios: 'trash', web: 'delete' }}
-                                tintColor={Colors.light.background}
+                                tintColor={theme.background}
                                 size={18}
                             />
                             <ThemedText
                                 style={[
                                     styles.actionText,
-                                    { color: Colors.light.background },
+                                    { color: theme.background },
                                 ]}>
                                 Delete
                             </ThemedText>

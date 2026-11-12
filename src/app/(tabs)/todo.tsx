@@ -30,7 +30,6 @@ import {
 import { type TodoItem } from '@/constants/types';
 import {
     BottomTabInset,
-    Colors,
     Fonts,
     MaxContentWidth,
     Spacing,
@@ -147,13 +146,13 @@ const TodoRow = React.memo(
                                     ios: 'trash',
                                     web: 'delete',
                                 }}
-                                tintColor={Colors.light.background}
+                                tintColor={theme.background}
                                 size={18}
                             />
                             <ThemedText
                                 style={[
                                     styles.actionText,
-                                    { color: Colors.light.background },
+                                    { color: theme.background },
                                 ]}>
                                 Delete
                             </ThemedText>

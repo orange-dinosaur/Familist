@@ -32,7 +32,6 @@ import {
 import { type ChoreDefinition, type ChoreItem } from '@/constants/types';
 import {
     BottomTabInset,
-    Colors,
     Fonts,
     MaxContentWidth,
     Spacing,
@@ -123,10 +122,14 @@ const ChoreRow = React.memo(
                                     ios: 'trash',
                                     web: 'delete',
                                 }}
-                                tintColor={Colors.light.background}
+                                tintColor={theme.background}
                                 size={18}
                             />
-                            <ThemedText style={styles.actionText}>
+                            <ThemedText
+                                style={[
+                                    styles.actionText,
+                                    { color: theme.background },
+                                ]}>
                                 Delete
                             </ThemedText>
                         </Pressable>
@@ -964,9 +967,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         gap: Spacing.half,
     },
-    /** The plate is the same red in both schemes, so its label is too. */
     actionText: {
-        color: Colors.light.background,
         fontFamily: Fonts.sansSemiBold,
         fontSize: 11,
         lineHeight: 15,

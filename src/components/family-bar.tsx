@@ -10,7 +10,7 @@ import { FamilyMembers } from '@/components/family-members';
 import { MemberAvatar } from '@/components/member-avatar';
 import { ThemedText } from '@/components/themed-text';
 import { authClient } from '@/auth/client';
-import { Colors, Fonts, MaxContentWidth, Spacing } from '@/constants/theme';
+import { Fonts, MaxContentWidth, Spacing } from '@/constants/theme';
 import { useAvatar } from '@/hooks/use-avatar';
 import { useFamily } from '@/hooks/use-family';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -412,7 +412,7 @@ export function FamilyBar() {
                                         ]}>
                                         <ThemedText
                                             type="default"
-                                            style={styles.destructiveLabel}>
+                                            style={{ color: theme.background }}>
                                             {CONFIRM[mode].act}
                                         </ThemedText>
                                     </Pressable>
@@ -787,10 +787,6 @@ const styles = StyleSheet.create({
         borderTopWidth: 1,
         paddingTop: Spacing.three,
         paddingBottom: Spacing.one,
-    },
-    /** The destructive fill is the same red in both schemes, so its label is too. */
-    destructiveLabel: {
-        color: Colors.light.background,
     },
     actions: {
         flexDirection: 'row',
