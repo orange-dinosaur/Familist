@@ -2,6 +2,7 @@ import {
     DarkTheme,
     DefaultTheme,
     ThemeProvider,
+    type Theme,
 } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
@@ -10,6 +11,7 @@ import React, { useEffect } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { AnimatedSplashOverlay } from '@/components/animated-icon';
+import { Colors } from '@/constants/theme';
 import { AppearanceProvider, useAppearance } from '@/hooks/use-appearance';
 import { useAuthGuard } from '@/hooks/use-auth-guard';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -28,6 +30,30 @@ function Guarded({ children }: { children: React.ReactNode }) {
     useAuthGuard();
     return children;
 }
+
+/** The stock themes paint white or black behind a screen as it slides in. */
+function paletteTheme(
+    base: Theme,
+    palette: (typeof Colors)['light' | 'dark']
+): Theme {
+    return {
+        ...base,
+        colors: {
+            ...base.colors,
+            primary: palette.link,
+            background: palette.background,
+            card: palette.background,
+            text: palette.text,
+            border: palette.backgroundSelected,
+            notification: palette.destructive,
+        },
+    };
+}
+
+const navigationThemes = {
+    light: paletteTheme(DefaultTheme, Colors.light),
+    dark: paletteTheme(DarkTheme, Colors.dark),
+};
 
 /**
  * Held until the faces and the appearance choice are both ready, so nothing is
@@ -65,7 +91,11 @@ function Root() {
     return (
         <GestureHandlerRootView style={{ flex: 1 }}>
             <ThemeProvider
-                value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+                value={
+                    colorScheme === 'dark'
+                        ? navigationThemes.dark
+                        : navigationThemes.light
+                }>
                 <FamilyProvider>
                     <MembersProvider>
                         <MealProvider>
