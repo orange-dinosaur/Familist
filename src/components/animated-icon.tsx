@@ -4,6 +4,8 @@ import { Dimensions, StyleSheet, View } from 'react-native';
 import Animated, { Easing, Keyframe } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
 
+import { Colors } from '@/constants/theme';
+
 const INITIAL_SCALE_FACTOR = Dimensions.get('screen').height / 90;
 const DURATION = 600;
 
@@ -134,14 +136,15 @@ const styles = StyleSheet.create({
     },
     background: {
         borderRadius: 40,
-        experimental_backgroundImage: `linear-gradient(180deg, #3C9FFE, #0274DF)`,
+        backgroundColor: Colors.dark.background,
         width: 128,
         height: 128,
         position: 'absolute',
     },
     backgroundSolidColor: {
         ...StyleSheet.absoluteFillObject,
-        backgroundColor: '#208AEF',
+        // Same colour as the native splash, so the hand-over shows no seam.
+        backgroundColor: Colors.dark.background,
         zIndex: 1000,
     },
 });
