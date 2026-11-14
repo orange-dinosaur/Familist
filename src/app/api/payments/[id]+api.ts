@@ -115,6 +115,11 @@ export async function PATCH(
         changes.payerId = payerId;
     }
 
+    /** Fields this route does not handle leave nothing to write. */
+    if (Object.keys(changes).length === 0) {
+        return badRequest('Nothing to change');
+    }
+
     const updated = await db
         .update(payment)
         .set(changes)

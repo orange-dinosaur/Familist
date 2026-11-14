@@ -120,6 +120,11 @@ export async function PATCH(
         changes.memberId = memberId;
     }
 
+    /** Fields this route does not handle leave nothing to write. */
+    if (Object.keys(changes).length === 0) {
+        return badRequest('Nothing to change');
+    }
+
     const updated = await db
         .update(loan)
         .set(changes)
