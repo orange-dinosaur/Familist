@@ -289,7 +289,7 @@ function build<T extends Entity>(
                     : newest,
             since
         );
-        if (latest) await setItem(mark, latest);
+        if (latest && latest !== since) await setItem(mark, latest);
     };
 
     let catching: Promise<void> | null = null;
