@@ -7,7 +7,11 @@ import React, {
 } from 'react';
 
 import { apiFetch, authClient } from '@/auth/client';
+import { getItem, setItem } from '@/store/key-value';
 import { type MemberRole } from '@/utils/member';
+
+/** Under the `familist.` prefix, so signing out clears it with the rest. */
+const familyKey = (userId: string) => `familist.family.${userId}`;
 
 export interface Family {
     id: string;
@@ -51,6 +55,8 @@ export function FamilyProvider({ children }: { children: React.ReactNode }) {
     const [member, setMember] = useState<Membership | null>(null);
     const [families, setFamilies] = useState<FamilyOption[]>([]);
     const [loading, setLoading] = useState(true);
+    /** True once what is held came from the server or from this device. */
+    const [known, setKnown] = useState(false);
 
     const userId = session?.user.id ?? null;
 
@@ -61,35 +67,61 @@ export function FamilyProvider({ children }: { children: React.ReactNode }) {
             setFamily(null);
             setMember(null);
             setFamilies([]);
+            setKnown(false);
             setLoading(false);
             return;
         }
 
         let active = true;
+        let answered = false;
         setLoading(true);
 
+        /**
+         * The last answer shows at once, so a launch with a slow or missing
+         * connection opens on the family instead of waiting for the server.
+         */
+        const stored = getItem(familyKey(userId))
+            .then((raw) => {
+                if (!active || answered || !raw) return;
+                const held = JSON.parse(raw);
+                setFamily(held.family ?? null);
+                setMember(held.member ?? null);
+                setFamilies(held.families ?? []);
+                setKnown(true);
+                setLoading(false);
+            })
+            .catch(() => {});
+
+        /** A failed request keeps what is shown; only an answer replaces it. */
         apiFetch('/api/family')
             .then((res) => (res.ok ? res.json() : null))
             .then((body) => {
-                if (!active) return;
-                setFamily(body?.family ?? null);
-                setMember(body?.member ?? null);
-                setFamilies(body?.families ?? []);
+                if (!active || !body) return;
+                answered = true;
+                setFamily(body.family ?? null);
+                setMember(body.member ?? null);
+                setFamilies(body.families ?? []);
+                setKnown(true);
             })
-            .catch(() => {
-                if (!active) return;
-                setFamily(null);
-                setMember(null);
-                setFamilies([]);
-            })
+            .catch(() => {})
             .finally(() => {
-                if (active) setLoading(false);
+                void stored.then(() => {
+                    if (active) setLoading(false);
+                });
             });
 
         return () => {
             active = false;
         };
     }, [userId, isPending]);
+
+    useEffect(() => {
+        if (!userId || !known) return;
+        setItem(
+            familyKey(userId),
+            JSON.stringify({ family, member, families })
+        ).catch(() => {});
+    }, [userId, known, family, member, families]);
 
     /**
      * Appended, matching the server's order: oldest membership first. An id
