@@ -11,7 +11,8 @@ import type { Changes, Entity } from '@/store/family-store';
 
 /**
  * A refusal the server put into words. A dropped connection is not one of
- * these, which is how a caller tells the two apart.
+ * these, and neither is an answer that only says "not now", which is how a
+ * caller tells the two apart.
  */
 export class StoreError extends Error {
     readonly status: number;
@@ -56,6 +57,21 @@ async function send(
     init?: RequestInit
 ): Promise<Record<string, unknown>> {
     const res = await apiFetch(path, init);
+
+    /**
+     * An expired session, a rate limit or a server that is down will answer
+     * differently later, so they are treated like a dropped connection and the
+     * write stays queued.
+     */
+    if (
+        res.status === 401 ||
+        res.status === 408 ||
+        res.status === 429 ||
+        res.status >= 500
+    ) {
+        throw new Error(`Server unavailable (${res.status})`);
+    }
+
     const body = await res.json().catch(() => null);
 
     if (!res.ok) {
