@@ -1,6 +1,6 @@
 import { SymbolView } from 'expo-symbols';
 import { useFocusEffect } from 'expo-router';
-import React, { useState, useRef } from 'react';
+import React, { useEffectEvent, useState, useRef } from 'react';
 import {
     Animated,
     Pressable,
@@ -277,19 +277,22 @@ export default function DailyChoresScreen() {
     const nameOf = (chore: ChoreItem) =>
         choreNames.get(chore.definitionId) ?? '';
 
-    /** The strip opens on the selected day rather than at its left edge. */
-    useFocusEffect(
-        React.useCallback(() => {
-            const index = dates.indexOf(selectedDay);
-            if (index < 0) return;
-            stripRef.current?.scrollTo({
-                x: Math.max(0, (index - 3) * DayColumnWidth),
-                animated: false,
-            });
-            // The strip only needs placing when the screen comes back.
-            // eslint-disable-next-line react-hooks/exhaustive-deps
-        }, [])
-    );
+    /**
+     * The strip opens on the selected day rather than at its left edge. It is
+     * placed when the screen comes back, not on every tap, and reads the day
+     * selected by then.
+     */
+    const placeStrip = useEffectEvent(() => {
+        const index = dates.indexOf(selectedDay);
+        if (index < 0) return;
+        stripRef.current?.scrollTo({
+            x: Math.max(0, (index - 3) * DayColumnWidth),
+            animated: false,
+        });
+    });
+    // An effect event is left out of the dependencies on purpose.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    useFocusEffect(React.useCallback(() => placeStrip(), []));
 
     /** Edit mode draws its rows to match `ChoiceRow`. */
     const rowRule = { borderBottomColor: `${theme.text}17` };
