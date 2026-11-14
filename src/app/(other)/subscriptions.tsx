@@ -234,9 +234,14 @@ function Subscriptions() {
     const [payerId, setPayerId] = useState<string | undefined>(undefined);
 
     const listed = [...subscriptions].sort(byRenewal);
-    /** Anything not yet charged this month, overdue renewals included. */
-    const thisMonth = monthOf(getRelativeDateString(0));
-    const soon = listed.filter((one) => monthOf(one.nextRenewal) <= thisMonth);
+    /** A renewal date stays put until it is paid, so a past one is overdue. */
+    const today = getRelativeDateString(0);
+    const thisMonth = monthOf(today);
+    const overdue = listed.filter((one) => one.nextRenewal < today);
+    const soon = listed.filter(
+        (one) =>
+            one.nextRenewal >= today && monthOf(one.nextRenewal) <= thisMonth
+    );
     const later = listed.filter((one) => monthOf(one.nextRenewal) > thisMonth);
     const total = monthlyTotal(subscriptions);
     const minorUnits = parseAmount(amount);
@@ -348,6 +353,15 @@ function Subscriptions() {
                         </ThemedText>
                     ) : (
                         <>
+                            {overdue.length > 0 && (
+                                <>
+                                    <SectionHeading
+                                        label="Overdue"
+                                        count={overdue.length}
+                                    />
+                                    {overdue.map(renderRow)}
+                                </>
+                            )}
                             {soon.length > 0 && (
                                 <>
                                     <SectionHeading

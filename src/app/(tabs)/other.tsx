@@ -48,7 +48,8 @@ function useHubEntries(): HubEntry[] {
     const nextRenewal = [...subscriptions].sort(byRenewal)[0];
     const oldest = [...activities].sort(byLastDone)[0];
 
-    const thisMonth = monthOf(getRelativeDateString(0));
+    const today = getRelativeDateString(0);
+    const thisMonth = monthOf(today);
     const monthPayments = payments.filter(
         (one) => monthOf(one.dueOn) === thisMonth
     );
@@ -64,7 +65,7 @@ function useHubEntries(): HubEntry[] {
             figure: subscriptions.length,
             unit: 'active',
             state: nextRenewal
-                ? `Next: ${nextRenewal.name}, ${formatShortDateString(nextRenewal.nextRenewal)}`
+                ? `${nextRenewal.nextRenewal < today ? 'Overdue' : 'Next'}: ${nextRenewal.name}, ${formatShortDateString(nextRenewal.nextRenewal)}`
                 : null,
             loading: subscriptionsLoading,
         },
