@@ -1,6 +1,8 @@
 // Run with: bun scripts/check-synced-store-cache.ts
 import assert from 'node:assert/strict';
 
+import type { Entity } from '../src/store/family-store';
+
 const kv = new Map<string, string>();
 const stub = (exports: Record<string, unknown>) => () => ({
     exports,
@@ -64,5 +66,30 @@ assert.deepEqual(await local.list(), []);
 assert.deepEqual(local.peek(), [], 'peek answers once the read is done');
 await local.create({});
 assert.equal(local.peek()?.length, 1, 'peek follows writes');
+
+const { merge } = await import('../src/store/synced-store');
+const held: Entity = { id: 'a', updatedAt: '2026-11-01T10:00:00.000Z' };
+assert.equal(merge([held], [held]).changed, false, 'the mark record again');
+assert.equal(
+    merge([held], [{ id: 'a', updatedAt: '2026-11-01T09:00:00.000Z' }]).changed,
+    false,
+    'an older copy'
+);
+assert.equal(
+    merge([held], [{ id: 'a', updatedAt: '2026-11-02T10:00:00.000Z' }]).changed,
+    true,
+    'a newer copy'
+);
+assert.equal(merge([held], [{ id: 'b' }]).changed, true, 'a new record');
+assert.equal(
+    merge([held], [{ id: 'a', deletedAt: '2026-11-02T10:00:00.000Z' }]).changed,
+    true,
+    'a tombstone for a held record'
+);
+assert.equal(
+    merge([held], [{ id: 'z', deletedAt: '2026-11-02T10:00:00.000Z' }]).changed,
+    false,
+    'a tombstone for a record never held'
+);
 
 console.log('ok');

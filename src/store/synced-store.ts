@@ -54,23 +54,33 @@ function isNewer(incoming: Entity, mine: Entity): boolean {
     return (incoming.updatedAt ?? '') > (mine.updatedAt ?? '');
 }
 
-function merge<T extends Entity>(current: T[], incoming: T[]): T[] {
+/**
+ * `changed` is false when every incoming record was already held, which is
+ * the usual answer to a pull: the server sends the record that set the mark
+ * again, since the filter is inclusive.
+ */
+export function merge<T extends Entity>(
+    current: T[],
+    incoming: T[]
+): { items: T[]; changed: boolean } {
     const byId = new Map(current.map((item) => [item.id, item]));
+    let changed = false;
 
     for (const record of incoming) {
         if (record.deletedAt) {
-            byId.delete(record.id);
+            changed = byId.delete(record.id) || changed;
             continue;
         }
 
         const mine = byId.get(record.id);
         if (!mine || isNewer(record, mine)) {
             byId.set(record.id, record);
+            changed = true;
         }
     }
 
     /** Setting an existing key keeps its position, so new records land last. */
-    return [...byId.values()];
+    return { items: [...byId.values()], changed };
 }
 
 const stores = new Map<string, SyncedStore<any>>();
@@ -264,9 +274,11 @@ function build<T extends Entity>(
          * deleted while the device was away, which an incremental read reports
          * as tombstones and a full one does not report at all.
          */
-        if (incoming.length > 0 || !since) {
-            const next = since ? merge(await local.list(), incoming) : incoming;
-            await local.replace(next);
+        if (!since) {
+            await local.replace(incoming);
+        } else if (incoming.length > 0) {
+            const { items, changed } = merge(await local.list(), incoming);
+            if (changed) await local.replace(items);
         }
 
         /** Written last: a failure between the two re-pulls rather than skips. */
