@@ -20,6 +20,9 @@ export type { MemberRole };
 
 type FamilyMember = typeof familyMember.$inferSelect;
 
+/** Sent by `src/store/remote-client.ts`. */
+const FAMILY_HEADER = 'x-familist-family';
+
 export interface Membership {
     userId: string;
     memberId: string;
@@ -108,12 +111,20 @@ export async function getMembership(
     const live = rows.filter((row) => row.member.role !== null);
     if (live.length === 0) return null;
 
+    /**
+     * A collection request names the family its records belong to, because a
+     * write queued on this device can be sent after the active family was
+     * switched on another one. It only picks among the caller's own live
+     * memberships, so it can never reach somebody else's family.
+     */
+    const stated = request.headers.get(FAMILY_HEADER);
     const activeId = live[0].activeId;
-    const chosen =
-        live.find((row) => row.member.id === activeId)?.member ??
-        live[0].member;
+    const chosen = stated
+        ? live.find((row) => row.member.familyId === stated)?.member
+        : (live.find((row) => row.member.id === activeId)?.member ??
+          live[0].member);
 
-    if (!chosen.role) return null;
+    if (!chosen?.role) return null;
 
     return {
         userId: user.id,

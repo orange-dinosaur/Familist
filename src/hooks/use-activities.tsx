@@ -48,7 +48,7 @@ export function ActivitiesProvider({
             familyId
                 ? createSyncedStore<ActivityItem>(
                       `familist.activities.${familyId}`,
-                      ACTIVITIES,
+                      { ...ACTIVITIES, familyId },
                       'familist.activities'
                   )
                 : null,

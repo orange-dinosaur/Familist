@@ -45,7 +45,7 @@ export function SharedLinksProvider({
             familyId
                 ? createSyncedStore<SharedLinkItem>(
                       `familist.shared-links.${familyId}`,
-                      SHARED_LINKS,
+                      { ...SHARED_LINKS, familyId },
                       'familist.shared-links'
                   )
                 : null,

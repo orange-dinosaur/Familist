@@ -39,7 +39,7 @@ export function LoansProvider({ children }: { children: React.ReactNode }) {
             familyId
                 ? createSyncedStore<LoanItem>(
                       `familist.loans.${familyId}`,
-                      LOANS,
+                      { ...LOANS, familyId },
                       'familist.loans'
                   )
                 : null,

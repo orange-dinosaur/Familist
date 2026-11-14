@@ -39,7 +39,7 @@ export function PaymentsProvider({ children }: { children: React.ReactNode }) {
             familyId
                 ? createSyncedStore<PaymentItem>(
                       `familist.payments.${familyId}`,
-                      PAYMENTS,
+                      { ...PAYMENTS, familyId },
                       'familist.payments'
                   )
                 : null,

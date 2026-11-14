@@ -34,6 +34,12 @@ export interface RemoteCollection {
     /** The keys the routes wrap their answers in: `meal` and `meals`. */
     one: string;
     many: string;
+    /**
+     * The family these records belong to, sent with every request so that a
+     * write queued here still lands there after the active family has been
+     * switched on another device. `getMembership` reads it.
+     */
+    familyId: string;
 }
 
 export interface RemoteClient<T extends Entity> {
@@ -52,7 +58,7 @@ export interface RemoteClient<T extends Entity> {
     remove(id: string): Promise<void>;
 }
 
-async function send(
+async function request(
     path: string,
     init?: RequestInit
 ): Promise<Record<string, unknown>> {
@@ -94,7 +100,14 @@ export function createRemoteClient<T extends Entity>({
     path,
     one,
     many,
+    familyId,
 }: RemoteCollection): RemoteClient<T> {
+    const send = (url: string, init: RequestInit = {}) =>
+        request(url, {
+            ...init,
+            headers: { ...init.headers, 'x-familist-family': familyId },
+        });
+
     return {
         async pull(since) {
             const query = since ? `?since=${encodeURIComponent(since)}` : '';

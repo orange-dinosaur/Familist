@@ -50,7 +50,7 @@ export function SubscriptionsProvider({
             familyId
                 ? createSyncedStore<SubscriptionItem>(
                       `familist.subscriptions.${familyId}`,
-                      SUBSCRIPTIONS,
+                      { ...SUBSCRIPTIONS, familyId },
                       'familist.subscriptions'
                   )
                 : null,

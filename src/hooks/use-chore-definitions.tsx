@@ -43,7 +43,7 @@ export function ChoreDefinitionsProvider({
             familyId
                 ? createSyncedStore<ChoreDefinition>(
                       `familist.chore-definitions.${familyId}`,
-                      CHORE_DEFINITIONS
+                      { ...CHORE_DEFINITIONS, familyId }
                   )
                 : null,
         [familyId]

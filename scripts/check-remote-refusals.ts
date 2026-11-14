@@ -4,14 +4,21 @@ import assert from 'node:assert/strict';
 declare const Bun: any;
 
 let status = 200;
+let sentFamily: string | undefined;
 
 Bun.plugin({
     name: 'native-stubs',
     setup(build: any) {
         build.module('@/auth/client', () => ({
             exports: {
-                apiFetch: async () =>
-                    new Response(JSON.stringify({ error: 'No' }), { status }),
+                apiFetch: async (_path: string, init: RequestInit) => {
+                    sentFamily = (init.headers as Record<string, string>)[
+                        'x-familist-family'
+                    ];
+                    return new Response(JSON.stringify({ error: 'No' }), {
+                        status,
+                    });
+                },
             },
             loader: 'object',
         }));
@@ -24,6 +31,7 @@ const remote = createRemoteClient({
     path: '/api/todos',
     one: 'todo',
     many: 'todos',
+    familyId: 'fam-1',
 });
 
 async function failure(code: number): Promise<unknown> {
@@ -49,5 +57,7 @@ for (const code of [401, 408, 429, 500, 502, 503]) {
         `${code} should be retried`
     );
 }
+
+assert.equal(sentFamily, 'fam-1', 'every request names its family');
 
 console.log('ok');

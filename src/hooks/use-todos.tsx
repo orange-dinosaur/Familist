@@ -47,7 +47,7 @@ export function TodosProvider({ children }: { children: React.ReactNode }) {
             familyId
                 ? createSyncedStore<TodoItem>(
                       `familist.todos.${familyId}`,
-                      TODOS,
+                      { ...TODOS, familyId },
                       'familist.todos'
                   )
                 : null,
