@@ -92,8 +92,13 @@ const styles = StyleSheet.create({
     pressed: {
         opacity: 0.6,
     },
+    /**
+     * When the title and the figure do not fit side by side, the figure moves
+     * under the title rather than the title breaking mid-word.
+     */
     titleRow: {
         flexDirection: 'row',
+        flexWrap: 'wrap',
         alignItems: 'flex-end',
         justifyContent: 'space-between',
         gap: Spacing.three,
@@ -102,7 +107,7 @@ const styles = StyleSheet.create({
         paddingBottom: Spacing.three,
     },
     titleBlock: {
-        flex: 1,
+        flexGrow: 1,
     },
     subtitle: {
         marginTop: Spacing.two,
@@ -110,6 +115,7 @@ const styles = StyleSheet.create({
         lineHeight: 18,
     },
     figure: {
+        marginLeft: 'auto',
         alignItems: 'flex-end',
         paddingBottom: Spacing.half,
     },
