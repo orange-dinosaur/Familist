@@ -370,6 +370,10 @@ function build<T extends Entity>(
             return local.list();
         },
 
+        peek() {
+            return local.peek();
+        },
+
         /**
          * The id is minted here rather than by the server, so the record has
          * one from the moment it exists - which is what lets a create be

@@ -13,18 +13,21 @@ import type { Entity, FamilyStore } from '@/store/family-store';
 export function useStoreCollection<T extends Entity>(
     store: FamilyStore<T> | null
 ) {
-    const [items, setItems] = useState<T[]>([]);
-    const [loading, setLoading] = useState(true);
+    const [items, setItems] = useState<T[]>(() => store?.peek() ?? []);
+    const [loading, setLoading] = useState(() =>
+        store ? store.peek() === null : true
+    );
 
     useEffect(() => {
-        setItems([]);
+        const held = store?.peek() ?? null;
+        setItems(held ?? []);
 
         if (!store) {
             setLoading(false);
             return;
         }
 
-        setLoading(true);
+        setLoading(held === null);
         return store.subscribe((next) => {
             setItems(next);
             setLoading(false);

@@ -35,6 +35,13 @@ export interface FamilyStore<T extends Entity> {
     remove(id: string): Promise<void>;
 
     /**
+     * The collection as it is held right now, or null while it has not been
+     * read yet. It lets a screen opened on a store that is already loaded
+     * paint its records in the first frame instead of waiting for `subscribe`.
+     */
+    peek(): T[] | null;
+
+    /**
      * Emits the whole collection once it is available, then again after every
      * change. Returns an unsubscribe function.
      */

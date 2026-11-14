@@ -57,4 +57,12 @@ const b = make('familist.todos.f1');
 await clearLocalData();
 assert.notEqual(make('familist.todos.f1'), b, 'sign-out drops the stores');
 
+const { createLocalStore } = await import('../src/store/local-store');
+const local = createLocalStore<{ id: string }>('familist.peek.f1');
+assert.equal(local.peek(), null, 'nothing to peek before the first read');
+assert.deepEqual(await local.list(), []);
+assert.deepEqual(local.peek(), [], 'peek answers once the read is done');
+await local.create({});
+assert.equal(local.peek()?.length, 1, 'peek follows writes');
+
 console.log('ok');

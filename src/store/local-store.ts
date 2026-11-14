@@ -31,6 +31,7 @@ export function createLocalStore<T extends Entity>(
 ): LocalStore<T> {
     let items: T[] = [];
     let loaded: Promise<void> | null = null;
+    let ready = false;
     const listeners = new Set<(items: T[]) => void>();
 
     const emit = () => {
@@ -69,7 +70,9 @@ export function createLocalStore<T extends Entity>(
 
     const load = () => {
         if (!loaded) {
-            loaded = read();
+            loaded = read().then(() => {
+                ready = true;
+            });
         }
         return loaded;
     };
@@ -78,6 +81,10 @@ export function createLocalStore<T extends Entity>(
         async list() {
             await load();
             return [...items];
+        },
+
+        peek() {
+            return ready ? [...items] : null;
         },
 
         async create(input) {

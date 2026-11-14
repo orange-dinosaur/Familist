@@ -21,6 +21,10 @@ export function createMemoryStore<T extends Entity>(
             return [...items];
         },
 
+        peek() {
+            return [...items];
+        },
+
         async create(input) {
             const created = { ...input, id: createId() } as T;
             items = [...items, created];
