@@ -28,6 +28,7 @@ const APP_SCREENS = [
     '/payments',
     '/shared-links',
     '/loaned-items',
+    '/settings',
     '/welcome',
 ];
 
