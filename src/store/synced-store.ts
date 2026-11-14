@@ -73,7 +73,32 @@ function merge<T extends Entity>(current: T[], incoming: T[]): T[] {
     return [...byId.values()];
 }
 
+const stores = new Map<string, SyncedStore<any>>();
+
+/**
+ * One store per storage key. Two stores on a key each keep their own copy of
+ * the records and each pulls and ticks on its own, and the older copy later
+ * writes over what the newer one saved.
+ */
 export function createSyncedStore<T extends Entity>(
+    key: string,
+    collection: RemoteCollection,
+    legacy?: string
+): SyncedStore<T> {
+    let store = stores.get(key);
+    if (!store) {
+        store = build<T>(key, collection, legacy);
+        stores.set(key, store);
+    }
+    return store;
+}
+
+/** Signing out empties the device, so the copies held in memory go too. */
+export function forgetSyncedStores() {
+    stores.clear();
+}
+
+function build<T extends Entity>(
     key: string,
     collection: RemoteCollection,
     legacy?: string

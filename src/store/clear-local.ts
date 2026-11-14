@@ -8,6 +8,7 @@
  */
 
 import { keys, removeItem } from '@/store/key-value';
+import { forgetSyncedStores } from '@/store/synced-store';
 
 /**
  * Everything this app writes is namespaced, which is what makes clearing it a
@@ -17,6 +18,7 @@ import { keys, removeItem } from '@/store/key-value';
 const PREFIX = 'familist.';
 
 export async function clearLocalData(): Promise<void> {
+    forgetSyncedStores();
     const stored = await keys();
     await Promise.all(
         stored
