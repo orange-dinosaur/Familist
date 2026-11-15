@@ -15,6 +15,7 @@ import {
     integer,
     pgEnum,
     pgTable,
+    smallint,
     text,
     timestamp,
     unique,
@@ -425,6 +426,12 @@ export const subscription = pgTable(
         currency: text('currency').notNull(),
         cycle: subscriptionCycle('cycle').notNull(),
         nextRenewal: date('next_renewal').notNull(),
+        /**
+         * The day of the month it renews on. `nextRenewal` is pulled back in a
+         * short month, and this is what puts it back on the 31st afterwards.
+         * Null on rows made before it existed.
+         */
+        renewalDay: smallint('renewal_day'),
         /** Who pays for it, which the family need not have decided. */
         payerId: text('payer_id'),
         createdAt: timestamp('created_at').defaultNow().notNull(),
@@ -441,6 +448,10 @@ export const subscription = pgTable(
             foreignColumns: [familyMember.familyId, familyMember.id],
             name: 'subscription_payer_fk',
         }),
+        check(
+            'subscription_renewal_day_check',
+            sql`${table.renewalDay} BETWEEN 1 AND 31`
+        ),
     ]
 );
 

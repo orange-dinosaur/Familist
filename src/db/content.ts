@@ -122,6 +122,7 @@ export const SUBSCRIPTION_COLUMNS = {
     currency: subscription.currency,
     cycle: subscription.cycle,
     nextRenewal: subscription.nextRenewal,
+    renewalDay: subscription.renewalDay,
     payerId: subscription.payerId,
     updatedAt: subscription.updatedAt,
     deletedAt: subscription.deletedAt,
@@ -338,6 +339,19 @@ export function directionError(value: unknown): string | null {
         !LOAN_DIRECTIONS.includes(value as LoanItem['direction'])
     ) {
         return 'Unknown direction';
+    }
+    return null;
+}
+
+/** A day of the month, or null for a subscription that has none recorded. */
+export function renewalDayError(value: unknown): string | null {
+    if (value === null) return null;
+    if (
+        !Number.isInteger(value) ||
+        (value as number) < 1 ||
+        (value as number) > 31
+    ) {
+        return 'A renewal day is 1 to 31';
     }
     return null;
 }

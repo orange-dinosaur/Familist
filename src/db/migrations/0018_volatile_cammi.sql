@@ -1,0 +1,2 @@
+ALTER TABLE "subscription" ADD COLUMN "renewal_day" smallint;--> statement-breakpoint
+ALTER TABLE "subscription" ADD CONSTRAINT "subscription_renewal_day_check" CHECK ("subscription"."renewal_day" BETWEEN 1 AND 31);

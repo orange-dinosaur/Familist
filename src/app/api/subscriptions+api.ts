@@ -17,6 +17,7 @@ import {
     badRequest,
     currencyError,
     cycleError,
+    renewalDayError,
     dayError,
     emojiError,
     forbidden,
@@ -69,6 +70,7 @@ export async function POST(request: Request): Promise<Response> {
         currency?: unknown;
         cycle?: unknown;
         nextRenewal?: unknown;
+        renewalDay?: unknown;
         payerId?: unknown;
     };
     try {
@@ -77,8 +79,17 @@ export async function POST(request: Request): Promise<Response> {
         return badRequest('Invalid body');
     }
 
-    const { id, name, emoji, amount, currency, cycle, nextRenewal, payerId } =
-        body;
+    const {
+        id,
+        name,
+        emoji,
+        amount,
+        currency,
+        cycle,
+        nextRenewal,
+        renewalDay = null,
+        payerId,
+    } = body;
 
     /** A client mints this when it creates a record it cannot yet send. */
     if (id !== undefined) {
@@ -93,7 +104,8 @@ export async function POST(request: Request): Promise<Response> {
         amountError(amount) ??
         currencyError(currency) ??
         cycleError(cycle) ??
-        dayError(nextRenewal);
+        dayError(nextRenewal) ??
+        renewalDayError(renewalDay);
     if (invalid) return badRequest(invalid);
 
     /** The column is `NOT NULL DEFAULT ''`, so no emoji is a valid one. */
@@ -126,6 +138,7 @@ export async function POST(request: Request): Promise<Response> {
             currency: currency as Currency,
             cycle: cycle as SubscriptionItem['cycle'],
             nextRenewal: nextRenewal as string,
+            renewalDay: renewalDay as number | null,
             payerId: payer,
         })
         .onConflictDoNothing()

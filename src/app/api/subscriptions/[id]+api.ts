@@ -20,6 +20,7 @@ import {
     badRequest,
     currencyError,
     cycleError,
+    renewalDayError,
     dayError,
     emojiError,
     forbidden,
@@ -56,6 +57,7 @@ export async function PATCH(
         currency?: Currency;
         cycle?: SubscriptionItem['cycle'];
         nextRenewal?: string;
+        renewalDay?: number | null;
         payerId?: string | null;
     } = {};
 
@@ -93,6 +95,12 @@ export async function PATCH(
         const invalid = dayError(body.nextRenewal);
         if (invalid) return badRequest(invalid);
         changes.nextRenewal = body.nextRenewal as string;
+    }
+
+    if ('renewalDay' in body) {
+        const invalid = renewalDayError(body.renewalDay);
+        if (invalid) return badRequest(invalid);
+        changes.renewalDay = body.renewalDay as number | null;
     }
 
     if ('payerId' in body) {

@@ -36,11 +36,14 @@ function daysInMonth(year: number, month: number): number {
 /**
  * One cycle on from `day`. A date that does not exist in the month it lands in
  * is pulled back to that month's last day, so a renewal on the 31st stays at
- * the end of the month rather than sliding into the next one.
+ * the end of the month rather than sliding into the next one. `renewalDay` is
+ * the day it renews on, which puts it back on the 31st after a short month;
+ * without one, the day of `day` stands in.
  */
 export function nextRenewalAfter(
     day: string,
-    cycle: SubscriptionItem['cycle']
+    cycle: SubscriptionItem['cycle'],
+    renewalDay?: number | null
 ): string {
     const [year, month, date] = day.split('-').map(Number);
 
@@ -52,7 +55,7 @@ export function nextRenewalAfter(
     const months = cycle === 'monthly' ? 1 : 12;
     const target = new Date(year, month - 1 + months, 1);
     const lastDay = daysInMonth(target.getFullYear(), target.getMonth());
-    target.setDate(Math.min(date, lastDay));
+    target.setDate(Math.min(renewalDay ?? date, lastDay));
     return formatDateString(target);
 }
 

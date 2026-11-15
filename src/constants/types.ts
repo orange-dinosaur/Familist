@@ -74,6 +74,8 @@ export interface SubscriptionItem {
     currency: Currency;
     cycle: 'weekly' | 'monthly' | 'yearly';
     nextRenewal: string;
+    /** The day of the month it renews on; null on older subscriptions. */
+    renewalDay?: number | null;
     /** Null is how the server says nobody, and how it is told so. */
     payerId?: string | null;
 }
