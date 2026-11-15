@@ -424,7 +424,11 @@ function Payments() {
         });
         return editSubscription(id, {
             ...rest,
-            nextRenewal: nextRenewalAfter(was, subscription.cycle),
+            nextRenewal: nextRenewalAfter(
+                was,
+                subscription.cycle,
+                subscription.renewalDay
+            ),
         });
     };
 

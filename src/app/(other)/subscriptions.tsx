@@ -288,6 +288,11 @@ function Subscriptions() {
             currency,
             cycle,
             nextRenewal,
+            /** An edit that leaves the date alone keeps the day, which a short month may have pulled back. */
+            renewalDay:
+                editing && editing.nextRenewal === nextRenewal
+                    ? (editing.renewalDay ?? null)
+                    : Number(nextRenewal.slice(8)),
             payerId,
         };
 
